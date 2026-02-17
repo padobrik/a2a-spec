@@ -1,0 +1,22 @@
+{
+  "fingerprint": "a1b2c3d4e5f6",
+  "agent_id": "triage-agent",
+  "scenario": "billing_overcharge",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "input": {
+    "message": "I was charged twice for my order #12345"
+  },
+  "output": {
+    "category": "billing",
+    "summary": "Customer reports issue related to billing: i was charged twice for my order #12345",
+    "priority": "medium",
+    "confidence": 0.92
+  },
+  "metadata": {
+    "agent_version": "1.0.0",
+    "model": null,
+    "prompt_hash": null,
+    "latency_ms": 1.2,
+    "token_usage": null
+  }
+}

@@ -1,0 +1,151 @@
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyo
+
+# Distribution / packaging
+dist/
+build/
+eggs/
+*.egg
+*.egg-info/
+src/*.egg-info/
+*.whl
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+parts/
+var/
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ========================
+# Virtual environments
+# ========================
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# ========================
+# Testing
+# ========================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# ========================
+# Type checking & Linting
+# ========================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.ruff_cache/
+.pyre/
+
+# ========================
+# IDE / Editors
+# ========================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.history/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+.spyderproject
+.spyproject
+.ropeproject
+
+# ========================
+# OS files
+# ========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+*.bak
+*.tmp
+*.log
+
+# ========================
+# Environment / Secrets
+# ========================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ========================
+# Jupyter Notebooks
+# ========================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ========================
+# Documentation builds
+# ========================
+site/
+_build/
+docs/_build/
+
+# ========================
+# Profiling
+# ========================
+*.prof
+*.lprof
+
+# ========================
+# Celery
+# ========================
+celerybeat-schedule
+celerybeat.pid
+
+# ========================
+# a2a-spec specific
+# ========================
+
+# Generated reports (not committed)
+a2a_spec/reports/
+*.junit.xml
+report.md
+
+# NOTE: Snapshots ARE committed to git!
+# They are your test baselines for deterministic replay.
+# Do NOT add a2a_spec/snapshots/ to .gitignore.

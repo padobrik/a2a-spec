@@ -1,0 +1,42 @@
+spec:
+  name: triage-to-resolution
+  version: "1.0"
+  producer: triage-agent
+  consumer: resolution-agent
+  description: "The resolution agent expects structured triage output"
+
+  structural:
+    type: object
+    required:
+      - category
+      - summary
+      - confidence
+    properties:
+      category:
+        type: string
+        enum: [billing, shipping, product, general]
+      summary:
+        type: string
+        minLength: 10
+        maxLength: 500
+      confidence:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+      priority:
+        type: string
+        enum: [low, medium, high]
+
+  semantic:
+    - rule: summary_reflects_input
+      description: "Summary must faithfully reflect the customer's message"
+      method: embedding_similarity
+      threshold: 0.8
+
+  policy:
+    - rule: no_pii
+      description: "Output must not contain PII"
+      method: regex
+      patterns:
+        - '\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b'
+        - '\b\d{3}-\d{2}-\d{4}\b'

@@ -1,0 +1,448 @@
+<p align="center">
+  <strong>a2a-spec</strong><br>
+  <em>The open specification for testing, validating, and guaranteeing agent-to-agent interactions.</em>
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/a2a-spec/"><img src="https://img.shields.io/pypi/v/a2a-spec?style=flat-square" alt="PyPI"></a>
+  <a href="https://github.com/padobrik/a2a-spec/actions"><img src="https://img.shields.io/github/actions/workflow/status/padobrik/a2a-spec/ci.yml?style=flat-square" alt="CI"></a>
+  <a href="https://github.com/padobrik/a2a-spec/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/pypi/pyversions/a2a-spec?style=flat-square" alt="Python 3.11+">
+  <a href="https://github.com/padobrik/a2a-spec"><img src="https://img.shields.io/badge/typed-PEP%20561-brightgreen?style=flat-square" alt="Typed"></a>
+</p>
+
+---
+
+## The Problem
+
+Multi-agent AI systems are **impossible to test reliably**. When Agent A changes its output format, Agent B silently breaks. LLM outputs are non-deterministic, so CI pipelines either skip testing or flake constantly. Existing tools focus on prompt evaluation or observability — none provide **contract testing between agents**.
+
+## The Solution
+
+**a2a-spec** is a specification, testing, and validation layer for multi-agent systems. Define what one agent expects from another as a YAML spec. Record LLM outputs as snapshots. Replay them deterministically in CI with zero LLM calls. Detect structural and semantic regressions before they reach production.
+
+```
+Agent A ──[spec]──> Agent B ──[spec]──> Agent C
+    │                   │                   │
+    └── snapshot ──> replay ──> validate ──> ✓ CI passes
+```
+
+## What a2a-spec is NOT
+
+| a2a-spec is **not** | Examples | What a2a-spec **is** |
+|---|---|---|
+| An agent framework | LangChain, CrewAI, AutoGen | A **testing layer** that sits alongside any framework |
+| An observability tool | LangSmith, Arize, Langfuse | A **validation engine** that runs in CI, not production |
+| A prompt evaluation tool | Promptfoo, DeepEval | A **contract testing** system between agents |
+| An agent runtime | n/a | A **specification framework** for agent boundaries |
+
+---
+
+## Quick Start
+
+### Install
+
+```bash
+pip install a2a-spec
+```
+
+With optional features:
+
+```bash
+pip install a2a-spec[semantic]    # Embedding-based semantic comparison
+pip install a2a-spec[langchain]   # LangChain adapter
+pip install a2a-spec[dev]         # Testing and linting tools
+pip install a2a-spec[all]         # Everything
+```
+
+### Initialize a project
+
+```bash
+a2aspec init --name my-project
+```
+
+This creates:
+```
+my-project/
+├── a2a-spec.yaml              # Project configuration
+└── a2a_spec/
+    ├── specs/                  # Agent-to-agent contracts
+    │   └── example-spec.yaml
+    ├── snapshots/              # Recorded outputs (committed to git!)
+    ├── scenarios/              # Test input scenarios
+    └── adapters/               # Agent wrappers
+```
+
+### Define a spec
+
+A spec is a YAML contract between a **producer** agent and a **consumer** agent. It defines structural, semantic, and policy requirements:
+
+```yaml
+# a2a_spec/specs/triage-to-resolution.yaml
+spec:
+  name: triage-to-resolution
+  version: "1.0"
+  producer: triage-agent
+  consumer: resolution-agent
+  description: "What the resolution agent expects from triage"
+
+  structural:
+    type: object
+    required: [category, summary, confidence]
+    properties:
+      category:
+        type: string
+        enum: [billing, shipping, product, general]
+      summary:
+        type: string
+        minLength: 10
+        maxLength: 500
+      confidence:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+
+  semantic:
+    - rule: summary_reflects_input
+      description: "Summary must faithfully reflect the customer message"
+      method: embedding_similarity
+      threshold: 0.8
+
+  policy:
+    - rule: no_pii
+      description: "Output must not contain PII"
+      method: regex
+      patterns:
+        - '\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b'  # Credit card
+        - '\b\d{3}-\d{2}-\d{4}\b'                       # SSN
+```
+
+### Record snapshots
+
+```bash
+a2aspec record  # Calls live agents via adapters, saves outputs to disk
+```
+
+Snapshots are JSON files committed to git — they become your deterministic test baselines.
+
+### Test in CI (zero LLM calls)
+
+```bash
+a2aspec test --replay  # Validates saved snapshots against specs
+```
+
+No API keys needed. No LLM costs. Fully deterministic. Runs in milliseconds.
+
+### Detect semantic drift
+
+After changing a prompt or upgrading a model:
+
+```bash
+a2aspec record   # Re-record with the new configuration
+a2aspec diff     # Compare new vs. baseline outputs
+```
+
+The diff engine reports structural changes (fields added/removed/type-changed) and semantic drift (meaning shifted beyond threshold), with severity levels from LOW to CRITICAL.
+
+---
+
+## Core Concepts
+
+| Concept | Description |
+|---------|-------------|
+| **Spec** | A YAML file defining what one agent expects from another — structure, semantics, and policy rules |
+| **Snapshot** | A recorded LLM output for a given input, stored as JSON and committed to git |
+| **Replay** | Running validation against saved snapshots with zero LLM calls — fast, free, deterministic |
+| **Diff** | Structural + semantic comparison between old and new agent outputs, with severity levels |
+| **Pipeline** | A DAG of agents with routing conditions, tested end-to-end with spec validation at each step |
+| **Adapter** | A wrapper around your agent (function, HTTP, LangChain) so a2a-spec can call it |
+
+→ See [docs/concepts.md](docs/concepts.md) for detailed explanations.
+
+---
+
+## Adapters — Wrap Any Agent
+
+a2a-spec is **framework-agnostic**. Adapters wrap your agents so the framework can call them during recording and testing.
+
+### Plain async functions
+
+```python
+from a2a_spec import FunctionAdapter
+
+async def my_triage_agent(input_data: dict) -> dict:
+    # Your agent logic (calls OpenAI, Anthropic, local model, etc.)
+    return {"category": "billing", "summary": "Customer reports duplicate charge", "confidence": 0.95}
+
+adapter = FunctionAdapter(
+    fn=my_triage_agent,
+    agent_id="triage-agent",
+    version="1.0.0",
+    model="gpt-4",
+)
+```
+
+### HTTP endpoints
+
+```python
+from a2a_spec import HTTPAdapter
+
+adapter = HTTPAdapter(
+    url="http://localhost:8000/triage",
+    agent_id="triage-agent",
+    version="1.0.0",
+    headers={"Authorization": "Bearer $TOKEN"},
+    timeout=30.0,
+)
+```
+
+### Custom adapters
+
+```python
+from a2a_spec import AgentAdapter, AgentMetadata, AgentResponse
+
+class MyCrewAIAdapter(AgentAdapter):
+    def get_metadata(self) -> AgentMetadata:
+        return AgentMetadata(agent_id="my-crew-agent", version="1.0")
+
+    async def call(self, input_data: dict) -> AgentResponse:
+        result = await my_crew.kickoff(input_data)
+        return AgentResponse(output=result.dict())
+```
+
+→ See [docs/writing-adapters.md](docs/writing-adapters.md) for the full guide.
+
+---
+
+## Pipeline Testing
+
+Test entire multi-agent pipelines as a DAG. a2a-spec validates each agent's output against its spec and checks routing conditions:
+
+```yaml
+pipeline:
+  name: customer-support
+  agents:
+    triage-agent: {}
+    billing-agent: {}
+    shipping-agent: {}
+    resolution-agent: {}
+  edges:
+    - from: triage-agent
+      to: billing-agent
+      condition: "output.category == 'billing'"
+    - from: triage-agent
+      to: shipping-agent
+      condition: "output.category == 'shipping'"
+    - from: [billing-agent, shipping-agent]
+      to: resolution-agent
+  test_cases:
+    - name: billing_flow
+      input: { message: "I was charged twice" }
+```
+
+```bash
+a2aspec pipeline test pipeline.yaml --mode replay
+```
+
+→ See [docs/architecture.md](docs/architecture.md) for the pipeline execution model.
+
+---
+
+## Configuration
+
+Project configuration lives in `a2a-spec.yaml`:
+
+```yaml
+project_name: "my-project"
+version: "1.0"
+
+specs_dir: "./a2a_spec/specs"
+scenarios_dir: "./a2a_spec/scenarios"
+
+semantic:
+  provider: sentence-transformers
+  model: all-MiniLM-L6-v2     # Lazy-loaded, only when needed
+  enabled: true
+
+storage:
+  backend: local
+  path: ./a2a_spec/snapshots
+
+ci:
+  fail_on_semantic_drift: true
+  drift_threshold: 0.15
+  replay_mode: exact
+```
+
+---
+
+## Python API
+
+Use a2a-spec programmatically in your existing test suite:
+
+```python
+from a2a_spec import load_spec, validate_output, SnapshotStore, ReplayEngine
+
+# Load and validate
+spec = load_spec("a2a_spec/specs/triage-to-resolution.yaml")
+result = validate_output(
+    {"category": "billing", "summary": "Customer charged twice", "confidence": 0.95},
+    spec,
+)
+assert result.passed
+
+# Replay snapshots
+store = SnapshotStore("./a2a_spec/snapshots")
+engine = ReplayEngine(store)
+output = engine.replay("triage-agent", "billing_overcharge")
+
+# Diff two outputs
+from a2a_spec import DiffEngine
+diff = DiffEngine()
+results = diff.diff(old_output, new_output, semantic_threshold=0.85)
+for r in results:
+    print(f"{r.field}: {r.severity} — {r.explanation}")
+
+# Policy enforcement
+from a2a_spec.policy.engine import PolicyEngine
+from a2a_spec.policy.builtin import no_pii_in_output
+engine = PolicyEngine()
+engine.register_validator("no_pii", no_pii_in_output)
+```
+
+---
+
+## CLI Reference
+
+| Command | Description |
+|---------|-------------|
+| `a2aspec init [DIR]` | Scaffold a new a2a-spec project with examples |
+| `a2aspec record` | Record live agent outputs as snapshots |
+| `a2aspec test --replay` | Validate snapshots against specs (deterministic, zero LLM calls) |
+| `a2aspec test --live` | Validate live agent outputs against specs |
+| `a2aspec diff` | Compare current outputs against baselines |
+| `a2aspec diff --agent NAME` | Diff a specific agent only |
+| `a2aspec pipeline test FILE` | Test a multi-agent pipeline DAG |
+| `a2aspec --version` | Show version |
+
+→ See [docs/cli-reference.md](docs/cli-reference.md) for full options and flags.
+
+---
+
+## CI Integration
+
+a2a-spec is designed for CI-first workflows:
+
+```yaml
+# .github/workflows/a2a-spec.yml
+name: Agent Contract Tests
+on: [push, pull_request]
+
+jobs:
+  spec-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install a2a-spec
+      - run: a2aspec test --replay
+```
+
+**Key principle:** Record locally (with API keys), test in CI (with snapshots). Snapshots are committed to git — they are your test baselines.
+
+| Output Format | Flag | Use Case |
+|---|---|---|
+| Console (Rich) | `--format console` | Local development |
+| Markdown | `--format markdown` | PR comments |
+| JUnit XML | `--format junit` | CI test reporters |
+
+→ See [docs/ci-integration.md](docs/ci-integration.md) for GitHub Actions, Jenkins, and more.
+
+---
+
+## Comparison
+
+| Feature | a2a-spec | Pact | DeepEval | Promptfoo | LangSmith |
+|---------|----------|------|----------|-----------|-----------|
+| Agent-to-agent contracts | ✅ | ✅ | ❌ | ❌ | ❌ |
+| LLM output snapshots | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Deterministic CI replay | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Semantic drift detection | ✅ | ❌ | ✅ | ✅ | ✅ |
+| Policy enforcement (PII, etc.) | ✅ | ❌ | ✅ | ✅ | ❌ |
+| Pipeline DAG testing | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Framework agnostic | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Zero LLM calls in CI | ✅ | N/A | ❌ | ❌ | ❌ |
+| Typed Python API (PEP 561) | ✅ | N/A | ✅ | N/A | ✅ |
+
+---
+
+## Architecture
+
+```
+src/a2a_spec/
+├── cli/          # Typer CLI (init, record, test, diff, pipeline)
+├── spec/         # Spec schema (Pydantic), YAML loader, JSON Schema validator
+├── snapshot/     # Record, store, fingerprint, and replay engine
+├── diff/         # Structural (JSON) + semantic (embedding) comparison
+├── pipeline/     # DAG builder, topological executor, execution traces
+├── adapters/     # Agent wrappers: function, HTTP, LangChain
+├── policy/       # Policy engine with regex and custom validators
+├── semantic/     # Embedding model interface (sentence-transformers)
+├── reporting/    # Console (Rich), Markdown, JUnit XML, GitHub annotations
+├── config/       # YAML config loader with Pydantic validation
+├── _internal/    # SHA256 hashing, safe expression evaluator, type aliases
+└── exceptions.py # Hierarchical error types with actionable messages
+```
+
+→ See [docs/architecture.md](docs/architecture.md) for the full design.
+
+---
+
+## Examples
+
+The [`examples/customer_support/`](examples/customer_support/) directory contains a complete walkthrough:
+
+- Two agents (triage + resolution) with a2a-spec contract
+- YAML spec with structural, semantic, and policy rules
+- Pre-recorded snapshot for deterministic replay
+- Test scenarios and pytest integration
+- Step-by-step README
+
+---
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Getting Started](docs/getting-started.md) | Installation and first test in 2 minutes |
+| [Core Concepts](docs/concepts.md) | Specs, snapshots, replay, diff explained |
+| [CLI Reference](docs/cli-reference.md) | Every command with all options |
+| [Writing Specs](docs/writing-specs.md) | Structural, semantic, and policy rules |
+| [Writing Adapters](docs/writing-adapters.md) | Wrap any agent for a2a-spec |
+| [CI Integration](docs/ci-integration.md) | GitHub Actions, JUnit, exit codes |
+| [Architecture](docs/architecture.md) | Module design and extension points |
+
+---
+
+## Contributing
+
+We welcome contributions! Please see the development setup:
+
+```bash
+git clone https://github.com/padobrik/a2a-spec.git
+cd a2a-spec
+python -m venv venv && source venv/bin/activate
+pip install -e ".[dev]"
+make test       # Run 146 tests
+make lint       # Ruff linting
+make typecheck  # mypy strict mode
+make format     # Auto-format with ruff
+```
+
+---
+
+## License
+
+Apache 2.0 — see [LICENSE](LICENSE) for details.

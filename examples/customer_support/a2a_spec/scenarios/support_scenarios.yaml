@@ -1,0 +1,31 @@
+test_suite:
+  name: customer-support-scenarios
+
+scenarios:
+  - name: billing_overcharge
+    input:
+      message: "I was charged twice for my order #12345"
+    expectations:
+      triage-agent:
+        category: billing
+
+  - name: shipping_delay
+    input:
+      message: "My package hasn't arrived and it's been 2 weeks"
+    expectations:
+      triage-agent:
+        category: shipping
+
+  - name: product_defect
+    input:
+      message: "The product I received is broken and doesn't work"
+    expectations:
+      triage-agent:
+        category: product
+
+  - name: general_inquiry
+    input:
+      message: "I have a question about your return policy"
+    expectations:
+      triage-agent:
+        category: general

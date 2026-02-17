@@ -1,0 +1,20 @@
+# a2a-spec configuration for customer support example
+project_name: "customer-support"
+version: "1.0"
+
+specs_dir: "./a2a_spec/specs"
+scenarios_dir: "./a2a_spec/scenarios"
+
+semantic:
+  provider: sentence-transformers
+  model: all-MiniLM-L6-v2
+  enabled: true
+
+storage:
+  backend: local
+  path: ./a2a_spec/snapshots
+
+ci:
+  fail_on_semantic_drift: true
+  drift_threshold: 0.15
+  replay_mode: exact
