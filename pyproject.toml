@@ -41,7 +41,7 @@ semantic = [
     "numpy>=1.26,<3.0",
 ]
 langchain = [
-    "langchain-core>=0.2,<1.0",
+    "langchain-core>=0.2,<2.0",
 ]
 dev = [
     "pytest>=8.0,<9.0",
