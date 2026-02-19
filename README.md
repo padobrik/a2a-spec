@@ -5,9 +5,9 @@
 
 <p align="center">
   <a href="https://pypi.org/project/a2a-spec/"><img src="https://img.shields.io/pypi/v/a2a-spec?style=flat-square" alt="PyPI"></a>
-  <a href="https://github.com/padobrik/a2a-spec/actions"><img src="https://img.shields.io/github/actions/workflow/status/padobrik/a2a-spec/ci.yml?style=flat-square" alt="CI"></a>
+  <a href="https://github.com/padobrik/a2a-spec/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/padobrik/a2a-spec/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
   <a href="https://github.com/padobrik/a2a-spec/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License"></a>
-  <img src="https://img.shields.io/pypi/pyversions/a2a-spec?style=flat-square" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue?style=flat-square" alt="Python 3.11+">
   <a href="https://github.com/padobrik/a2a-spec"><img src="https://img.shields.io/badge/typed-PEP%20561-brightgreen?style=flat-square" alt="Typed"></a>
 </p>
 
@@ -428,18 +428,7 @@ The [`examples/customer_support/`](examples/customer_support/) directory contain
 
 ## Contributing
 
-We welcome contributions! Please see the development setup:
-
-```bash
-git clone https://github.com/padobrik/a2a-spec.git
-cd a2a-spec
-python -m venv venv && source venv/bin/activate
-pip install -e ".[dev]"
-make test       # Run 146 tests
-make lint       # Ruff linting
-make typecheck  # mypy strict mode
-make format     # Auto-format with ruff
-```
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, check commands, and PR process.
 
 ---
 
