@@ -10,7 +10,7 @@ readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11"
 authors = [
-    { name = "Your Name", email = "you@example.com" },
+    { name = "Fedor Kabachenko", email = "fkabachenko@gmail.com" },
 ]
 keywords = ["a2a", "agents", "testing", "llm", "multi-agent", "contract-testing", "ai"]
 classifiers = [
@@ -61,10 +61,10 @@ all = [
 a2aspec = "a2a_spec.cli.main:main"
 
 [project.urls]
-Homepage = "https://github.com/yourorg/a2a-spec"
-Documentation = "https://github.com/yourorg/a2a-spec/tree/main/docs"
-Repository = "https://github.com/yourorg/a2a-spec"
-Issues = "https://github.com/yourorg/a2a-spec/issues"
+Homepage = "https://github.com/padobrik/a2a-spec"
+Documentation = "https://github.com/padobrik/a2a-spec/tree/main/docs"
+Repository = "https://github.com/padobrik/a2a-spec"
+Issues = "https://github.com/padobrik/a2a-spec/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/a2a_spec"]

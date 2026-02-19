@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-02-19
+
 ### Added
 - Initial public release of a2a-spec.
 - `SnapshotStore` with path-traversal protection.
@@ -17,3 +19,5 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Structured logging via `logging.getLogger(__name__)` in all modules.
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
+
+[0.1.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.1.0
