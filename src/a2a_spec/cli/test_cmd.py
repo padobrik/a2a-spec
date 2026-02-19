@@ -56,14 +56,14 @@ def test_command(
         config = load_config(config_path)
     except A2ASpecError as e:
         console.print(f"[red]Config error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     _specs_dir = specs_dir or config.specs_dir
     try:
         specs = load_all_specs(_specs_dir)
     except A2ASpecError as e:
         console.print(f"[red]Error loading specs: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     if not specs:
         console.print("[yellow]No spec files found. Run 'a2aspec init' first.[/yellow]")
@@ -78,14 +78,14 @@ def test_command(
     failed = 0
 
     mode_label = "[blue]replay[/blue]" if replay else "[yellow]live[/yellow]"
-    console.print(f"\n🧪 Running a2a-spec tests ({mode_label} mode)\n")
+    console.print(f"\n[bold]a2a-spec[/bold] running tests ({mode_label} mode)\n")
 
     for spec in specs:
         scenarios = store.list_scenarios(spec.producer)
 
         if not scenarios:
             console.print(
-                f"  [yellow]⚠ No snapshots for '{spec.producer}'. "
+                f"  [yellow]WARN: No snapshots for '{spec.producer}'. "
                 f"Run 'a2aspec record' first.[/yellow]"
             )
             continue
@@ -98,7 +98,7 @@ def test_command(
             try:
                 output = replay_engine.replay(spec.producer, scenario)
             except SnapshotNotFoundError:
-                console.print(f"    [yellow]⚠ {scenario}: snapshot not found[/yellow]")
+                console.print(f"    [yellow]WARN: {scenario}: snapshot not found[/yellow]")
                 failed += 1
                 continue
 

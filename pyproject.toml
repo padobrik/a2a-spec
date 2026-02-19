@@ -58,7 +58,7 @@ all = [
 ]
 
 [project.scripts]
-a2aspec = "a2a_spec.cli.main:app"
+a2aspec = "a2a_spec.cli.main:main"
 
 [project.urls]
 Homepage = "https://github.com/yourorg/a2a-spec"
@@ -77,7 +77,7 @@ line-length = 100
 select = ["E", "F", "I", "N", "UP", "ANN", "B", "SIM"]
 ignore = [
     "ANN401", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN206",
-    "B904",   # raise from in except — CLI exits don't need chaining
+    # B904 removed: all re-raised exceptions now use 'from e' to preserve tracebacks
     "B905",   # zip() strict — not needed for guaranteed-same-length AST nodes
     "SIM108", # ternary operator — readability preference
     "SIM102", # nested if — readability preference

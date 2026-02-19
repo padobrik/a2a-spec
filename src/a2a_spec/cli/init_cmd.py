@@ -150,7 +150,7 @@ def init_command(
         )
 
     console.print()
-    console.print("[green bold]✓ a2a-spec project initialized![/green bold]")
+    console.print("[green bold]a2a-spec project initialized.[/green bold]")
     console.print()
     console.print("Next steps:")
     console.print("  1. Edit [bold]a2a_spec/specs/[/bold] to define your agent specs")

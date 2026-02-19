@@ -48,7 +48,7 @@ def record_command(
         config = load_config(config_path)
     except A2ASpecError as e:
         console.print(f"[red]Config error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     scenarios_dir = Path(config.scenarios_dir)
     if not scenarios_dir.exists():
@@ -57,7 +57,7 @@ def record_command(
         )
         raise typer.Exit(1)
 
-    console.print("\n🔴 Recording snapshots...\n")
+    console.print("\n[bold][record][/bold] Recording snapshots...\n")
     console.print(
         "[dim]This calls live agents. Ensure adapters are configured and API keys are set.[/dim]\n"
     )
@@ -68,7 +68,7 @@ def record_command(
     except Exception as e:
         console.print(f"[red]Failed to load adapters: {e}[/red]")
         console.print("\nMake sure you have adapters defined in a2a_spec/adapters/__init__.py")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     if not adapters:
         console.print("[yellow]No adapters found. Create adapters first.[/yellow]")
@@ -102,15 +102,15 @@ def record_command(
             for agent_id, adapter in adapters.items():
                 try:
                     asyncio.run(recorder.record(adapter, sc_name, input_data))
-                    console.print(f"    [green]✓[/green] {agent_id} / {sc_name} → recorded")
+                    console.print(f"    [green]PASS[/green] {agent_id} / {sc_name} recorded")
                     recorded += 1
                 except Exception as e:
-                    console.print(f"    [red]✗[/red] {agent_id} / {sc_name} → {e}")
+                    console.print(f"    [red]FAIL[/red] {agent_id} / {sc_name}: {e}")
                     errors += 1
 
-    console.print(f"\n📦 {recorded} snapshots saved to {config.storage.path}")
+    console.print(f"\n[done] {recorded} snapshots saved to {config.storage.path}")
     if errors:
-        console.print(f"[red]⚠ {errors} recording errors[/red]")
+        console.print(f"[red]WARN: {errors} recording error(s)[/red]")
         raise typer.Exit(1)
 
 

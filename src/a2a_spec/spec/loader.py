@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import yaml
@@ -9,6 +10,8 @@ from pydantic import ValidationError
 
 from a2a_spec.exceptions import ConfigError
 from a2a_spec.spec.schema import Spec
+
+logger = logging.getLogger(__name__)
 
 
 def load_spec(path: str | Path) -> Spec:
@@ -25,6 +28,7 @@ def load_spec(path: str | Path) -> Spec:
                      or doesn't match the spec schema.
     """
     path = Path(path)
+    logger.debug("Loading spec from %s", path)
 
     if not path.exists():
         raise ConfigError(f"Spec file not found: {path}")
@@ -48,9 +52,14 @@ def load_spec(path: str | Path) -> Spec:
         )
 
     try:
-        return Spec.model_validate(spec_data)
+        spec = Spec.model_validate(spec_data)
     except ValidationError as e:
         raise ConfigError(f"Invalid spec in {path}:\n{e}") from e
+
+    logger.info(
+        "Loaded spec '%s' (producer=%s, consumer=%s)", spec.name, spec.producer, spec.consumer
+    )
+    return spec
 
 
 def load_all_specs(directory: str | Path) -> list[Spec]:
@@ -72,4 +81,5 @@ def load_all_specs(directory: str | Path) -> list[Spec]:
     for path in sorted(directory.glob("*.yml")):
         specs.append(load_spec(path))
 
+    logger.debug("Loaded %d spec(s) from %s", len(specs), directory)
     return specs

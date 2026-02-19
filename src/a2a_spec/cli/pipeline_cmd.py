@@ -59,7 +59,7 @@ def pipeline_test(
         config = load_config(config_path)
     except A2ASpecError as e:
         console.print(f"[red]Config error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     pipeline_path = Path(pipeline_file)
     if not pipeline_path.exists():
@@ -73,7 +73,7 @@ def pipeline_test(
         dag = build_dag(pipeline_spec)
     except A2ASpecError as e:
         console.print(f"[red]Invalid pipeline: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     store = SnapshotStore(config.storage.path)
     replay_engine = ReplayEngine(store)
@@ -98,7 +98,7 @@ def pipeline_test(
         console.print("[yellow]No test cases found in pipeline file.[/yellow]")
         raise typer.Exit(0)
 
-    console.print(f"\n🧪 Pipeline test: {dag.name} ({mode} mode)\n")
+    console.print(f"\n[bold][test][/bold] Pipeline: {dag.name} ({mode} mode)\n")
 
     total = 0
     passed = 0

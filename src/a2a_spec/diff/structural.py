@@ -6,9 +6,12 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass
+@dataclass(frozen=True)
 class FieldDiff:
-    """A single field-level difference."""
+    """A single field-level difference.
+
+    Immutable — represents a recorded fact about a detected change.
+    """
 
     field: str
     change_type: str  # "added", "removed", "changed", "type_changed"
@@ -60,18 +63,25 @@ def structural_diff(old: dict[str, Any], new: dict[str, Any]) -> list[FieldDiff]
                     old_value=old_val,
                     new_value=new_val,
                     detail=(
-                        f"Type changed from {type(old_val).__name__}"
-                        f" to {type(new_val).__name__}"
+                        f"Type changed from {type(old_val).__name__} to {type(new_val).__name__}"
                     ),
                 )
             )
         elif old_val != new_val:
             if isinstance(old_val, dict) and isinstance(new_val, dict):
-                # Recurse into nested dicts
+                # Recurse into nested dicts, prefixing the field path.
+                # FieldDiff is frozen so we construct new instances rather than mutating.
                 nested = structural_diff(old_val, new_val)
-                for d in nested:
-                    d.field = f"{key}.{d.field}"
-                diffs.extend(nested)
+                diffs.extend(
+                    FieldDiff(
+                        field=f"{key}.{d.field}",
+                        change_type=d.change_type,
+                        old_value=d.old_value,
+                        new_value=d.new_value,
+                        detail=d.detail,
+                    )
+                    for d in nested
+                )
             else:
                 diffs.append(
                     FieldDiff(

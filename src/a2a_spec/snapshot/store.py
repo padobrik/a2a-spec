@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from a2a_spec.exceptions import SnapshotNotFoundError
 from a2a_spec.snapshot.fingerprint import Fingerprint
+
+logger = logging.getLogger(__name__)
 
 
 class Snapshot:
@@ -71,12 +74,46 @@ class SnapshotStore:
     def __init__(self, base_dir: str | Path) -> None:
         self.base_dir = Path(base_dir)
 
+    @staticmethod
+    def _validate_name(name: str, label: str) -> None:
+        """Ensure name is safe for filesystem use.
+
+        Prevents path traversal attacks where a malicious agent_id or
+        scenario name could escape the snapshot directory.
+
+        Args:
+            name: The name to validate (agent_id or scenario).
+            label: Human-readable label used in error messages.
+
+        Raises:
+            ValueError: If name is empty, contains path-traversal characters,
+                        or starts with a dot.
+        """
+        if not name:
+            raise ValueError(f"{label} cannot be empty")
+        if ".." in name or "/" in name or "\\" in name:
+            raise ValueError(
+                f"{label} contains unsafe characters: '{name}'. "
+                f"Names must not contain '..', '/', or '\\'."
+            )
+        if name.startswith("."):
+            raise ValueError(f"{label} cannot start with '.': '{name}'")
+
     def save(self, snapshot: Snapshot) -> Path:
         """Save a snapshot to disk.
 
+        Args:
+            snapshot: The snapshot to save.
+
         Returns:
             Path to the saved file.
+
+        Raises:
+            ValueError: If agent_id or scenario contains unsafe characters.
         """
+        self._validate_name(snapshot.fingerprint.agent_id, "agent_id")
+        self._validate_name(snapshot.scenario, "scenario")
+
         agent_dir = self.base_dir / snapshot.fingerprint.agent_id
         agent_dir.mkdir(parents=True, exist_ok=True)
 
@@ -87,6 +124,8 @@ class SnapshotStore:
             json.dumps(snapshot.to_dict(), indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
+        logger.debug("Saved snapshot to %s", filepath)
+        logger.info("Saved snapshot for %s/%s", snapshot.fingerprint.agent_id, snapshot.scenario)
         return filepath
 
     def load(self, agent_id: str, scenario: str) -> Snapshot:
@@ -101,7 +140,12 @@ class SnapshotStore:
 
         Raises:
             SnapshotNotFoundError: If no matching snapshot exists.
+            ValueError: If agent_id or scenario contains unsafe characters.
         """
+        self._validate_name(agent_id, "agent_id")
+        self._validate_name(scenario, "scenario")
+
+        logger.debug("Loading snapshot for %s/%s", agent_id, scenario)
         agent_dir = self.base_dir / agent_id
         if not agent_dir.exists():
             raise SnapshotNotFoundError(agent_id, scenario)

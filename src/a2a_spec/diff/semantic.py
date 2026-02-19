@@ -5,9 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class SemanticComparison:
-    """Result of comparing two strings semantically."""
+    """Result of comparing two strings semantically.
+
+    Immutable — represents a recorded similarity measurement.
+    """
 
     text_a: str
     text_b: str

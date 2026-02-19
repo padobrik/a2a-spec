@@ -7,25 +7,47 @@ on:
     branches: [main]
 
 jobs:
-  ci:
-    name: Lint, Type Check & Test
+  test:
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: make install
+        run: pip install -e ".[dev]"
 
       - name: Lint
-        run: make lint
+        run: ruff check src/ tests/
 
-      - name: Type Check
-        run: make typecheck
+      - name: Format check
+        run: ruff format --check src/ tests/
 
-      - name: Test
-        run: make test
+      - name: Type check
+        run: mypy src/
+
+      - name: Test with coverage
+        run: pytest tests/ -v --tb=short --cov=a2a_spec --cov-report=term-missing
+
+      - name: Verify clean import (no optional deps)
+        run: |
+          pip install -e "."
+          python -c "import a2a_spec; print(a2a_spec.__version__)"
+          python -c "from a2a_spec import load_spec, validate_output, FunctionAdapter, SnapshotStore"
+
+      - name: Verify no unsafe yaml.load
+        run: |
+          if grep -rn "yaml\.load\b" src/; then
+            echo "FAIL: unsafe yaml.load found"
+            exit 1
+          else
+            echo "PASS: only yaml.safe_load used"
+          fi

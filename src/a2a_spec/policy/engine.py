@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
 
 from a2a_spec.spec.schema import PolicyRule
 
+logger = logging.getLogger(__name__)
 
-@dataclass
+
+@dataclass(frozen=True)
 class PolicyResult:
-    """Result of a single policy check."""
+    """Result of a single policy check.
+
+    Immutable — represents a recorded policy evaluation outcome.
+    """
 
     rule_name: str
     passed: bool
@@ -56,6 +62,7 @@ class PolicyEngine:
         Returns:
             List of PolicyResult objects.
         """
+        logger.debug("Evaluating %d policy rule(s)", len(rules))
         results: list[PolicyResult] = []
 
         for rule in rules:
@@ -69,6 +76,8 @@ class PolicyEngine:
                     passed=False,
                     detail=f"Unknown policy method: {rule.method}",
                 )
+            if not result.passed:
+                logger.warning("Policy violation [%s]: %s", result.rule_name, result.detail)
             results.append(result)
 
         return results

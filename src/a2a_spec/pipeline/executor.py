@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from a2a_spec._internal.safe_eval import safe_evaluate
@@ -12,6 +13,8 @@ from a2a_spec.pipeline.trace import AgentTraceStep, PipelineTrace
 from a2a_spec.snapshot.replay import ReplayEngine
 from a2a_spec.spec.registry import SpecRegistry
 from a2a_spec.spec.validator import validate_output
+
+logger = logging.getLogger(__name__)
 
 
 class PipelineExecutor:
@@ -52,6 +55,7 @@ class PipelineExecutor:
         Returns:
             PipelineTrace with full execution details.
         """
+        logger.info("Executing pipeline '%s' in %s mode", self.dag.name, mode)
         trace = PipelineTrace(
             pipeline_name=self.dag.name,
             scenario=scenario,
@@ -93,6 +97,7 @@ class PipelineExecutor:
             # Execute agent
             output, latency = await self._call_agent(agent_id, scenario, agent_input, mode)
             outputs[agent_id] = output
+            logger.debug("Agent '%s' returned %d field(s)", agent_id, len(output))
 
             # Validate against specs
             spec_passed: bool | None = None

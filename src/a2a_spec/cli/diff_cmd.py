@@ -45,7 +45,7 @@ def diff_command(
         config = load_config(config_path)
     except A2ASpecError as e:
         console.print(f"[red]Config error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     store = SnapshotStore(config.storage.path)
 
@@ -70,7 +70,7 @@ def diff_command(
         console.print("[yellow]No snapshots found. Run 'a2aspec record' first.[/yellow]")
         raise typer.Exit(0)
 
-    console.print("\n🔍 Semantic Diff Report\n")
+    console.print("\n[bold][diff][/bold] Semantic Diff Report\n")
 
     total_diffs = 0
     high_severity = 0

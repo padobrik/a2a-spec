@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
 from a2a_spec.diff.semantic import SemanticComparison, compute_similarity
 from a2a_spec.diff.structural import FieldDiff, structural_diff
+
+logger = logging.getLogger(__name__)
 
 
 class DriftSeverity(StrEnum):
@@ -22,7 +25,11 @@ class DriftSeverity(StrEnum):
 
 @dataclass
 class DiffResult:
-    """Combined diff result for a single field."""
+    """Combined diff result for a single field.
+
+    Note: DiffResult is intentionally mutable because severity and
+    explanation are refined after semantic comparison in DiffEngine.diff().
+    """
 
     field: str
     severity: DriftSeverity
@@ -64,6 +71,7 @@ class DiffEngine:
 
         # Step 1: Structural diff
         field_diffs = structural_diff(old_output, new_output)
+        logger.info("Diff found %d structural difference(s)", len(field_diffs))
 
         for fd in field_diffs:
             result = DiffResult(
@@ -81,6 +89,12 @@ class DiffEngine:
             ):
                 sem = compute_similarity(fd.old_value, fd.new_value, self._model)
                 result.semantic = sem
+                logger.debug(
+                    "Field '%s': similarity=%.3f, threshold=%.3f",
+                    fd.field,
+                    sem.similarity,
+                    semantic_threshold,
+                )
 
                 if sem.above_threshold(semantic_threshold):
                     result.severity = DriftSeverity.LOW

@@ -32,7 +32,7 @@ def generate_report(
     ]
 
     if failed > 0:
-        lines.append("## ❌ Failures")
+        lines.append("## Failures")
         lines.append("")
         for r in results:
             if not r.get("passed", False):
@@ -42,7 +42,7 @@ def generate_report(
                 lines.append("")
 
     if diff_results:
-        lines.append("## ⚠️ Semantic Drift")
+        lines.append("## Semantic Drift")
         lines.append("")
         for d in diff_results:
             severity = d.get("severity", "unknown")
