@@ -13,13 +13,26 @@
 
 ---
 
-## The Problem
+## Problem
 
-Multi-agent AI systems are **impossible to test reliably**. When Agent A changes its output format, Agent B silently breaks. LLM outputs are non-deterministic, so CI pipelines either skip testing or flake constantly. Existing tools focus on prompt evaluation or observability — none provide **contract testing between agents**.
+Multi-agent AI systems are **impossible to test reliably** with conventional tools.
 
-## The Solution
+Here is a concrete example of what goes wrong: you refine a prompt in your triage agent. The agent starts returning `issue_type` instead of `category`. Your resolution agent silently receives `None` for a key field and produces garbage output. No test caught it. Three hours later you find out from a user complaint.
 
-**a2a-spec** is a specification, testing, and validation layer for multi-agent systems. Define what one agent expects from another as a YAML spec. Record LLM outputs as snapshots. Replay them deterministically in CI with zero LLM calls. Detect structural and semantic regressions before they reach production.
+The root causes are systemic:
+
+- **LLM outputs are non-deterministic** — you cannot diff two live runs and call it a test.
+- **Agent contracts are implicit** — there is no formal definition of what Agent B expects from Agent A.
+- **Semantic drift is invisible to schemas** — a field can stay `string` while its meaning completely changes.
+- **CI is too expensive to run live** — calling LLMs on every push is slow and costs real money.
+
+Existing tools focus on prompt evaluation or observability. None provide **contract testing between agents**.
+
+---
+
+## Solution
+
+**a2a-spec** is a specification, testing, and validation layer for multi-agent systems. You define what one agent expects from another as a YAML spec. You record LLM outputs as snapshots once. You replay them deterministically in CI with zero LLM calls. You detect structural and semantic regressions before they reach production.
 
 ```
 Agent A ──[spec]──> Agent B ──[spec]──> Agent C
@@ -27,7 +40,9 @@ Agent A ──[spec]──> Agent B ──[spec]──> Agent C
     └── snapshot ──> replay ──> validate ──> ✓ CI passes
 ```
 
-## What a2a-spec is NOT
+---
+
+## Comparison
 
 | a2a-spec is **not** | Examples | What a2a-spec **is** |
 |---|---|---|
@@ -35,6 +50,22 @@ Agent A ──[spec]──> Agent B ──[spec]──> Agent C
 | An observability tool | LangSmith, Arize, Langfuse | A **validation engine** that runs in CI, not production |
 | A prompt evaluation tool | Promptfoo, DeepEval | A **contract testing** system between agents |
 | An agent runtime | n/a | A **specification framework** for agent boundaries |
+
+---
+
+## How It Works
+
+a2a-spec follows a **record-once, replay-forever** workflow:
+
+**1. Write a spec** — a YAML file that defines the contract between two agents: what fields are required, what they mean, and what is forbidden.
+
+**2. Record snapshots locally** — run `a2aspec record` with your API keys. It calls your live agents and saves each output as a JSON file.
+
+**3. Commit snapshots to git** — the JSON files become your test baselines. They are version-controlled, reviewable in PRs, and act as a precise record of what your agents actually produce.
+
+**4. Validate in CI** — run `a2aspec test --replay`. It loads the snapshots and validates them against the specs. No API keys. No LLM calls. Runs in milliseconds.
+
+**5. Detect drift when prompts change** — after modifying a prompt or upgrading a model, run `a2aspec record` again, then `a2aspec diff`. The diff engine reports exactly what changed structurally and semantically before you merge.
 
 ---
 
@@ -75,7 +106,7 @@ my-project/
 
 ### Define a spec
 
-A spec is a YAML contract between a **producer** agent and a **consumer** agent. It defines structural, semantic, and policy requirements:
+A spec is a YAML contract between a **producer** agent and a **consumer** agent. It defines what the consumer expects across three validation layers:
 
 ```yaml
 # a2a_spec/specs/triage-to-resolution.yaml
@@ -123,12 +154,32 @@ spec:
 a2aspec record  # Calls live agents via adapters, saves outputs to disk
 ```
 
-Snapshots are JSON files committed to git — they become your deterministic test baselines.
+Each recorded output becomes a JSON file committed to git — your deterministic test baseline:
+
+```json
+{
+  "fingerprint": "a1b2c3d4e5f6",
+  "agent_id": "triage-agent",
+  "scenario": "billing_overcharge",
+  "input": { "message": "I was charged twice for my order #12345" },
+  "output": {
+    "category": "billing",
+    "summary": "Customer reports a duplicate charge on order #12345",
+    "confidence": 0.92
+  }
+}
+```
 
 ### Test in CI (zero LLM calls)
 
 ```bash
 a2aspec test --replay  # Validates saved snapshots against specs
+```
+
+```
+ PASS  triage-agent :: billing_overcharge    structural ✓  semantic ✓  policy ✓
+ PASS  triage-agent :: shipping_delay        structural ✓  semantic ✓  policy ✓
+ FAIL  triage-agent :: product_defect        structural ✗  field 'confidence' missing
 ```
 
 No API keys needed. No LLM costs. Fully deterministic. Runs in milliseconds.
@@ -139,7 +190,15 @@ After changing a prompt or upgrading a model:
 
 ```bash
 a2aspec record   # Re-record with the new configuration
-a2aspec diff     # Compare new vs. baseline outputs
+a2aspec diff     # Compare new outputs against the committed baseline
+```
+
+```
+triage-agent :: billing_overcharge
+  summary   MEDIUM  semantic similarity 0.71 (threshold 0.85)
+             was: "Customer reports a duplicate charge on order #12345"
+             now: "Billing issue: duplicate charge"
+  category  NONE    unchanged
 ```
 
 The diff engine reports structural changes (fields added/removed/type-changed) and semantic drift (meaning shifted beyond threshold), with severity levels from LOW to CRITICAL.
@@ -147,6 +206,20 @@ The diff engine reports structural changes (fields added/removed/type-changed) a
 ---
 
 ## Core Concepts
+
+### Three Validation Layers
+
+Every spec can define three independent layers of validation. Each catches a different class of regression:
+
+| Layer | What it catches | How |
+|-------|----------------|-----|
+| **Structural** | Field missing, wrong type, value out of range | JSON Schema |
+| **Semantic** | Meaning drifted even though the field is still present | Embedding similarity |
+| **Policy** | Hard rules violated — PII leaked, forbidden pattern present | Regex or custom function |
+
+You need all three because they are not redundant. A summary field can remain a non-empty string (structural pass) while its meaning silently changes (semantic fail). A field can satisfy both structural and semantic rules while still leaking a credit card number (policy fail).
+
+### Concepts Glossary
 
 | Concept | Description |
 |---------|-------------|
@@ -193,6 +266,21 @@ adapter = HTTPAdapter(
     version="1.0.0",
     headers={"Authorization": "Bearer $TOKEN"},
     timeout=30.0,
+)
+```
+
+### LangChain runnables
+
+```python
+from a2a_spec import LangChainAdapter
+from langchain_core.runnables import RunnableLambda
+
+chain = RunnableLambda(lambda x: {"category": "billing", "summary": x["message"], "confidence": 0.9})
+
+adapter = LangChainAdapter(
+    runnable=chain,
+    agent_id="triage-agent",
+    version="1.0.0",
 )
 ```
 
@@ -244,6 +332,8 @@ pipeline:
 a2aspec pipeline test pipeline.yaml --mode replay
 ```
 
+Routing conditions use a safe AST-based evaluator — no `eval()` involved.
+
 → See [docs/architecture.md](docs/architecture.md) for the pipeline execution model.
 
 ---
@@ -283,31 +373,49 @@ Use a2a-spec programmatically in your existing test suite:
 ```python
 from a2a_spec import load_spec, validate_output, SnapshotStore, ReplayEngine
 
-# Load and validate
+# Load a spec and validate an output dict against it
 spec = load_spec("a2a_spec/specs/triage-to-resolution.yaml")
 result = validate_output(
     {"category": "billing", "summary": "Customer charged twice", "confidence": 0.95},
     spec,
 )
-assert result.passed
+assert result.passed, result.errors
 
-# Replay snapshots
+# Replay a recorded snapshot (no LLM call)
 store = SnapshotStore("./a2a_spec/snapshots")
 engine = ReplayEngine(store)
 output = engine.replay("triage-agent", "billing_overcharge")
 
-# Diff two outputs
+# Diff two outputs structurally and semantically
 from a2a_spec import DiffEngine
 diff = DiffEngine()
 results = diff.diff(old_output, new_output, semantic_threshold=0.85)
 for r in results:
     print(f"{r.field}: {r.severity} — {r.explanation}")
 
-# Policy enforcement
+# Register and run a custom policy validator
 from a2a_spec.policy.engine import PolicyEngine
-from a2a_spec.policy.builtin import no_pii_in_output
 engine = PolicyEngine()
-engine.register_validator("no_pii", no_pii_in_output)
+engine.register_validator("no_pii", lambda output, input_data: "ssn" not in str(output))
+```
+
+### pytest integration
+
+```python
+import pytest
+from a2a_spec import load_spec, validate_output, ReplayEngine, SnapshotStore
+
+@pytest.fixture
+def replay_engine():
+    store = SnapshotStore("./a2a_spec/snapshots")
+    return ReplayEngine(store)
+
+@pytest.mark.parametrize("scenario", ["billing_overcharge", "shipping_delay", "product_defect"])
+def test_triage_spec(replay_engine, scenario):
+    spec = load_spec("a2a_spec/specs/triage-to-resolution.yaml")
+    output = replay_engine.replay("triage-agent", scenario)
+    result = validate_output(output, spec)
+    assert result.passed, f"Spec violations in {scenario}: {result.errors}"
 ```
 
 ---
@@ -331,7 +439,7 @@ engine.register_validator("no_pii", no_pii_in_output)
 
 ## CI Integration
 
-a2a-spec is designed for CI-first workflows:
+a2a-spec is designed for CI-first workflows. Record locally with your API keys; test in CI against committed snapshots — no secrets required in CI.
 
 ```yaml
 # .github/workflows/a2a-spec.yml
@@ -350,13 +458,14 @@ jobs:
       - run: a2aspec test --replay
 ```
 
-**Key principle:** Record locally (with API keys), test in CI (with snapshots). Snapshots are committed to git — they are your test baselines.
+**Output formats:**
 
-| Output Format | Flag | Use Case |
+| Format | Flag | Use Case |
 |---|---|---|
 | Console (Rich) | `--format console` | Local development |
 | Markdown | `--format markdown` | PR comments |
 | JUnit XML | `--format junit` | CI test reporters |
+| GitHub Annotations | `--format github` | Inline PR annotations |
 
 → See [docs/ci-integration.md](docs/ci-integration.md) for GitHub Actions, Jenkins, and more.
 
