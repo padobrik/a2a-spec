@@ -120,3 +120,24 @@ class TestCliRecordAdapters:
         result = runner.invoke(app, ["record", "--config", str(config)])
         assert result.exit_code == 1
         assert "No adapters package at" in _flat(result.output)
+
+    def test_suite_option_limits_to_one_file(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        config = _project(
+            tmp_path,
+            "from .triage_adapter import adapter\nADAPTERS = {'triage-agent': adapter}\n",
+        )
+        other = tmp_path / "a2a_spec" / "scenarios" / "other.yaml"
+        other.write_text("scenarios:\n  - name: other\n    input:\n      message: x\n")
+        suite = tmp_path / "a2a_spec" / "scenarios" / "support.yaml"
+        result = runner.invoke(app, ["record", "--config", str(config), "--suite", str(suite)])
+        assert result.exit_code == 0, result.output
+        assert "triage-agent / billing recorded" in _flat(result.output)
+        assert "other" not in result.output
+
+    def test_missing_suite_file(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        config = _project(tmp_path, "ADAPTERS = {}\n")
+        result = runner.invoke(app, ["record", "--config", str(config), "--suite", "nope.yaml"])
+        assert result.exit_code == 1
+        assert "Scenario suite not found: nope.yaml" in _flat(result.output)
