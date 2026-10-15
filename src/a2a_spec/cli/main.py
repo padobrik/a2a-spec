@@ -10,6 +10,7 @@ import typer
 from rich.console import Console
 
 from a2a_spec.cli.diff_cmd import diff_command
+from a2a_spec.cli.infer_cmd import infer_command
 from a2a_spec.cli.init_cmd import init_command
 from a2a_spec.cli.pipeline_cmd import pipeline_app
 from a2a_spec.cli.record_cmd import record_command
@@ -30,6 +31,7 @@ app.command("init")(init_command)
 app.command("record")(record_command)
 app.command("test")(test_command)
 app.command("diff")(diff_command)
+app.command("infer")(infer_command)
 app.add_typer(pipeline_app, name="pipeline")
 
 
