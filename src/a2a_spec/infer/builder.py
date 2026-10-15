@@ -79,6 +79,7 @@ def infer_spec(
         "producer": producer,
         "consumer": consumer,
         "description": f"Fields {consumer} reads from {producer} (inferred)",
+        "inferred_from": reads.source,
         "structural": {"type": "object", "required": required, "properties": properties},
     }
     return InferredSpec(data=data, header=header, warnings=warnings)

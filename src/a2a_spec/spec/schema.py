@@ -77,6 +77,9 @@ class Spec(BaseModel):
     producer: str
     consumer: str
     description: str = ""
+    # Consumer function the spec was inferred from, as path/to/file.py:function.
+    # Set by `a2aspec infer`; `a2aspec infer --check` compares the spec with it.
+    inferred_from: str | None = None
 
     structural: StructuralSpec
     semantic: list[SemanticRule] = Field(default_factory=list)
