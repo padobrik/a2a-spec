@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+- `a2aspec record` never found project adapters: `a2a_spec/adapters` was
+  shadowed by the library's own subpackage. Adapters now load from
+  `adapters_dir` (default `./a2a_spec/adapters`) and import errors are reported.
+- The customer support example records and imports correctly from its own
+  directory.
+
 ## [0.3.0] - 2026-10-15
 
 ### Added

@@ -88,7 +88,11 @@ class MyAdapter(AgentAdapter):
 
 ## Registering Adapters
 
-Create `a2a_spec/adapters/__init__.py` in your project:
+Create `a2a_spec/adapters/__init__.py` in your project (or point
+`adapters_dir` in `a2a-spec.yaml` at another package). `a2aspec record` runs
+from the project root, so adapters can import your agent modules directly
+(`from agents.triage import triage_agent`) or each other relatively
+(`from .triage_adapter import triage_adapter`):
 
 ```python
 ADAPTERS = {
