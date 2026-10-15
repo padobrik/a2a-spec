@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
+from collections.abc import Iterator
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Annotated, Any
 
@@ -11,6 +14,7 @@ from rich.console import Console
 
 from a2a_spec.config.loader import load_config
 from a2a_spec.exceptions import A2ASpecError, SnapshotNotFoundError
+from a2a_spec.project import Scenario, load_adapters, load_scenarios
 from a2a_spec.reporting.console import print_summary, print_validation_result
 from a2a_spec.reporting.github import format_github_annotation
 from a2a_spec.reporting.junit import generate_junit_xml
@@ -21,8 +25,19 @@ from a2a_spec.snapshot.replay import ReplayEngine
 from a2a_spec.snapshot.store import SnapshotStore
 from a2a_spec.spec.checker import SpecChecker
 from a2a_spec.spec.loader import load_spec_files
+from a2a_spec.spec.schema import Spec
 
 console = Console()
+
+
+@dataclass(frozen=True)
+class Case:
+    """One producer output to check, or the reason there is none."""
+
+    scenario: str
+    input: dict[str, Any]
+    output: dict[str, Any] | None = None
+    error: str | None = None
 
 
 class OutputFormat(StrEnum):
@@ -38,7 +53,8 @@ def test_command(
     replay: bool = typer.Option(
         True,
         "--replay/--live",
-        help="Use recorded snapshots (replay) or call live agents.",
+        help="Check recorded snapshots (replay), or call the producers in ADAPTERS "
+        "with every scenario and check their live output (nothing is saved).",
     ),
     specs_dir: str | None = typer.Option(
         None,
@@ -76,7 +92,8 @@ def test_command(
     """Run spec validation against recorded snapshots or live agents.
 
     In replay mode (default), no LLM calls are made. Outputs are loaded
-    from stored snapshots and validated against specs.
+    from stored snapshots and validated against specs. In live mode each
+    spec's producer is called through its adapter for every scenario.
     """
     # Report formats keep stdout for the report so it can be redirected.
     report_only = format in (OutputFormat.MARKDOWN, OutputFormat.JUNIT)
@@ -101,6 +118,15 @@ def test_command(
 
     store = SnapshotStore(config.storage.path)
     replay_engine = ReplayEngine(store)
+    adapters: dict[str, Any] = {}
+    scenarios: list[Scenario] = []
+    if not replay:
+        try:
+            adapters = load_adapters(config)
+            scenarios = load_scenarios(config)
+        except Exception as e:
+            out.print(f"[red]Cannot run live: {e}[/red]")
+            raise typer.Exit(1) from None
     semantic = semantic and config.semantic.enabled
     checker = SpecChecker(
         semantic_engine=SemanticEngine(model=EmbeddingModel(config.semantic.model))
@@ -116,29 +142,36 @@ def test_command(
         out.print(f"\n[bold]a2a-spec[/bold] running tests ({mode_label} mode)\n")
 
     for spec_path, spec in spec_files:
-        scenarios = store.list_scenarios(spec.producer)
-
-        if not scenarios:
-            out.print(
-                f"  [yellow]WARN: No snapshots for '{spec.producer}'. "
-                f"Run 'a2aspec record' first.[/yellow]"
-            )
-            continue
+        if replay:
+            if not store.list_scenarios(spec.producer):
+                out.print(
+                    f"  [yellow]WARN: No snapshots for '{spec.producer}'. "
+                    f"Run 'a2aspec record' first.[/yellow]"
+                )
+                continue
+            cases = _replay_cases(spec, store, replay_engine)
+        else:
+            if spec.producer not in adapters:
+                out.print(
+                    f"  [yellow]WARN: No adapter for '{spec.producer}' in ADAPTERS; "
+                    f"skipping {spec.name}.[/yellow]"
+                )
+                continue
+            cases = _live_cases(adapters[spec.producer], scenarios)
 
         if not report_only:
             out.print(f"  [bold]Spec: {spec.name}[/bold]")
 
-        for scenario in scenarios:
-            start = time.monotonic()
-            try:
-                snapshot = replay_engine.replay_snapshot(spec.producer, scenario)
-            except SnapshotNotFoundError:
-                out.print(f"    [yellow]WARN: {scenario}: snapshot not found[/yellow]")
-                errors = ["snapshot not found"]
+        start = time.monotonic()
+        for case in cases:
+            scenario = case.scenario
+            if case.output is None:
+                out.print(f"    [red]FAIL[/red] {spec.name} / {scenario}: {case.error}")
+                errors = [case.error or "no output"]
                 passed_one = False
             else:
                 try:
-                    result = checker.check(spec, snapshot.output_data, snapshot.input_data)
+                    result = checker.check(spec, case.output, case.input)
                 except ImportError as e:
                     out.print(f"[red]{e}[/red]")
                     out.print("[red]Or pass --no-semantic to skip semantic rules.[/red]")
@@ -178,6 +211,7 @@ def test_command(
                     "duration_ms": (time.monotonic() - start) * 1000,
                 }
             )
+            start = time.monotonic()
 
             if fail_fast and failed > 0:
                 break
@@ -194,3 +228,24 @@ def test_command(
 
     if failed > 0:
         raise typer.Exit(1)
+
+
+def _replay_cases(spec: Spec, store: SnapshotStore, engine: ReplayEngine) -> Iterator[Case]:
+    for scenario in store.list_scenarios(spec.producer):
+        try:
+            snapshot = engine.replay_snapshot(spec.producer, scenario)
+        except SnapshotNotFoundError:
+            yield Case(scenario, {}, error="snapshot not found")
+            continue
+        yield Case(scenario, snapshot.input_data, snapshot.output_data)
+
+
+def _live_cases(adapter: Any, scenarios: list[Scenario]) -> Iterator[Case]:
+    """Call the producer for each scenario; nothing is saved."""
+    for sc in scenarios:
+        try:
+            response = asyncio.run(adapter.call(sc.input))
+        except Exception as e:
+            yield Case(sc.name, sc.input, error=f"agent call failed: {e}")
+            continue
+        yield Case(sc.name, sc.input, response.output)
