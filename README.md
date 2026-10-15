@@ -1,6 +1,6 @@
 <p align="center">
   <strong>a2a-spec</strong><br>
-  <em>The open specification for testing, validating, and guaranteeing agent-to-agent interactions.</em>
+  <em>Contract tests for multi-agent systems</em>
 </p>
 
 <p align="center">
@@ -8,59 +8,45 @@
   <a href="https://github.com/padobrik/a2a-spec/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/padobrik/a2a-spec/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
   <a href="https://github.com/padobrik/a2a-spec/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue?style=flat-square" alt="Python 3.11+">
-  <a href="https://github.com/padobrik/a2a-spec"><img src="https://img.shields.io/badge/typed-PEP%20561-brightgreen?style=flat-square" alt="Typed"></a>
 </p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/padobrik/a2a-spec/main/docs/demo.gif" alt="a2aspec infer generates a contract from the consumer's code; after a producer change, the hand-written spec passes and the inferred contract fails" width="760">
 </p>
 
----
+a2a-spec finds the fields that one agent reads from another agent. It tests these fields in CI. The tests use recorded outputs, so they make no LLM calls and need no API keys.
 
-## Problem
+## The problem
 
-Multi-agent AI systems are **impossible to test reliably** with conventional tools.
+Agent A sends data to agent B. You change the prompt of agent A, and its output changes. For example, agent A now sends `urgency` instead of `priority`.
 
-Here is a concrete example of what goes wrong: you refine a prompt in your triage agent. The agent starts returning `issue_type` instead of `category`. Your resolution agent silently receives `None` for a key field and produces garbage output. No test caught it. Three hours later you find out from a user complaint.
+Agent B reads `priority` with a default value. It does not stop with an error. It gives a wrong result, and no test fails.
 
-The root causes are systemic:
+## What a2a-spec does
 
-- **LLM outputs are non-deterministic** — you cannot diff two live runs and call it a test.
-- **Agent contracts are implicit** — there is no formal definition of what Agent B expects from Agent A.
-- **Semantic drift is invisible to schemas** — a field can stay `string` while its meaning completely changes.
-- **CI is too expensive to run live** — calling LLMs on every push is slow and costs real money.
-
-Existing tools focus on prompt evaluation or observability. None provide **contract testing between agents**.
-
----
-
-## Solution
-
-**a2a-spec** is a specification, testing, and validation layer for multi-agent systems. You define what one agent expects from another as a YAML spec. You record LLM outputs as snapshots once. You replay them deterministically in CI with zero LLM calls. You detect structural and semantic regressions before they reach production.
+1. It reads the code of agent B and finds the fields that agent B uses.
+2. It records the output of agent A one time and saves it as JSON files in git.
+3. It tests the recorded output against the fields that agent B needs. You run these tests in pytest or in CI.
 
 ```
-Agent A ──[spec]──> Agent B ──[spec]──> Agent C
-    │                   │                   │
-    └── snapshot ──> replay ──> validate ──> ✓ CI passes
+agent A ──── output ────> agent B
+   │                         │
+a2aspec record          a2aspec infer
+   │                         │
+snapshots (JSON)          spec (YAML)
+   └───────> a2aspec test or pytest ───────> pass / fail
 ```
 
----
+## Terms
 
-## How It Works
-
-a2a-spec follows a **record-once, replay-forever** workflow:
-
-**1. Write a spec** — a YAML file that defines the contract between two agents: what fields are required, what they mean, and what is forbidden.
-
-**2. Record snapshots locally** — run `a2aspec record` with your API keys. It calls your live agents and saves each output as a JSON file.
-
-**3. Commit snapshots to git** — the JSON files become your test baselines. They are version-controlled, reviewable in PRs, and act as a precise record of what your agents actually produce.
-
-**4. Validate in CI** — run `a2aspec test --replay`. It loads the snapshots and validates them against the specs. No API keys. No LLM calls. Runs in milliseconds.
-
-**5. Detect drift when prompts change** — after modifying a prompt or upgrading a model, run `a2aspec record` again, then `a2aspec diff`. The diff engine reports exactly what changed structurally and semantically before you merge.
-
----
+| Term | Meaning |
+|---|---|
+| Producer | The agent that sends the data. |
+| Consumer | The agent that receives the data. |
+| Spec | A YAML file. It gives the fields that the consumer needs from the producer. |
+| Snapshot | A JSON file. It contains one recorded input and output of the producer. |
+| Scenario | A named input for the producer. |
+| Adapter | A small Python object. a2a-spec uses it to call your agent. |
 
 ## Quick Start
 
