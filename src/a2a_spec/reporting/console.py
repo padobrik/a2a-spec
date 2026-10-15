@@ -103,7 +103,10 @@ def print_pipeline_trace(trace: PipelineTrace) -> None:
     console.print(f"    Latency: {trace.total_latency_ms:.0f}ms")
 
     for step in trace.steps:
-        step_label = "[green]PASS[/green]" if step.spec_passed else "[red]FAIL[/red]"
+        if step.spec_passed is None:
+            step_label = "[dim]NO SPEC[/dim]"
+        else:
+            step_label = "[green]PASS[/green]" if step.spec_passed else "[red]FAIL[/red]"
         console.print(f"    {step_label} {step.agent_id} ({step.latency_ms:.0f}ms)")
         for error in step.spec_errors:
             console.print(f"        [red]{error}[/red]")

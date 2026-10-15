@@ -76,6 +76,10 @@ Test a pipeline DAG definition, validating each agent against specs.
 a2aspec pipeline test PIPELINE_FILE [--scenario NAME] [--mode replay|live] [--config PATH]
 ```
 
+`--mode replay` uses each agent's snapshot for the test case name; `--mode
+live` calls the agents in `ADAPTERS`. Each step is checked against the
+structural rules of the specs where that agent is the producer.
+
 ## Global Options
 
 - `--version, -v` — Show version and exit

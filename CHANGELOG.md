@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+- `a2aspec pipeline test --mode live` never loaded `ADAPTERS` and failed on
+  the first agent. A failed agent call now fails only its test case, steps
+  without a spec show `NO SPEC` instead of `FAIL`, and unknown modes are
+  rejected.
+
 ## [0.4.0] - 2026-10-16
 
 ### Added
