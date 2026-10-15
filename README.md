@@ -28,14 +28,9 @@ Agent B reads `priority` with a default value. It does not stop with an error. I
 2. It records the output of agent A one time and saves it as JSON files in git.
 3. It tests the recorded output against the fields that agent B needs. You run these tests in pytest or in CI.
 
-```
-agent A ──── output ────> agent B
-   │                         │
-a2aspec record          a2aspec infer
-   │                         │
-snapshots (JSON)          spec (YAML)
-   └───────> a2aspec test or pytest ───────> pass / fail
-```
+<p align="center">
+  <img src="https://raw.githubusercontent.com/padobrik/a2a-spec/main/docs/diagrams/how-it-works.svg" alt="a2aspec record saves the output of agent A as snapshots. a2aspec infer reads the code of agent B and writes a spec. a2aspec test or pytest tests the snapshots against the spec, with no LLM calls, and gives pass or fail." width="760">
+</p>
 
 ## Terms
 
@@ -175,6 +170,10 @@ git commit -m "test: add agent contracts"
 The committed snapshots are the baseline for the next steps.
 
 ## When you change an agent
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/padobrik/a2a-spec/main/docs/diagrams/change-workflow.svg" alt="Change the producer, then run a2aspec record, a2aspec diff and a2aspec test. If the tests pass, commit. If they fail and the change is not intended, fix the producer and record again. If the change is intended, update the consumer, run a2aspec infer --force and commit." width="760">
+</p>
 
 **1. Change the producer.** For example, change its prompt, its model or its code. In this example, the producer now sends `urgency` instead of `priority`.
 
