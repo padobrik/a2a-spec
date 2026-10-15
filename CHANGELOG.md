@@ -8,6 +8,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- `a2aspec infer --check` compares every inferred spec with its consumer's
+  current code and fails when the code reads a field the spec does not cover.
+  Inferred specs record their consumer in the new `inferred_from` field, and
+  the pytest plugin runs the same check as a `consumer_code` test.
 - `a2aspec test --live` calls each spec's producer through `ADAPTERS` with
   every scenario and checks the live output without saving it. Before, the
   flag only changed the header and still replayed snapshots.

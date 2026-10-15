@@ -51,7 +51,14 @@ Generate a consumer-driven spec from the fields a consumer function reads.
 
 ```bash
 a2aspec infer --producer ID --consumer ID --source FILE.py:FUNCTION [--name NAME] [--out PATH|-] [--force]
+a2aspec infer --check
 ```
+
+The generated spec records its consumer in `inferred_from`. `--check`
+compares every such spec with the consumer's current code and exits 1 when
+the code reads a field the spec does not cover, or reads with `data["key"]`
+a field the spec makes optional. Fields the code no longer reads are
+warnings. No snapshots are needed.
 
 ## `a2aspec skill`
 
