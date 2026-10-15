@@ -7,17 +7,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-16
+
 ### Added
 - A GitHub Action (`uses: padobrik/a2a-spec@v0.5.0`) that installs a2a-spec,
   runs `a2aspec infer --check` and `a2aspec test --format github`. CI runs it
   on the example project.
-- `--format github` annotations use paths relative to the repository root, so
-  they attach to the spec file when the project is in a subdirectory.
 - Scenario `expectations` are checked: `a2aspec test` (replay and live) and the
   pytest plugin fail when an agent's output does not have the expected value.
   Before, the field in scenario files was ignored.
 
 ### Fixed
+- `--format github` annotations use paths relative to the repository root, so
+  they attach to the spec file when the project is in a subdirectory.
 - `a2aspec pipeline test --mode live` never loaded `ADAPTERS` and failed on
   the first agent. A failed agent call now fails only its test case, steps
   without a spec show `NO SPEC` instead of `FAIL`, and unknown modes are
@@ -122,6 +124,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.5.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.5.0
 [0.4.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.4.0
 [0.3.2]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.2
 [0.3.1]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.1
