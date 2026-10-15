@@ -43,3 +43,18 @@ Assumptions made where the request or the code was ambiguous.
   ini file resolves relative to that ini file.
 - A spec whose producer has no snapshots is reported as a skip, matching the
   CLI's warning rather than failing.
+
+## `a2aspec diff`
+
+- The baseline is the committed version of each snapshot file (`--base`,
+  default `HEAD`), matching the README's "commit snapshots to git — they
+  become your test baselines". The previous behaviour (compare the last two
+  files of a scenario, ordered by hash) could not see re-recorded changes.
+  Outside a git repository diff now exits 1 with an explanation.
+- A deleted snapshot counts as high severity so it cannot slip through CI.
+
+## Agent skill
+
+- The skill lives in the package (`a2a_spec/skill/SKILL.md`) so its commands
+  always match the installed CLI; `a2aspec skill --dir` takes the skills
+  directory explicitly instead of guessing a tool-specific default.

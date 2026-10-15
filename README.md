@@ -230,7 +230,18 @@ triage-agent :: billing_overcharge
   category  NONE    unchanged
 ```
 
-The diff engine reports structural changes (fields added/removed/type-changed) and semantic drift (meaning shifted beyond threshold), with severity levels from LOW to CRITICAL.
+`record` overwrites snapshot files in place; `diff` compares each one with its committed version (`--base REF` for another revision). It reports structural changes (fields added/removed/type-changed) and semantic drift (meaning shifted beyond threshold) with severity levels from LOW to CRITICAL, plus scenarios added (`NEW`) or deleted (`GONE`) since the baseline. High-severity drift or a deleted snapshot exits with code 2.
+
+### Use with coding agents
+
+a2a-spec ships an [Agent Skill](https://agentskills.io) that teaches coding agents the workflow: run contracts before and after touching an agent, ask before recording live, show `diff` output, regenerate contracts with `infer` — and never make a failing contract pass by re-recording, deleting snapshots or loosening the spec. Install it into your agent's skills directory:
+
+```bash
+a2aspec skill --dir path/to/skills   # writes path/to/skills/a2a-spec/SKILL.md
+a2aspec skill                         # or print it
+```
+
+The skill is versioned with the package; re-export it after upgrading.
 
 ---
 
@@ -466,8 +477,9 @@ async def test_triage_live(a2a_check):
 | `a2aspec test --replay` | Validate snapshots against specs (deterministic, zero LLM calls) |
 | `a2aspec test --live` | Validate live agent outputs against specs |
 | `a2aspec infer --producer A --consumer B --source FILE:FN` | Generate a spec from the fields the consumer reads |
-| `a2aspec diff` | Compare current outputs against baselines |
-| `a2aspec diff --agent NAME` | Diff a specific agent only |
+| `a2aspec diff` | Compare recorded snapshots against their committed version |
+| `a2aspec diff --agent NAME --base REF` | Diff one agent against a git revision |
+| `a2aspec skill [--dir DIR]` | Export the bundled agent skill |
 | `a2aspec pipeline test FILE` | Test a multi-agent pipeline DAG |
 | `a2aspec --version` | Show version |
 
