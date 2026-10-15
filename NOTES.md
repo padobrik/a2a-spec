@@ -58,3 +58,17 @@ Assumptions made where the request or the code was ambiguous.
 - The skill lives in the package (`a2a_spec/skill/SKILL.md`) so its commands
   always match the installed CLI; `a2aspec skill --dir` takes the skills
   directory explicitly instead of guessing a tool-specific default.
+
+## A2A adapter
+
+- Supports A2A 1.0 over JSON-RPC only (the protocol version current in
+  a2a-sdk 1.2.2). 0.3 agents are rejected with an explicit message rather
+  than half-supported; gRPC, HTTP+JSON and streaming are out of scope.
+- Input goes out as one `data` part by default because contracts are about
+  structured fields; `text_field` covers text-only agents.
+- `json_text` is opt-in so the adapter never reinterprets an agent's text
+  reply unless asked.
+- File parts raise instead of being dropped, so no output silently goes
+  missing from a snapshot.
+- `agent_id` is required: it must match the producer/consumer ids in specs,
+  which the agent's card name does not guarantee.

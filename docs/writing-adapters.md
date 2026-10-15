@@ -42,6 +42,34 @@ adapter = HTTPAdapter(
 
 The endpoint must accept POST with JSON body and return JSON.
 
+## A2AAdapter
+
+For agents that implement the [A2A protocol](https://a2a-protocol.org) 1.0:
+
+```python
+from a2a_spec import A2AAdapter
+
+adapter = A2AAdapter(
+    url="https://triage.example.com",  # base URL or agent card URL
+    agent_id="triage-agent",
+    text_field=None,     # set to send input[text_field] as a text part
+    json_text=False,     # parse a text-only JSON object reply as the output
+    headers={"Authorization": "Bearer token"},
+    timeout=60.0,
+)
+```
+
+- The Agent Card is fetched from `/.well-known/agent-card.json` (or the URL
+  given) once per adapter; the first `JSONRPC` interface with protocol
+  version `1.x` is used, including its `tenant`.
+- Requests use `SendMessage` with `A2A-Version: 1.0` and block until the task
+  finishes. Streaming is not used.
+- Output: object `data` parts are merged (conflicting keys are an error),
+  other `data` values go under `"data"`, text under `"text"`. File parts are
+  not supported yet.
+- Tasks that end in any state other than completed raise `AdapterError`.
+- Agents that only offer A2A 0.3 are rejected with a clear message.
+
 ## Custom Adapters
 
 Subclass `AgentAdapter` for full control:
