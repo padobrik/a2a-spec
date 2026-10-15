@@ -52,6 +52,7 @@ dev = [
     "pre-commit>=3.7,<5.0",
     "types-PyYAML>=6.0",
     "types-jsonschema>=4.20",
+    "a2a-sdk[http-server]>=1.0,<2.0",
 ]
 all = [
     "a2a-spec[semantic,langchain,dev]",
