@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 from typing import Annotated, Any
 
 import typer
@@ -202,7 +204,7 @@ def test_command(
                     for error in errors:
                         typer.echo(
                             format_github_annotation(
-                                file=str(spec_path),
+                                file=_annotation_path(spec_path),
                                 line=1,
                                 level="error",
                                 message=f"{scenario}: {error}",
@@ -262,3 +264,14 @@ def _live_cases(spec: Spec, adapter: Any, scenarios: list[Scenario]) -> Iterator
             yield Case(sc.name, sc.input, error=f"agent call failed: {e}", expected=expected)
             continue
         yield Case(sc.name, sc.input, response.output, expected=expected)
+
+
+def _annotation_path(path: Path) -> str:
+    """Path for a GitHub annotation: relative to the repository root in Actions."""
+    workspace = os.environ.get("GITHUB_WORKSPACE")
+    if workspace:
+        try:
+            return path.resolve().relative_to(Path(workspace).resolve()).as_posix()
+        except ValueError:
+            pass
+    return str(path)

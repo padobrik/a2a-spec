@@ -55,3 +55,17 @@ jobs:
           else
             echo "PASS: only yaml.safe_load used"
           fi
+
+  action:
+    name: GitHub Action on the example
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run the repository action with this commit
+        uses: ./
+        with:
+          package: ${{ github.workspace }}
+          working-directory: examples/customer_support
+          config: a2a_spec/a2a-spec.yaml
+          args: --no-semantic
