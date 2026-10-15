@@ -164,3 +164,16 @@ class TestPytestPlugin:
         result.stdout.fnmatch_lines(
             ["*spec 'triage-to-resolution' is out of date*", "*run reads 'urgency' (line 2)*"]
         )
+
+    def test_scenario_expectations(self, project: pytest.Pytester) -> None:
+        scen = project.path / "a2a_spec" / "scenarios"
+        scen.mkdir()
+        (scen / "s.yaml").write_text(
+            "scenarios:\n  - name: billing\n    input: {message: hi}\n"
+            "    expectations:\n      triage-agent: {category: shipping}\n"
+        )
+        result = project.runpytest("--a2a", "a2a_spec/specs")
+        result.assert_outcomes(failed=1)
+        result.stdout.fnmatch_lines(
+            ["*expectation: expected 'category' = 'shipping', got 'billing'*"]
+        )

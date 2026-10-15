@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- Scenario `expectations` are checked: `a2aspec test` (replay and live) and the
+  pytest plugin fail when an agent's output does not have the expected value.
+  Before, the field in scenario files was ignored.
+
 ### Fixed
 - `a2aspec pipeline test --mode live` never loaded `ADAPTERS` and failed on
   the first agent. A failed agent call now fails only its test case, steps

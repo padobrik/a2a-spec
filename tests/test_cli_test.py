@@ -297,3 +297,49 @@ class TestCliTestLive:
         result = runner.invoke(app, ["test", "--live", "--format", "junit"])
         assert result.exit_code == 1
         assert 'tests="2" failures="1"' in result.stdout
+
+
+class TestCliTestExpectations:
+    def _scenarios(self, tmp_path, expected: str) -> None:
+        d = tmp_path / "scen"
+        d.mkdir()
+        (d / "s.yaml").write_text(
+            "scenarios:\n"
+            "  - name: billing\n"
+            "    input: {message: hi}\n"
+            "    expectations:\n"
+            f"      triage-agent: {{category: {expected}}}\n"
+        )
+        config = tmp_path / "a2a-spec.yaml"
+        config.write_text(config.read_text() + f'scenarios_dir: "{d}"\n')
+
+    def test_replay_expectation_mismatch_fails(self, tmp_path) -> None:
+        config = _struct_project(tmp_path, {"billing": {"category": "general"}})
+        self._scenarios(tmp_path, "billing")
+        result = runner.invoke(app, ["test", "--config", str(config)])
+        assert result.exit_code == 1, result.output
+        assert "expectations FAIL" in result.output
+        assert "expected 'category' = 'billing', got 'general'" in result.output
+
+    def test_replay_expectation_match_passes(self, tmp_path) -> None:
+        config = _struct_project(tmp_path, {"billing": {"category": "billing"}})
+        self._scenarios(tmp_path, "billing")
+        result = runner.invoke(app, ["test", "--config", str(config)])
+        assert result.exit_code == 0, result.output
+
+    def test_expectations_in_junit(self, tmp_path) -> None:
+        config = _struct_project(tmp_path, {"billing": {"category": "general"}})
+        self._scenarios(tmp_path, "billing")
+        result = runner.invoke(app, ["test", "--config", str(config), "--format", "junit"])
+        assert "expectation: expected 'category' = 'billing', got 'general'" in result.stdout
+
+    def test_live_expectations(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        _live_project(tmp_path, {"ok": "charged twice"})
+        scen = tmp_path / "a2a_spec" / "scenarios" / "s.yaml"
+        scen.write_text(
+            scen.read_text() + "    expectations:\n      triage-agent: {category: shipping}\n"
+        )
+        result = runner.invoke(app, ["test", "--live"])
+        assert result.exit_code == 1
+        assert "expected 'category' = 'shipping', got 'billing'" in result.output

@@ -96,3 +96,16 @@ class TestValidateStructural:
         assert "PASSED" in repr(result)
         result.add_error("some error")
         assert "FAILED" in repr(result)
+
+
+class TestCheckExpectations:
+    def test_match_mismatch_missing(self) -> None:
+        from a2a_spec.spec.checker import check_expectations
+
+        assert check_expectations({"category": "billing"}, {"category": "billing"}) == []
+        assert check_expectations({"category": "general"}, {"category": "billing"}) == [
+            "expected 'category' = 'billing', got 'general'"
+        ]
+        assert check_expectations({}, {"priority": "high"}) == [
+            "expected 'priority' = 'high', but the field is missing"
+        ]
