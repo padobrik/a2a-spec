@@ -5,96 +5,112 @@ from __future__ import annotations
 import math
 
 from promo_capture import Capture
+from promo_fx import code, flow_arrow, panel
 from promo_kit import (
     AMBER,
     FG,
     GREEN,
     INDIGO,
+    LAVENDER,
     MUTED,
-    PANEL,
     RED,
     TEAL,
     Canvas,
     clamp,
-    ease,
-    ease_back,
+    ease_in_out,
+    spring,
     window,
 )
 from promo_pieces import BAD, GOOD, agent, caption, kinetic, packet, pill
 
+LEFT = (100, 250, 340, 120)
+RIGHT = (840, 250, 340, 120)
+
 
 def scene_title(c: Canvas, t: float, cap: Capture) -> None:
-    kinetic(c, t, 0.2, "Your agents talk to each other.", 260, 60, FG)
-    kinetic(c, t, 1.3, "Who checks what they say?", 352, 44, (165, 180, 252), "Semibold", 0.1)
-    # Two dots trading messages under the title.
-    a = window(t, 1.9, 0.5)
-    c.dot(520, 470, 14, INDIGO, a)
-    c.dot(760, 470, 14, TEAL, a)
-    for k in range(3):
-        p = (t * 0.9 + k / 3) % 1.0
-        c.dot(540 + 200 * p, 470, 5, (165, 180, 252), a * math.sin(math.pi * p))
+    kinetic(c, t, 0.2, "Your agents talk to each other.", 236, 62, FG)
+    kinetic(c, t, 1.25, "Who checks what they say?", 330, 44, LAVENDER, "Semibold", 0.08)
+    # Two nodes trading messages along an arc.
+    a = window(t, 1.8, 0.6)
+    ax, bx, y = 500, 780, 470
+    c.dot(ax, y, 18, INDIGO, a * 0.25)
+    c.dot(bx, y, 18, TEAL, a * 0.25)
+    c.dot(ax, y, 10, INDIGO, a)
+    c.dot(bx, y, 10, TEAL, a)
+    for k in range(4):
+        p = (t * 0.55 + k / 4) % 1.0
+        e = ease_in_out(p)
+        x = ax + (bx - ax) * e
+        yy = y - math.sin(math.pi * e) * 46
+        c.dot(x, yy, 4.5, LAVENDER, a * math.sin(math.pi * p))
+
+
+def _arrive(c: Canvas, t: float, payload, start: float, alert: bool = False) -> None:
+    """Fly a packet from producer to consumer, with motion blur while it moves."""
+    if t <= start:
+        return
+    p = clamp((t - start) / 1.5)
+    e = ease_in_out(p)
+    prev = ease_in_out(clamp((t - start - 1 / 30) / 1.5))
+    x = 520 + 240 * e
+    packet(c, x, 192, payload, window(t, start, 0.25), alert=alert, speed=(e - prev) * 240)
 
 
 def scene_flow(c: Canvas, t: float, cap: Capture) -> None:
-    a = ease_back((t - 0.0) / 0.7)
-    agent(c, 110 - 60 * (1 - a), 250, 330, 130, "PRODUCER", "triage-agent", INDIGO, clamp(a))
-    agent(c, 840 + 60 * (1 - a), 250, 330, 130, "CONSUMER", "resolution-agent", TEAL, clamp(a))
-    c.flow_arrow(450, 315, 830, MUTED, clamp(a))
-    p = ease((t - 1.0) / 1.6)
-    if t > 0.9:
-        packet(c, 470 + 340 * p, 200, GOOD, window(t, 0.9, 0.3), trail=1.0 if p < 1 else 0.0)
-    s = ease_back((t - 2.7) / 0.5)
-    if t > 2.7:
-        pill(c, 1005, 400, "escalate: true", GREEN, clamp(s * 2), scale=max(s, 0.01))
-    caption(c, t, 0.6, "triage-agent sends data. resolution-agent depends on it.")
+    s = spring((t - 0.05) / 0.9)
+    agent(c, LEFT[0] - 80 * (1 - s), *LEFT[1:], "PRODUCER", "triage-agent", INDIGO, clamp(s * 1.5))
+    agent(
+        c, RIGHT[0] + 80 * (1 - s), *RIGHT[1:], "CONSUMER", "resolution-agent", TEAL, clamp(s * 1.5)
+    )
+    flow_arrow(c, 452, 310, 828, MUTED, window(t, 0.4))
+    _arrive(c, t, GOOD, 1.0)
+    pop = spring((t - 2.6) / 0.7)
+    pill(c, 1010, 392, "escalate: true", GREEN, clamp(pop * 3), scale=pop)
+    caption(c, t, 0.7, "triage-agent sends data. resolution-agent depends on it.")
 
 
 def scene_break(c: Canvas, t: float, cap: Capture) -> None:
-    glitch = clamp((t - 2.9) / 0.2) * max(0.0, 1 - (t - 3.6) / 1.2) if t > 2.9 else 0.0
-    agent(c, 110, 250, 330, 130, "PRODUCER", "triage-agent", INDIGO, 1.0)
-    agent(c, 840, 250, 330, 130, "CONSUMER", "resolution-agent", TEAL, 1.0, glitch=glitch)
-    c.flow_arrow(450, 315, 830, MUTED, 1.0)
-    b = ease_back((t - 0.4) / 0.5)
-    if t > 0.4:
-        pill(
-            c,
-            275,
-            395,
-            "prompt v2",
-            AMBER,
-            clamp(b * 2),
-            scale=max(b, 0.01),
-            text_color=(17, 24, 39),
-            size=17,
-            mono=False,
-        )
-    p = ease((t - 1.0) / 1.6)
-    if t > 0.9:
-        packet(c, 470 + 340 * p, 200, BAD, window(t, 0.9, 0.3), trail=1.0 if p < 1 else 0.0)
-    s = ease_back((t - 2.9) / 0.5)
-    if t > 2.9:
-        pill(c, 1005, 400, "escalate: false", RED, clamp(s * 2), scale=max(s, 0.01))
-        c.flash = ((127, 29, 29), 0.22 * max(0.0, 1 - (t - 2.9) / 0.7))
-    c.text(
-        (1005, 466),
-        'ticket.get("priority", "low")  ->  "low"',
-        17,
-        MUTED,
-        window(t, 3.4, 0.5),
-        mono=True,
-        anchor="ma",
+    glitch = clamp((t - 2.6) / 0.15) * max(0.0, 1 - (t - 3.3) / 1.0) if t > 2.6 else 0.0
+    agent(c, *LEFT, "PRODUCER", "triage-agent", INDIGO, 1.0)
+    agent(c, *RIGHT, "CONSUMER", "resolution-agent", TEAL, 1.0, glitch=glitch)
+    flow_arrow(c, 452, 310, 828, MUTED, 1.0)
+    pop = spring((t - 0.35) / 0.7)
+    if t > 0.35:
+        ring = clamp((t - 0.35) / 0.9)
+        c.ring(270, 414, 30 + 60 * ring, AMBER, 0.5 * (1 - ring), 2)
+    pill(
+        c,
+        270,
+        392,
+        "prompt v2",
+        AMBER,
+        clamp(pop * 3),
+        scale=pop,
+        text_color=(23, 23, 23),
+        size=16,
+        mono=False,
     )
-    caption(c, t, 0.2, "One prompt tweak later...", AMBER, y=120)
+    _arrive(c, t, BAD, 1.0)
+    pop = spring((t - 2.6) / 0.7)
+    pill(c, 1010, 392, "escalate: false", RED, clamp(pop * 3), scale=pop)
+    if t > 2.6:
+        c.flash = ((127, 29, 29), 0.24 * max(0.0, 1 - (t - 2.6) / 0.6))
+    hint = window(t, 3.2, 0.5)
+    snippet = 'ticket.get("priority", "low")'
+    hy = 456 + 8 * (1 - hint)
+    code(c, 860, hy, snippet, 16, hint)
+    c.text((860 + c.width(snippet, 16, mono=True) + 14, hy), '-> "low"', 16, MUTED, hint, mono=True)
+    caption(c, t, 0.15, "One prompt tweak later...", AMBER, y=118)
     kinetic(
         c,
         t,
-        3.7,
+        3.6,
         "No exception. No failing test. Just wrong behavior.",
-        600,
+        604,
         30,
         (252, 165, 165),
         "Semibold",
-        0.07,
+        0.06,
     )
 
 
@@ -112,64 +128,72 @@ def _wrap_code(lines: list[str], width: int) -> list[str]:
 
 
 def fly(c: Canvas, a: tuple[float, float], b: tuple[float, float], label: str, p: float) -> None:
-    """A field chip flying from a to b along an arc, with a trail."""
+    """A field chip flying from a to b along an arc, leaving a fading trail."""
     if p <= 0 or p >= 1:
         return
-    for k in range(5, -1, -1):
-        e = ease(max(p - k * 0.035, 0.0))
+    for k in range(7, -1, -1):
+        e = ease_in_out(max(p - k * 0.03, 0.0))
         x = a[0] + (b[0] - a[0]) * e
-        y = a[1] + (b[1] - a[1]) * e - math.sin(math.pi * e) * 110
+        y = a[1] + (b[1] - a[1]) * e - math.sin(math.pi * e) * 120
         if k:
-            c.dot(x, y, 9 - k, AMBER, 0.5 - k * 0.08)
-        else:
-            w = c.width(label, 16, mono=True) + 22
-            c.box(x - w / 2, y - 15, w, 30, AMBER, 1.0, 15)
-            c.text((x, y - 9), label, 16, (17, 24, 39), 1.0, "Semibold", mono=True, anchor="ma")
+            c.dot(x, y, 7 - k * 0.7, AMBER, 0.45 - k * 0.05)
+            continue
+        w = c.width(label, 15, mono=True) + 24
+        c.box(x - w / 2, y - 15, w, 30, AMBER, 1.0, 15)
+        c.text((x, y - 8), label, 15, (23, 23, 23), 1.0, "Semibold", mono=True, anchor="ma")
 
 
 def scene_infer(c: Canvas, t: float, cap: Capture) -> None:
-    kinetic(c, t, 0.0, "a2aspec infer reads the consumer's code", 60, 34, FG, "Semibold", 0.06)
-    a = window(t, 0.3, 0.6)
-    x0 = 40 - 40 * (1 - a)
-    c.box(x0, 150, 620, 230, PANEL, a, 16, outline=(51, 65, 85))
-    c.text((x0 + 24, 166), "agents/resolution.py", 13, MUTED, a, mono=True)
+    kinetic(c, t, 0.0, "a2aspec infer reads the consumer's code", 56, 34, FG, "Semibold", 0.05)
+    a = window(t, 0.25, 0.6)
+    x0 = 40 - 30 * (1 - a)
+    panel(c, x0, 136, 620, 250, a)
+    c.text((x0 + 24, 154), "agents/resolution.py", 12, MUTED, a, mono=True)
     lines = _wrap_code(cap.consumer_code, 76)
-    y = 200
-    scan_y = 196 + ease((t - 0.8) / 1.4) * (len(lines) * 28 + 6)
-    if 0.8 < t < 2.4:  # scanner beam
-        c.box(x0 + 8, scan_y - 2, 604, 4, (165, 180, 252), 0.8, 2)
-        c.box(x0 + 8, scan_y - 14, 604, 12, (99, 102, 241), 0.18, 4)
+    scan = ease_in_out((t - 0.8) / 1.3)
+    if 0.8 < t < 2.3:
+        sy = 190 + scan * (len(lines) * 28 + 4)
+        c.box(x0 + 10, sy - 18, 600, 18, INDIGO, 0.16, 4)
+        c.box(x0 + 10, sy - 1, 600, 2.5, LAVENDER, 0.9, 2)
+    y = 190
     for line in lines:
-        c.text((x0 + 24, y), line, 13, FG, a, mono=True)
         for key, at in (('"priority"', 1.2), ("'category'", 1.6)):
             idx = line.find(key)
             if idx >= 0:
                 hx = x0 + 24 + c.width(line[:idx], 13, mono=True)
-                hw = c.width(key, 13, mono=True)
                 h = window(t, at, 0.3)
-                c.box(hx - 3, y - 2, hw + 6, 21, AMBER, h * 0.35, 5)
-                c.text((hx, y), key, 13, AMBER, h, mono=True)
+                c.box(
+                    hx - 4,
+                    y - 3,
+                    c.width(key, 13, mono=True) + 8,
+                    22,
+                    AMBER,
+                    0.22 * h,
+                    5,
+                    outline=AMBER,
+                    outline_a=0.7,
+                )
+        code(c, x0 + 24, y, line, 13, a)
         y += 28
-    fly(c, (330, 225), (905, 336), '"priority"', (t - 1.5) / 1.0)
-    fly(c, (430, 255), (905, 358), "'category'", (t - 1.9) / 1.0)
+    fly(c, (330, 214), (905, 334), '"priority"', (t - 1.45) / 1.0)
+    fly(c, (450, 244), (905, 356), "'category'", (t - 1.85) / 1.0)
     b = window(t, 2.2, 0.6)
-    c.flow_arrow(668, 265, 704, MUTED, b)
-    bx = 712 + 40 * (1 - b)
-    c.box(bx, 150, 528, 400, PANEL, b, 16, outline=(51, 65, 85))
+    flow_arrow(c, 668, 260, 704, MUTED, b, pulse=False)
+    bx = 712 + 30 * (1 - b)
+    panel(c, bx, 136, 528, 420, b)
     c.text(
-        (bx + 24, 166),
+        (bx + 24, 154),
         "a2a_spec/specs/triage-agent-to-resolution-agent.yaml",
-        12,
+        11,
         MUTED,
         b,
         mono=True,
     )
-    y = 196
+    y = 188
     for i, line in enumerate(cap.spec_lines):
-        la = window(t, 2.4 + i * 0.07, 0.25)
-        hot = "priority" in line or "category" in line
-        if hot and la > 0:
-            c.box(bx + 18, y - 2, 492, 21, AMBER, 0.12 * la, 4)
-        c.text((bx + 24 + 14 * (1 - la), y), line[:54], 15, AMBER if hot else FG, la, mono=True)
+        la = window(t, 2.35 + i * 0.07, 0.3)
+        if "priority" in line or "category" in line:
+            c.box(bx + 16, y - 3, 496, 22, AMBER, 0.13 * la, 5)
+        code(c, bx + 24 + 12 * (1 - la), y, line[:56], 14, la, lang="yaml")
         y += 22
-    caption(c, t, 3.6, "The contract comes from real usage. No YAML to write.", y=600)
+    caption(c, t, 3.6, "The contract comes from real usage. No YAML to write.", y=612)
