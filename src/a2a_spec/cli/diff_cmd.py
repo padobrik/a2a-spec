@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+import json
+from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -11,7 +12,8 @@ from a2a_spec.config.loader import load_config
 from a2a_spec.diff.engine import DiffEngine, DriftSeverity
 from a2a_spec.exceptions import A2ASpecError
 from a2a_spec.reporting.console import print_diff_results
-from a2a_spec.snapshot.store import SnapshotStore
+from a2a_spec.snapshot.baseline import GitBaseline
+from a2a_spec.snapshot.store import Snapshot, SnapshotStore
 
 console = Console()
 
@@ -29,6 +31,12 @@ def diff_command(
         "-t",
         help="Semantic similarity threshold.",
     ),
+    base: str = typer.Option(
+        "HEAD",
+        "--base",
+        "-b",
+        help="Git revision holding the baseline snapshots.",
+    ),
     config_path: str | None = typer.Option(
         None,
         "--config",
@@ -36,10 +44,11 @@ def diff_command(
         help="Path to config file.",
     ),
 ) -> None:
-    """Compare current snapshots against baselines.
+    """Compare recorded snapshots against their committed baseline.
 
-    Shows structural and semantic differences between the most recent
-    recording and the previous baseline.
+    'a2aspec record' overwrites snapshot files in place; this shows the
+    structural and semantic differences from the version at --base, plus
+    scenarios added or deleted since then.
     """
     try:
         config = load_config(config_path)
@@ -70,32 +79,45 @@ def diff_command(
         console.print("[yellow]No snapshots found. Run 'a2aspec record' first.[/yellow]")
         raise typer.Exit(0)
 
+    try:
+        baseline = GitBaseline(config.storage.path, base)
+    except A2ASpecError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1) from None
+
     console.print("\n[bold][diff][/bold] Semantic Diff Report\n")
 
     total_diffs = 0
     high_severity = 0
 
     for agent_id in agents:
-        snapshots = store.load_all(agent_id)
+        agent_dir = Path(config.storage.path) / agent_id
+        current = sorted(agent_dir.glob("*.json")) if agent_dir.exists() else []
 
-        by_scenario: dict[str, list[Any]] = {}
-        for snap in snapshots:
-            by_scenario.setdefault(snap.scenario, []).append(snap)
-
-        for scenario, snaps in sorted(by_scenario.items()):
-            if len(snaps) < 2:
+        for path in current:
+            new = Snapshot.from_dict(json.loads(path.read_text(encoding="utf-8")))
+            old = baseline.load(path)
+            if old is None:
+                console.print(f"  [yellow]NEW [/yellow] {agent_id} / {new.scenario}: not in {base}")
+                total_diffs += 1
+                continue
+            if old.output_data == new.output_data:
                 continue
 
-            old = snaps[-2]
-            new = snaps[-1]
-
             results = engine.diff(old.output_data, new.output_data, threshold)
-            print_diff_results(agent_id, scenario, results)
+            print_diff_results(agent_id, new.scenario, results)
 
             total_diffs += len(results)
             high_severity += sum(
                 1 for r in results if r.severity in (DriftSeverity.HIGH, DriftSeverity.CRITICAL)
             )
+
+        present = {p.resolve() for p in current}
+        for path in baseline.files(agent_dir):
+            if path.resolve() not in present:
+                console.print(f"  [red]GONE[/red] {agent_id} / {path.name}: deleted since {base}")
+                total_diffs += 1
+                high_severity += 1
 
     console.print()
     if total_diffs == 0:
