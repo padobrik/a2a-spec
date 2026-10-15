@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-15
+
 ### Added
 - `A2AAdapter` calls agents that implement the A2A protocol 1.0 through
   their Agent Card and the JSON-RPC binding; the card's version is recorded
@@ -60,5 +62,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.3.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.0
 [0.2.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.2.0
 [0.1.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.1.0
