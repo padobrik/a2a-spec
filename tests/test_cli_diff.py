@@ -143,3 +143,15 @@ class TestCliDiffGitBaseline:
         result = runner.invoke(app, ["diff"])
         assert result.exit_code == 1
         assert "not in a git repository" in _flat(result.output)
+
+    def test_missing_semantic_extra_falls_back_with_warning(self, tmp_path, monkeypatch) -> None:
+        import sys
+
+        repo = _repo(tmp_path, monkeypatch)
+        (repo / "a2a-spec.yaml").write_text("storage:\n  path: snapshots\n")
+        _write_snapshot(repo, "billing", {"category": "billing", "summary": "billing issue"})
+        monkeypatch.setitem(sys.modules, "sentence_transformers", None)
+        result = runner.invoke(app, ["diff"])
+        assert result.exception is None or isinstance(result.exception, SystemExit), result.output
+        assert "Using token overlap" in _flat(result.output)
+        assert "summary" in result.output
