@@ -1,0 +1,25 @@
+{
+  "fingerprint": "69524abe4d67",
+  "agent_id": "resolution-agent",
+  "scenario": "product_defect",
+  "timestamp": "2026-10-15T14:36:06.819028+00:00",
+  "input": {
+    "message": "The product I received is broken and doesn't work"
+  },
+  "output": {
+    "resolution": "A support representative will follow up within 24 hours.",
+    "actions": [
+      "Review general records",
+      "Contact customer with update"
+    ],
+    "escalate": false,
+    "estimated_resolution_hours": 48
+  },
+  "metadata": {
+    "agent_version": "1.0.0",
+    "model": null,
+    "prompt_hash": null,
+    "latency_ms": 0.000957999873207882,
+    "token_usage": null
+  }
+}

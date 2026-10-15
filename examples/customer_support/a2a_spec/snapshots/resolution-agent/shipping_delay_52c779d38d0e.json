@@ -1,0 +1,25 @@
+{
+  "fingerprint": "52c779d38d0e",
+  "agent_id": "resolution-agent",
+  "scenario": "shipping_delay",
+  "timestamp": "2026-10-15T14:36:06.818135+00:00",
+  "input": {
+    "message": "My package hasn't arrived and it's been 2 weeks"
+  },
+  "output": {
+    "resolution": "A support representative will follow up within 24 hours.",
+    "actions": [
+      "Review general records",
+      "Contact customer with update"
+    ],
+    "escalate": false,
+    "estimated_resolution_hours": 48
+  },
+  "metadata": {
+    "agent_version": "1.0.0",
+    "model": null,
+    "prompt_hash": null,
+    "latency_ms": 0.0014159995771478862,
+    "token_usage": null
+  }
+}

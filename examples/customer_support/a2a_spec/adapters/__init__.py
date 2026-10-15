@@ -1,7 +1,7 @@
 """Customer support agent adapters."""
 
-from examples.customer_support.a2a_spec.adapters.triage_adapter import triage_adapter
-from examples.customer_support.a2a_spec.adapters.resolution_adapter import resolution_adapter
+from .resolution_adapter import resolution_adapter
+from .triage_adapter import triage_adapter
 
 ADAPTERS = {
     "triage-agent": triage_adapter,

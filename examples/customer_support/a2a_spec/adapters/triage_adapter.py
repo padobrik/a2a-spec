@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from a2a_spec.adapters.function_adapter import FunctionAdapter
 
-from examples.customer_support.agents.triage import triage_agent
+from agents.triage import triage_agent
 
 triage_adapter = FunctionAdapter(
     fn=triage_agent,
