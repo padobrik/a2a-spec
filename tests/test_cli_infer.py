@@ -114,3 +114,56 @@ class TestCliInfer:
         assert result.exit_code == 1
         assert "reads no fields" in _flat(result.output)
         assert "is used as a whole" in _flat(result.output)
+
+
+class TestCliInferCheck:
+    def _inferred(self, tmp_path: Path) -> Path:
+        config = _project(tmp_path)
+        result = runner.invoke(app, _args(tmp_path, config))
+        assert result.exit_code == 0, result.output
+        return config
+
+    def test_records_inferred_from(self, tmp_path: Path) -> None:
+        self._inferred(tmp_path)
+        spec = load_spec(tmp_path / "specs" / "triage-agent-to-resolution-agent.yaml")
+        assert spec.inferred_from == f"{tmp_path / 'resolution.py'}:resolution_agent"
+
+    def test_check_passes_when_current(self, tmp_path: Path) -> None:
+        config = self._inferred(tmp_path)
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert result.exit_code == 0, result.output
+        assert "OK" in result.output and "triage-agent-to-resolution-agent" in result.output
+
+    def test_check_fails_when_consumer_reads_new_field(self, tmp_path: Path) -> None:
+        config = self._inferred(tmp_path)
+        consumer = tmp_path / "resolution.py"
+        consumer.write_text(consumer.read_text().replace('data["priority"]', 'data["urgency"]'))
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert result.exit_code == 1
+        out = _flat(result.output)
+        assert "FAIL triage-agent-to-resolution-agent" in out
+        assert "resolution_agent reads 'urgency' (line 4), which the spec does not cover" in out
+        assert "WARN: the spec covers 'priority', which resolution_agent no longer reads" in out
+        assert (
+            "Regenerate: a2aspec infer --producer triage-agent --consumer resolution-agent" in out
+        )
+
+    def test_check_without_inferred_specs(self, tmp_path: Path) -> None:
+        config = _project(tmp_path)
+        (tmp_path / "specs").mkdir()
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert result.exit_code == 0
+        assert "No inferred specs to check" in _flat(result.output)
+
+    def test_check_reports_missing_consumer(self, tmp_path: Path) -> None:
+        config = self._inferred(tmp_path)
+        (tmp_path / "resolution.py").unlink()
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert result.exit_code == 1
+        assert "Consumer source not found" in _flat(result.output)
+
+    def test_generate_requires_arguments(self, tmp_path: Path) -> None:
+        config = _project(tmp_path)
+        result = runner.invoke(app, ["infer", "--config", str(config)])
+        assert result.exit_code == 2
+        assert "--producer, --consumer and --source are required" in _flat(result.output)
