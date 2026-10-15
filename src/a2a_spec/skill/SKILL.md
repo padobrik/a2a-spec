@@ -28,6 +28,7 @@ Run the current contracts so you know the baseline:
 
 ```bash
 a2aspec test
+a2aspec infer --check
 ```
 
 If the project enables the pytest plugin (`a2a_config` in the pytest ini
@@ -59,6 +60,12 @@ options), `pytest` runs the same checks; `pytest --a2a` works without it.
 
 Without permission to call live agents, stop after step 1 and tell the user
 which scenarios need re-recording.
+
+## After changing a consumer
+
+Run `a2aspec infer --check`. A `FAIL` means the consumer now reads a field
+its spec does not cover. Regenerate the spec with the command the output
+prints, review the YAML diff, and run `a2aspec test`.
 
 ## Adding or changing an edge
 

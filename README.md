@@ -213,6 +213,23 @@ FAIL triage-agent-to-resolution-agent / double_charge
 
 Do not record the snapshots again only to make a test pass. Do not delete snapshots or remove fields from a spec for this purpose.
 
+## Keep the specs up to date
+
+A consumer can start to read a new field when you change its code. Then its spec is not complete. To find this problem, run:
+
+```bash
+a2aspec infer --check
+```
+
+```
+FAIL triage-agent-to-resolution-agent (agents/resolution.py:resolution_agent)
+    resolution_agent reads 'language' (line 3), which the spec does not cover
+```
+
+The command compares each spec that `a2aspec infer` made with the current code of its consumer. It reads only code, so it needs no snapshots and makes no LLM calls. The output also shows the command that makes the spec again.
+
+Add `a2aspec infer --check` to CI. The pytest plugin also runs this check as the `consumer_code` test of each inferred spec.
+
 ## Run the tests with pytest
 
 a2a-spec has a pytest plugin. Add these lines to `pyproject.toml`:
@@ -259,6 +276,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install a2a-spec
+      - run: a2aspec infer --check
       - run: a2aspec test --format github
 ```
 
@@ -334,6 +352,7 @@ This command writes `path/to/skills/a2a-spec/SKILL.md`. Export the skill again a
 
 - `a2aspec infer` reads Python consumers only. It finds `data["key"]`, `data.get("key")` and `"key" in data` for top-level keys.
 - If the consumer gives its input to another function, `a2aspec infer` cannot follow it. The command then shows a `WARN` line. Add the missing fields to the spec by hand.
+- `a2aspec infer --check` checks only specs that contain `inferred_from`. Specs from a2a-spec 0.3 and earlier do not have it. Run `a2aspec infer` with `--force` again to add it.
 - `a2aspec diff` compares with the snapshots in git. Commit the snapshots before you use it.
 - `A2AAdapter` supports A2A 1.0 with JSON-RPC. It does not support streaming or file parts.
 - Semantic rules use a local embedding model. The `semantic` extra installs PyTorch.
@@ -345,6 +364,7 @@ This command writes `path/to/skills/a2a-spec/SKILL.md`. Export the skill again a
 | `a2aspec init` | Creates the project files. |
 | `a2aspec record` | Calls the producers and saves their output as snapshots. |
 | `a2aspec infer` | Makes a spec from the fields that a consumer reads. |
+| `a2aspec infer --check` | Finds specs that do not cover what their consumer reads now. |
 | `a2aspec test` | Tests the snapshots against the specs. |
 | `a2aspec test --live` | Calls the producers with each scenario and tests their output. It saves nothing. |
 | `a2aspec diff` | Compares the snapshots with the committed snapshots. |
