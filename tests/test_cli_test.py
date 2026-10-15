@@ -343,3 +343,10 @@ class TestCliTestExpectations:
         result = runner.invoke(app, ["test", "--live"])
         assert result.exit_code == 1
         assert "expected 'category' = 'shipping', got 'billing'" in result.output
+
+    def test_github_annotation_path_relative_to_workspace(self, tmp_path, monkeypatch) -> None:
+        config = _struct_project(tmp_path, OUTPUTS)
+        monkeypatch.setenv("GITHUB_WORKSPACE", str(tmp_path.parent))
+        result = runner.invoke(app, ["test", "--config", str(config), "--format", "github"])
+        expected = f"::error file={tmp_path.name}/specs/triage.yaml,line=1,"
+        assert any(line.startswith(expected) for line in result.stdout.splitlines()), result.stdout
