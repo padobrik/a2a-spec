@@ -1,0 +1,145 @@
+"""Tests for the pytest plugin, run through real pytest sessions."""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+
+pytest_plugins = ["pytester"]
+
+SPEC = """
+spec:
+  name: triage-to-resolution
+  version: "1.0"
+  producer: triage-agent
+  consumer: resolution-agent
+  structural:
+    type: object
+    required: [category]
+    properties:
+      category: {type: string}
+"""
+
+
+def _snapshot(pytester: pytest.Pytester, scenario: str, output: dict[str, object]) -> None:
+    snaps = pytester.path / "a2a_spec" / "snapshots" / "triage-agent"
+    snaps.mkdir(parents=True, exist_ok=True)
+    (snaps / f"{scenario}_abc123.json").write_text(
+        json.dumps(
+            {
+                "fingerprint": "abc123",
+                "agent_id": "triage-agent",
+                "scenario": scenario,
+                "input": {"message": "hi"},
+                "output": output,
+            }
+        )
+    )
+
+
+@pytest.fixture
+def project(pytester: pytest.Pytester) -> pytest.Pytester:
+    specs = pytester.path / "a2a_spec" / "specs"
+    specs.mkdir(parents=True)
+    (specs / "triage.yaml").write_text(SPEC)
+    pytester.makefile(
+        ".yaml",
+        **{
+            "a2a-spec": 'specs_dir: "a2a_spec/specs"\nstorage:\n  path: "a2a_spec/snapshots"\n',
+        },
+    )
+    _snapshot(pytester, "billing", {"category": "billing"})
+    return pytester
+
+
+class TestPytestPlugin:
+    def test_inert_without_opt_in(self, project: pytest.Pytester) -> None:
+        result = project.runpytest("a2a_spec/specs")
+        result.assert_outcomes()
+        assert result.ret == pytest.ExitCode.NO_TESTS_COLLECTED
+
+    def test_snapshots_become_tests(self, project: pytest.Pytester) -> None:
+        _snapshot(project, "shipping", {"category": "shipping"})
+        result = project.runpytest("--a2a", "a2a_spec/specs", "-v")
+        result.assert_outcomes(passed=2)
+        result.stdout.fnmatch_lines(
+            ["*triage.yaml::billing PASSED*", "*triage.yaml::shipping PASSED*"]
+        )
+
+    def test_violation_fails_with_readable_message(self, project: pytest.Pytester) -> None:
+        _snapshot(project, "renamed", {"issue_type": "billing"})
+        result = project.runpytest("--a2a", "a2a_spec/specs")
+        result.assert_outcomes(passed=1, failed=1)
+        result.stdout.fnmatch_lines(
+            [
+                "*contract 'triage-to-resolution' violated:*",
+                "*structural: ?<root>? 'category' is a required property*",
+            ]
+        )
+
+    def test_ini_option_enables(self, project: pytest.Pytester) -> None:
+        project.makeini("[pytest]\na2a_config = a2a-spec.yaml\n")
+        result = project.runpytest("a2a_spec/specs")
+        result.assert_outcomes(passed=1)
+
+    def test_k_selects_scenario(self, project: pytest.Pytester) -> None:
+        _snapshot(project, "shipping", {"category": "shipping"})
+        result = project.runpytest("--a2a", "a2a_spec/specs", "-k", "shipping")
+        result.assert_outcomes(passed=1, deselected=1)
+
+    def test_missing_snapshots_skip_visibly(self, project: pytest.Pytester) -> None:
+        other = SPEC.replace("triage-agent", "ghost-agent").replace("triage-to", "ghost-to")
+        (project.path / "a2a_spec" / "specs" / "ghost.yaml").write_text(other)
+        result = project.runpytest("--a2a", "a2a_spec/specs", "-rs")
+        result.assert_outcomes(passed=1, skipped=1)
+        result.stdout.fnmatch_lines(["*no snapshots for 'ghost-agent'*"])
+
+    def test_yaml_outside_specs_dir_ignored(self, project: pytest.Pytester) -> None:
+        (project.path / "other.yaml").write_text("not: a spec\n")
+        result = project.runpytest("--a2a")
+        result.assert_outcomes(passed=1)
+
+    def test_a2a_check_fixture(self, project: pytest.Pytester) -> None:
+        project.makepyfile(
+            test_live="""
+            import pytest
+
+            def test_good(a2a_check):
+                result = a2a_check("triage-to-resolution", {"category": "billing"})
+                assert result.passed
+
+            def test_bad(a2a_check):
+                a2a_check("triage-to-resolution", {"issue_type": "billing"})
+
+            def test_unknown(a2a_check):
+                a2a_check("nope", {})
+            """
+        )
+        result = project.runpytest("--a2a", "test_live.py")
+        result.assert_outcomes(passed=1, failed=2)
+        result.stdout.fnmatch_lines(
+            ["*'category' is a required property*", "*unknown spec 'nope'*"], consecutive=False
+        )
+
+    def test_a2a_check_without_plugin_fails_clearly(self, project: pytest.Pytester) -> None:
+        project.makepyfile(test_live="def test_x(a2a_check):\n    pass\n")
+        result = project.runpytest("test_live.py")
+        result.assert_outcomes(errors=1)
+        result.stdout.fnmatch_lines(["*needs the a2a-spec plugin enabled*"])
+
+    def test_ini_paths_relative_to_ini_file(
+        self, project: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        project.makeini("[pytest]\na2a_config = a2a-spec.yaml\n")
+        monkeypatch.chdir(project.mkdir("sub"))
+        result = project.runpytest(str(project.path / "a2a_spec" / "specs"))
+        result.assert_outcomes(passed=1)
+
+    def test_cli_config_relative_to_working_dir(
+        self, project: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        nested = project.mkdir("nested")
+        (project.path / "a2a-spec.yaml").rename(nested / "a2a-spec.yaml")
+        result = project.runpytest("--a2a-config", "nested/a2a-spec.yaml", "a2a_spec/specs")
+        result.assert_outcomes(passed=1)
