@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-16
+
+### Changed
+- README rewritten in Simplified Technical English with a verified Get started
+  guide and diagrams; it no longer documents `--format` and `--live`.
+
 ### Fixed
 - The `a2aspec init` example spec: its PII regexes were double-escaped and
   matched nothing, and its semantic rule lacked `source_field`/`target_field`
@@ -79,6 +85,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.3.2]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.2
 [0.3.1]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.1
 [0.3.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.0
 [0.2.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.2.0
