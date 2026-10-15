@@ -5,6 +5,7 @@ __version__ = "0.1.0"
 from a2a_spec.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
 from a2a_spec.adapters.function_adapter import FunctionAdapter
 from a2a_spec.adapters.http_adapter import HTTPAdapter
+from a2a_spec.adapters.langchain_adapter import LangChainAdapter
 from a2a_spec.config.loader import load_config
 from a2a_spec.config.settings import A2ASpecConfig
 from a2a_spec.diff.engine import DiffEngine, DiffResult, DriftSeverity
@@ -54,6 +55,7 @@ __all__ = [
     "AgentMetadata",
     "FunctionAdapter",
     "HTTPAdapter",
+    "LangChainAdapter",
     # Config
     "A2ASpecConfig",
     "load_config",

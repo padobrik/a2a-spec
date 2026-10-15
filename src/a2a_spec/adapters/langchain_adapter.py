@@ -76,15 +76,18 @@ class LangChainAdapter(AgentAdapter):
 
         latency = (time.monotonic() - start) * 1000
 
-        # Normalize result to dict
+        # Normalize result to dict. Chat messages are checked before generic
+        # pydantic models because BaseMessage is itself a pydantic model.
         if isinstance(result, dict):
             output = result
         elif isinstance(result, str):
             output = {"text": result}
-        elif hasattr(result, "dict"):
-            output = result.dict()
         elif hasattr(result, "content"):
             output = {"content": str(result.content)}
+        elif hasattr(result, "model_dump"):
+            output = result.model_dump()
+        elif hasattr(result, "dict"):
+            output = result.dict()
         else:
             output = {"result": str(result)}
 
