@@ -265,89 +265,79 @@ jobs:
 
 If your specs have semantic rules, install `a2a-spec[semantic]` instead.
 
-## Adapters — Wrap Any Agent
+## Write a spec by hand
 
-a2a-spec is **framework-agnostic**. Adapters wrap your agents so the framework can call them during recording and testing.
+A spec can have three types of rules:
 
-### Plain async functions
+| Rule type | What it finds | How |
+|---|---|---|
+| `structural` | A missing field, a wrong type, a value out of range | JSON Schema |
+| `semantic` | A text field that no longer means the same thing | Similarity of local embeddings |
+| `policy` | Text that must not occur, for example a card number | Regular expressions or your own function |
 
-```python
-from a2a_spec import FunctionAdapter
-
-async def my_triage_agent(input_data: dict) -> dict:
-    # Your agent logic (calls OpenAI, Anthropic, local model, etc.)
-    return {"category": "billing", "summary": "Customer reports duplicate charge", "confidence": 0.95}
-
-adapter = FunctionAdapter(
-    fn=my_triage_agent,
-    agent_id="triage-agent",
-    version="1.0.0",
-    model="gpt-4",
-)
+```yaml
+spec:
+  name: triage-to-resolution
+  version: "1.0"
+  producer: triage-agent
+  consumer: resolution-agent
+  structural:
+    type: object
+    required: [category]
+    properties:
+      category: {type: string, enum: [billing, general]}
+  semantic:
+    - rule: summary_matches_message
+      method: embedding_similarity
+      source_field: message     # field in the producer input
+      target_field: summary     # field in the producer output
+      threshold: 0.5
+  policy:
+    - rule: no_card_numbers
+      method: regex
+      patterns: ['\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b']
 ```
 
-### A2A protocol agents
+Semantic rules need `pip install "a2a-spec[semantic]"`. See [Writing specs](docs/writing-specs.md) for all options.
 
-Agents that speak the [A2A protocol](https://a2a-protocol.org) (version 1.0) need no wrapper code. Point the adapter at the agent; it reads the Agent Card, picks the JSON-RPC interface and calls `SendMessage`:
+## Connect your agents
+
+| Agent type | Adapter |
+|---|---|
+| Python `async` function | `FunctionAdapter(fn=..., agent_id=..., version=...)` |
+| HTTP endpoint (POST JSON, receive JSON) | `HTTPAdapter(url=..., agent_id=..., version=...)` |
+| LangChain runnable | `LangChainAdapter(runnable=..., agent_id=..., version=...)` (install `a2a-spec[langchain]`) |
+| Agent with the [A2A protocol](https://a2a-protocol.org) 1.0 | `A2AAdapter(url=..., agent_id=...)` |
+
+For an A2A agent, give the base URL of the agent. The adapter reads the Agent Card, finds the JSON-RPC interface and sends the scenario input. It records the agent version from the Agent Card in each snapshot.
 
 ```python
 from a2a_spec import A2AAdapter
 
-adapter = A2AAdapter(
-    url="https://triage.example.com",   # or the full agent-card.json URL
-    agent_id="triage-agent",
-    headers={"Authorization": "Bearer $TOKEN"},
-)
+ADAPTERS = {
+    "triage-agent": A2AAdapter(url="https://triage.example.com", agent_id="triage-agent"),
+}
 ```
 
-The input dict is sent as a structured `data` part (`text_field="message"` sends that field as text instead). Structured `data` parts in the reply become the output fields and text parts are joined under `"text"`; `json_text=True` parses a text-only reply that is a JSON object. Failed, rejected or input-required tasks raise an error with the agent's status message. The agent version from the card is stored in each snapshot. The adapter is tested against a server built with the official `a2a-sdk`.
+See [Writing adapters](docs/writing-adapters.md) for all options.
 
-### HTTP endpoints
+## Use with coding agents
 
-```python
-from a2a_spec import HTTPAdapter
+a2a-spec contains an [Agent Skill](https://agentskills.io). The skill tells a coding agent how to use a2a-spec. It also tells the agent not to make a failed test pass by recording the snapshots again.
 
-adapter = HTTPAdapter(
-    url="http://localhost:8000/triage",
-    agent_id="triage-agent",
-    version="1.0.0",
-    headers={"Authorization": "Bearer $TOKEN"},
-    timeout=30.0,
-)
+```bash
+a2aspec skill --dir path/to/skills
 ```
 
-### LangChain runnables
+This command writes `path/to/skills/a2a-spec/SKILL.md`. Export the skill again after you update a2a-spec.
 
-```python
-from a2a_spec import LangChainAdapter
-from langchain_core.runnables import RunnableLambda
+## Limits
 
-chain = RunnableLambda(lambda x: {"category": "billing", "summary": x["message"], "confidence": 0.9})
-
-adapter = LangChainAdapter(
-    runnable=chain,
-    agent_id="triage-agent",
-    version="1.0.0",
-)
-```
-
-### Custom adapters
-
-```python
-from a2a_spec import AgentAdapter, AgentMetadata, AgentResponse
-
-class MyCrewAIAdapter(AgentAdapter):
-    def get_metadata(self) -> AgentMetadata:
-        return AgentMetadata(agent_id="my-crew-agent", version="1.0")
-
-    async def call(self, input_data: dict) -> AgentResponse:
-        result = await my_crew.kickoff(input_data)
-        return AgentResponse(output=result.dict())
-```
-
-→ See [docs/writing-adapters.md](docs/writing-adapters.md) for the full guide.
-
----
+- `a2aspec infer` reads Python consumers only. It finds `data["key"]`, `data.get("key")` and `"key" in data` for top-level keys.
+- If the consumer gives its input to another function, `a2aspec infer` cannot follow it. The command then shows a `WARN` line. Add the missing fields to the spec by hand.
+- `a2aspec diff` compares with the snapshots in git. Commit the snapshots before you use it.
+- `A2AAdapter` supports A2A 1.0 with JSON-RPC. It does not support streaming or file parts.
+- Semantic rules use a local embedding model. The `semantic` extra installs PyTorch.
 
 ## CLI Reference
 
