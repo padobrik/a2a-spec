@@ -11,6 +11,10 @@
   <a href="https://github.com/padobrik/a2a-spec"><img src="https://img.shields.io/badge/typed-PEP%20561-brightgreen?style=flat-square" alt="Typed"></a>
 </p>
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/padobrik/a2a-spec/main/docs/demo.gif" alt="a2aspec infer generates a contract from the consumer's code; after a producer change, the hand-written spec passes and the inferred contract fails" width="760">
+</p>
+
 ---
 
 ## Problem
