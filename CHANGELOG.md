@@ -7,6 +7,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- `A2AAdapter` calls agents that implement the A2A protocol 1.0 through
+  their Agent Card and the JSON-RPC binding; the card's version is recorded
+  in snapshots.
+
+### Changed
+- `Recorder` reads adapter metadata after the call instead of before.
+
 ## [0.2.0] - 2026-10-15
 
 ### Added

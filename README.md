@@ -295,6 +295,22 @@ adapter = FunctionAdapter(
 )
 ```
 
+### A2A protocol agents
+
+Agents that speak the [A2A protocol](https://a2a-protocol.org) (version 1.0) need no wrapper code. Point the adapter at the agent; it reads the Agent Card, picks the JSON-RPC interface and calls `SendMessage`:
+
+```python
+from a2a_spec import A2AAdapter
+
+adapter = A2AAdapter(
+    url="https://triage.example.com",   # or the full agent-card.json URL
+    agent_id="triage-agent",
+    headers={"Authorization": "Bearer $TOKEN"},
+)
+```
+
+The input dict is sent as a structured `data` part (`text_field="message"` sends that field as text instead). Structured `data` parts in the reply become the output fields and text parts are joined under `"text"`; `json_text=True` parses a text-only reply that is a JSON object. Failed, rejected or input-required tasks raise an error with the agent's status message. The agent version from the card is stored in each snapshot. The adapter is tested against a server built with the official `a2a-sdk`.
+
 ### HTTP endpoints
 
 ```python
