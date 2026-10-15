@@ -103,6 +103,7 @@ class TestCliDiffGitBaseline:
         result = runner.invoke(app, ["diff"])
         assert result.exit_code == 0, result.output
         assert "No differences detected" in result.output
+        assert "[diff] Semantic Diff Report" in result.output
 
     def test_new_scenario(self, tmp_path, monkeypatch) -> None:
         repo = _repo(tmp_path, monkeypatch)

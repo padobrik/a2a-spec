@@ -90,6 +90,8 @@ class TestCliRecordAdapters:
         result = runner.invoke(app, ["record", "--config", str(config)])
         assert result.exit_code == 0, result.output
         assert "triage-agent / billing recorded" in _flat(result.output)
+        assert "[record] Recording snapshots" in result.output
+        assert "[done] 1 snapshots saved" in _flat(result.output)
 
         from a2a_spec.snapshot.store import SnapshotStore
 

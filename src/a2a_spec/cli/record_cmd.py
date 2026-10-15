@@ -57,7 +57,7 @@ def record_command(
         )
         raise typer.Exit(1)
 
-    console.print("\n[bold][record][/bold] Recording snapshots...\n")
+    console.print("\n[bold]\\[record][/bold] Recording snapshots...\n")
     console.print(
         "[dim]This calls live agents. Ensure adapters are configured and API keys are set.[/dim]\n"
     )
@@ -109,7 +109,7 @@ def record_command(
                     console.print(f"    [red]FAIL[/red] {agent_id} / {sc_name}: {e}")
                     errors += 1
 
-    console.print(f"\n[done] {recorded} snapshots saved to {config.storage.path}")
+    console.print(f"\n\\[done] {recorded} snapshots saved to {config.storage.path}")
     if errors:
         console.print(f"[red]WARN: {errors} recording error(s)[/red]")
         raise typer.Exit(1)
