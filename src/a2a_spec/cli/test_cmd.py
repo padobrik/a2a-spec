@@ -9,6 +9,8 @@ from a2a_spec.config.loader import load_config
 from a2a_spec.exceptions import A2ASpecError, SnapshotNotFoundError
 from a2a_spec.policy.engine import PolicyEngine
 from a2a_spec.reporting.console import print_summary, print_validation_result
+from a2a_spec.semantic.embeddings import EmbeddingModel
+from a2a_spec.semantic.engine import SemanticEngine
 from a2a_spec.snapshot.replay import ReplayEngine
 from a2a_spec.snapshot.store import SnapshotStore
 from a2a_spec.spec.loader import load_all_specs
@@ -46,6 +48,11 @@ def test_command(
         "--fail-fast",
         help="Stop on first failure.",
     ),
+    semantic: bool = typer.Option(
+        True,
+        "--semantic/--no-semantic",
+        help="Evaluate semantic rules (requires the 'semantic' extra).",
+    ),
 ) -> None:
     """Run spec validation against recorded snapshots or live agents.
 
@@ -72,6 +79,8 @@ def test_command(
     store = SnapshotStore(config.storage.path)
     replay_engine = ReplayEngine(store)
     policy_engine = PolicyEngine()
+    semantic = semantic and config.semantic.enabled
+    semantic_engine = SemanticEngine(model=EmbeddingModel(config.semantic.model))
 
     total = 0
     passed = 0
@@ -96,23 +105,41 @@ def test_command(
             total += 1
 
             try:
-                output = replay_engine.replay(spec.producer, scenario)
+                snapshot = replay_engine.replay_snapshot(spec.producer, scenario)
             except SnapshotNotFoundError:
                 console.print(f"    [yellow]WARN: {scenario}: snapshot not found[/yellow]")
                 failed += 1
                 continue
+            output, input_data = snapshot.output_data, snapshot.input_data
 
             structural_result = validate_output(output, spec)
 
-            policy_results = policy_engine.evaluate(output, {}, spec.policy)
+            policy_results = policy_engine.evaluate(output, input_data, spec.policy)
             policy_passed = all(p.passed for p in policy_results)
 
-            if structural_result.passed and policy_passed:
+            semantic_results = None
+            if semantic:
+                try:
+                    semantic_results = semantic_engine.evaluate(output, input_data, spec.semantic)
+                except ImportError as e:
+                    console.print(f"[red]{e}[/red]")
+                    console.print("[red]Or pass --no-semantic to skip semantic rules.[/red]")
+                    raise typer.Exit(1) from None
+            semantic_passed = all(r.passed for r in semantic_results or [])
+
+            if structural_result.passed and policy_passed and semantic_passed:
                 passed += 1
             else:
                 failed += 1
 
-            print_validation_result(spec.name, scenario, structural_result, policy_results)
+            print_validation_result(
+                spec.name,
+                scenario,
+                structural_result,
+                policy_results,
+                semantic_results,
+                semantic_skipped=not semantic and bool(spec.semantic),
+            )
 
             if fail_fast and failed > 0:
                 break
