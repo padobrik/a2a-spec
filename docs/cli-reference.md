@@ -26,10 +26,29 @@ a2aspec test [--replay/--live] [--specs DIR] [--config PATH] [--format FORMAT] [
 
 ## `a2aspec diff`
 
-Compare current snapshots against previous baselines for structural and semantic drift.
+Compare recorded snapshots against their committed version in git for
+structural and semantic drift. Reports scenarios added (`NEW`) or deleted
+(`GONE`) since the baseline. Exits 2 on high-severity drift or a deleted
+snapshot when `ci.fail_on_semantic_drift` is true.
 
 ```bash
-a2aspec diff [--agent NAME] [--threshold FLOAT] [--config PATH]
+a2aspec diff [--agent NAME] [--base REF] [--threshold FLOAT] [--config PATH]
+```
+
+## `a2aspec infer`
+
+Generate a consumer-driven spec from the fields a consumer function reads.
+
+```bash
+a2aspec infer --producer ID --consumer ID --source FILE.py:FUNCTION [--name NAME] [--out PATH|-] [--force]
+```
+
+## `a2aspec skill`
+
+Print the bundled agent skill, or install it as `DIR/a2a-spec/SKILL.md`.
+
+```bash
+a2aspec skill [--dir DIR] [--force]
 ```
 
 ## `a2aspec pipeline test`
