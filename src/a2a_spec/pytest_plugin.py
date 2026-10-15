@@ -8,6 +8,7 @@ test file with one test per recorded producer snapshot, and the
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ import pytest
 
 from a2a_spec.config.loader import load_config
 from a2a_spec.config.settings import A2ASpecConfig
+from a2a_spec.infer.check import check_inferred_spec
 from a2a_spec.semantic.embeddings import EmbeddingModel
 from a2a_spec.semantic.engine import SemanticEngine
 from a2a_spec.snapshot.store import SnapshotStore
@@ -89,6 +91,8 @@ class SpecFile(pytest.File):
         state = self.config.stash[_STATE]
         assert state is not None
         spec = load_spec(self.path)
+        if spec.inferred_from:
+            yield ConsumerCodeItem.from_parent(self, name="consumer_code", spec=spec)
         scenarios = state.store.list_scenarios(spec.producer)
         if not scenarios:
             yield MissingSnapshots.from_parent(self, name=spec.name, spec=spec)
@@ -118,6 +122,36 @@ class SnapshotItem(pytest.Item):
 
     def reportinfo(self) -> tuple[Path, int | None, str]:
         return self.path, None, f"{self.spec.name} / {self.name}"
+
+
+class ConsumerCodeItem(pytest.Item):
+    """Fails when the consumer code reads fields its inferred spec misses."""
+
+    def __init__(self, *, spec: Spec, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.spec = spec
+
+    def runtest(self) -> None:
+        result = check_inferred_spec(self.spec)
+        for warning in result.warnings:
+            warnings.warn(f"{self.spec.name}: {warning}", UserWarning, stacklevel=1)
+        if not result.passed:
+            lines = [f"spec '{self.spec.name}' is out of date with {self.spec.inferred_from}:"]
+            lines += [f"  {failure}" for failure in result.failures]
+            lines.append("  Regenerate it with 'a2aspec infer ... --force'.")
+            raise SpecOutOfDateError("\n".join(lines))
+
+    def repr_failure(self, excinfo: pytest.ExceptionInfo[BaseException], style: Any = None) -> str:
+        if isinstance(excinfo.value, SpecOutOfDateError):
+            return str(excinfo.value)
+        return str(super().repr_failure(excinfo, style=style))
+
+    def reportinfo(self) -> tuple[Path, int | None, str]:
+        return self.path, None, f"{self.spec.name} / consumer_code"
+
+
+class SpecOutOfDateError(AssertionError):
+    """An inferred spec no longer covers what its consumer reads."""
 
 
 class MissingSnapshots(pytest.Item):

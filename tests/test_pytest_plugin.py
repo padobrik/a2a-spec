@@ -143,3 +143,24 @@ class TestPytestPlugin:
         (project.path / "a2a-spec.yaml").rename(nested / "a2a-spec.yaml")
         result = project.runpytest("--a2a-config", "nested/a2a-spec.yaml", "a2a_spec/specs")
         result.assert_outcomes(passed=1)
+
+    def test_consumer_code_item_for_inferred_spec(self, project: pytest.Pytester) -> None:
+        consumer = project.path / "res.py"
+        consumer.write_text("def run(data):\n    return data['category']\n")
+        spec = project.path / "a2a_spec" / "specs" / "triage.yaml"
+        spec.write_text(
+            SPEC.replace(
+                "  consumer: resolution-agent\n",
+                f"  consumer: resolution-agent\n  inferred_from: {consumer}:run\n",
+            )
+        )
+        result = project.runpytest("--a2a", "a2a_spec/specs", "-v")
+        result.assert_outcomes(passed=2)
+        result.stdout.fnmatch_lines(["*triage.yaml::consumer_code PASSED*"])
+
+        consumer.write_text("def run(data):\n    return data['category'], data['urgency']\n")
+        result = project.runpytest("--a2a", "a2a_spec/specs")
+        result.assert_outcomes(passed=1, failed=1)
+        result.stdout.fnmatch_lines(
+            ["*spec 'triage-to-resolution' is out of date*", "*run reads 'urgency' (line 2)*"]
+        )
