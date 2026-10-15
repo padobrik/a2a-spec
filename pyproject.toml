@@ -60,6 +60,9 @@ all = [
 [project.scripts]
 a2aspec = "a2a_spec.cli.main:main"
 
+[project.entry-points.pytest11]
+a2a_spec = "a2a_spec.pytest_plugin"
+
 [project.urls]
 Homepage = "https://github.com/padobrik/a2a-spec"
 Documentation = "https://github.com/padobrik/a2a-spec/tree/main/docs"

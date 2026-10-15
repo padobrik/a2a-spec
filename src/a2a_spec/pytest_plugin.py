@@ -1,0 +1,169 @@
+"""pytest plugin: run a2a-spec contracts as ordinary pytest tests.
+
+Enable it with ``--a2a`` or by setting ``a2a_config`` in the pytest ini
+options. Every spec YAML under the configured ``specs_dir`` then becomes a
+test file with one test per recorded producer snapshot, and the
+``a2a_check`` fixture validates live outputs inside your own tests.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Iterator
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from a2a_spec.config.loader import load_config
+from a2a_spec.config.settings import A2ASpecConfig
+from a2a_spec.semantic.embeddings import EmbeddingModel
+from a2a_spec.semantic.engine import SemanticEngine
+from a2a_spec.snapshot.store import SnapshotStore
+from a2a_spec.spec.checker import SpecCheck, SpecChecker
+from a2a_spec.spec.loader import load_all_specs, load_spec
+from a2a_spec.spec.schema import Spec
+
+_STATE = pytest.StashKey["_A2AState | None"]()
+
+
+class _A2AState:
+    def __init__(self, root: Path, config_path: Path | None, semantic: bool) -> None:
+        self.root = root
+        self.config: A2ASpecConfig = load_config(config_path)
+        self.specs_dir = self._resolve(self.config.specs_dir)
+        self.store = SnapshotStore(self._resolve(self.config.storage.path))
+        engine = None
+        if semantic and self.config.semantic.enabled:
+            engine = SemanticEngine(model=EmbeddingModel(self.config.semantic.model))
+        self.checker = SpecChecker(semantic_engine=engine)
+
+    def _resolve(self, path: str) -> Path:
+        p = Path(path)
+        return p if p.is_absolute() else (self.root / p).resolve()
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    group = parser.getgroup("a2a-spec")
+    group.addoption("--a2a", action="store_true", help="Run a2a-spec contracts as tests.")
+    group.addoption("--a2a-config", help="Path to a2a-spec.yaml (implies --a2a).")
+    group.addoption(
+        "--a2a-no-semantic", action="store_true", help="Skip semantic rules in contracts."
+    )
+    parser.addini("a2a_config", "Path to a2a-spec.yaml; setting it enables the plugin.")
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    # Relative paths follow the same rule as the a2aspec CLI (the working
+    # directory), except an ini setting, which is relative to its ini file.
+    root = config.invocation_params.dir
+    config_path = config.getoption("--a2a-config")
+    if config_path is None and config.getini("a2a_config"):
+        config_path = config.getini("a2a_config")
+        if config.inipath is not None:
+            root = config.inipath.parent
+    enabled = config.getoption("--a2a") or config_path is not None
+    if not enabled:
+        config.stash[_STATE] = None
+        return
+    resolved = (root / config_path) if config_path else None
+    if resolved is None:
+        default = root / "a2a-spec.yaml"
+        resolved = default if default.exists() else None
+    semantic = not config.getoption("--a2a-no-semantic")
+    config.stash[_STATE] = _A2AState(root, resolved, semantic)
+
+
+def pytest_collect_file(file_path: Path, parent: pytest.Collector) -> pytest.Collector | None:
+    state = parent.config.stash.get(_STATE, None)
+    if state is None or file_path.suffix not in (".yaml", ".yml"):
+        return None
+    if not file_path.resolve().is_relative_to(state.specs_dir):
+        return None
+    return SpecFile.from_parent(parent, path=file_path)
+
+
+class SpecFile(pytest.File):
+    """A spec YAML file; yields one item per recorded producer snapshot."""
+
+    def collect(self) -> Iterator[pytest.Item]:
+        state = self.config.stash[_STATE]
+        assert state is not None
+        spec = load_spec(self.path)
+        scenarios = state.store.list_scenarios(spec.producer)
+        if not scenarios:
+            yield MissingSnapshots.from_parent(self, name=spec.name, spec=spec)
+        for scenario in scenarios:
+            yield SnapshotItem.from_parent(self, name=scenario, spec=spec)
+
+
+class SnapshotItem(pytest.Item):
+    """Validates one recorded snapshot against its spec."""
+
+    def __init__(self, *, spec: Spec, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.spec = spec
+
+    def runtest(self) -> None:
+        state = self.config.stash[_STATE]
+        assert state is not None
+        snapshot = state.store.load(self.spec.producer, self.name)
+        result = state.checker.check(self.spec, snapshot.output_data, snapshot.input_data)
+        if not result.passed:
+            raise ContractViolationError(result)
+
+    def repr_failure(self, excinfo: pytest.ExceptionInfo[BaseException], style: Any = None) -> str:
+        if isinstance(excinfo.value, ContractViolationError):
+            return str(excinfo.value)
+        return str(super().repr_failure(excinfo, style=style))
+
+    def reportinfo(self) -> tuple[Path, int | None, str]:
+        return self.path, None, f"{self.spec.name} / {self.name}"
+
+
+class MissingSnapshots(pytest.Item):
+    """Placeholder reporting a spec whose producer has no snapshots."""
+
+    def __init__(self, *, spec: Spec, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.spec = spec
+
+    def runtest(self) -> None:
+        pytest.skip(f"no snapshots for '{self.spec.producer}'; run 'a2aspec record'")
+
+
+class ContractViolationError(AssertionError):
+    """An output broke its contract; the message lists every failure."""
+
+    def __init__(self, result: SpecCheck) -> None:
+        lines = [f"contract '{result.spec.name}' violated:"]
+        lines += [f"  {line}" for line in result.failures()]
+        super().__init__("\n".join(lines))
+        self.result = result
+
+
+@pytest.fixture
+def a2a_check(request: pytest.FixtureRequest) -> Callable[..., SpecCheck]:
+    """Validate an output against a spec by name; fails the test on violation.
+
+    Usage::
+
+        def test_triage(a2a_check):
+            output = run_triage({"message": "charged twice"})
+            a2a_check("triage-to-resolution", output, {"message": "charged twice"})
+    """
+    state = request.config.stash.get(_STATE, None)
+    if state is None:
+        pytest.fail("a2a_check needs the a2a-spec plugin enabled (--a2a or a2a_config)")
+    specs = {s.name: s for s in load_all_specs(state.specs_dir)}
+
+    def check(
+        spec_name: str, output: dict[str, Any], input_data: dict[str, Any] | None = None
+    ) -> SpecCheck:
+        if spec_name not in specs:
+            pytest.fail(f"unknown spec '{spec_name}'; known: {', '.join(sorted(specs))}")
+        result = state.checker.check(specs[spec_name], output, input_data or {})
+        if not result.passed:
+            raise ContractViolationError(result)
+        return result
+
+    return check
