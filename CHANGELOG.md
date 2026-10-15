@@ -7,7 +7,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- `a2aspec test --live` calls each spec's producer through `ADAPTERS` with
+  every scenario and checks the live output without saving it. Before, the
+  flag only changed the header and still replayed snapshots.
+
 ### Fixed
+- `a2aspec record --suite` was ignored; it now records one scenario file.
 - `a2aspec test --format` was ignored. `junit` and `markdown` now print only
   the report on stdout, and the new `github` format adds a GitHub Actions
   annotation for each failure. Unknown formats are rejected.
