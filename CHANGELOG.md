@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+- The `a2aspec init` example spec: its PII regexes were double-escaped and
+  matched nothing, and its semantic rule lacked `source_field`/`target_field`
+  and always failed.
+- `a2aspec init` writes an `ADAPTERS` template and next steps that match the
+  current workflow.
+
 ## [0.3.1] - 2026-10-15
 
 ### Fixed

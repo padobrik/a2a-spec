@@ -61,16 +61,35 @@ spec:
     - rule: summary_faithful_to_input
       description: "Summary must reflect the actual input"
       method: embedding_similarity
-      threshold: 0.8
+      threshold: 0.5
+      source_field: message
+      target_field: summary
 
   policy:
     - rule: no_pii
       description: "Output must not contain PII"
       method: regex
       patterns:
-        - '\\\\b\\\\d{4}[- ]?\\\\d{4}[- ]?\\\\d{4}[- ]?\\\\d{4}\\\\b'
-        - '\\\\b\\\\d{3}-\\\\d{2}-\\\\d{4}\\\\b'
+        - '\\b\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b'  # card number
+        - '\\b\\d{3}-\\d{2}-\\d{4}\\b'  # US SSN
 """
+
+ADAPTERS_TEMPLATE = '''"""Agent adapters for a2a-spec.
+
+Map each agent id used in your specs and scenarios to an adapter, for example:
+
+    from a2a_spec import FunctionAdapter
+    from agents.triage import triage_agent
+
+    ADAPTERS = {
+        "agent-a": FunctionAdapter(fn=triage_agent, agent_id="agent-a", version="1.0"),
+    }
+"""
+
+from typing import Any
+
+ADAPTERS: dict[str, Any] = {}
+'''
 
 EXAMPLE_SCENARIO = """# Example test scenario
 test_suite:
@@ -144,16 +163,14 @@ def init_command(
     # Write adapters __init__.py
     adapters_init = a2a_dir / "adapters" / "__init__.py"
     if not adapters_init.exists():
-        adapters_init.write_text(
-            '"""Agent adapters for a2a-spec."""\n',
-            encoding="utf-8",
-        )
+        adapters_init.write_text(ADAPTERS_TEMPLATE, encoding="utf-8")
 
     console.print()
     console.print("[green bold]a2a-spec project initialized.[/green bold]")
     console.print()
     console.print("Next steps:")
-    console.print("  1. Edit [bold]a2a_spec/specs/[/bold] to define your agent specs")
-    console.print("  2. Create adapters in [bold]a2a_spec/adapters/[/bold]")
-    console.print("  3. Run [bold]a2aspec record[/bold] to capture baselines")
-    console.print("  4. Run [bold]a2aspec test --replay[/bold] in CI")
+    console.print("  1. Add your agents to ADAPTERS in [bold]a2a_spec/adapters/__init__.py[/bold]")
+    console.print("  2. Add inputs to [bold]a2a_spec/scenarios/[/bold]")
+    console.print("  3. Run [bold]a2aspec record[/bold] to save snapshots")
+    console.print("  4. Run [bold]a2aspec infer[/bold] or edit [bold]a2a_spec/specs/[/bold]")
+    console.print("  5. Run [bold]a2aspec test[/bold] (or [bold]pytest --a2a[/bold])")
