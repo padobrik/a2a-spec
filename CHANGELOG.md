@@ -8,6 +8,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- `a2aspec infer` generates a consumer-driven spec from the fields a consumer
+  function reads and the producer's recorded snapshots.
+- pytest plugin: with `--a2a` or the `a2a_config` ini option, spec files are
+  collected as tests (one per snapshot); the `a2a_check` fixture validates
+  live outputs.
 - `a2aspec test` evaluates `embedding_similarity` semantic rules against the
   recorded input and output of each snapshot; `--no-semantic` skips them.
 - `LangChainAdapter` is exported from the package root.
