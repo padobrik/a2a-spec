@@ -88,7 +88,7 @@ def diff_command(
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(1) from None
 
-    console.print("\n[bold][diff][/bold] Semantic Diff Report\n")
+    console.print("\n[bold]\\[diff][/bold] Semantic Diff Report\n")
 
     total_diffs = 0
     high_severity = 0
