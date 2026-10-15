@@ -7,6 +7,7 @@ from rich.console import Console
 from a2a_spec.diff.engine import DiffResult, DriftSeverity
 from a2a_spec.pipeline.trace import PipelineTrace
 from a2a_spec.policy.engine import PolicyResult
+from a2a_spec.semantic.engine import SemanticResult
 from a2a_spec.spec.validator import ValidationResult
 
 console = Console()
@@ -35,10 +36,17 @@ def print_validation_result(
     scenario: str,
     structural: ValidationResult,
     policy_results: list[PolicyResult] | None = None,
+    semantic_results: list[SemanticResult] | None = None,
+    semantic_skipped: bool = False,
 ) -> None:
     """Print a single validation result."""
-    label = "PASS" if structural.passed else "FAIL"
-    color = "green" if structural.passed else "red"
+    overall = (
+        structural.passed
+        and all(p.passed for p in policy_results or [])
+        and all(r.passed for r in semantic_results or [])
+    )
+    label = "PASS" if overall else "FAIL"
+    color = "green" if overall else "red"
 
     parts: list[str] = [f"[{color}]{label}[/{color}] {spec_name} / {scenario}"]
 
@@ -56,6 +64,16 @@ def print_validation_result(
         for p in policy_results:
             if not p.passed:
                 parts.append(f"    [red]{p.rule_name}: {p.detail}[/red]")
+
+    if semantic_results:
+        all_passed = all(r.passed for r in semantic_results)
+        m_status = "[green]PASS[/green]" if all_passed else "[red]FAIL[/red]"
+        parts.append(f"  semantic {m_status}")
+        for r in semantic_results:
+            if not r.passed:
+                parts.append(f"    [red]{r.rule_name}: {r.detail}[/red]")
+    elif semantic_skipped:
+        parts.append("  semantic [yellow]SKIPPED[/yellow] (disabled)")
 
     console.print("\n".join(parts))
 
