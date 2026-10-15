@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-15
+
 ### Added
 - `a2aspec infer` generates a consumer-driven spec from the fields a consumer
   function reads and the producer's recorded snapshots.
@@ -20,6 +22,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `LangChainAdapter` is exported from the package root.
 
 ### Changed
+- **Breaking:** `a2aspec diff` requires snapshots tracked in git; it compares
+  against the version at `--base` (default `HEAD`).
 - Semantic rules using `entailment` or `language_detection` now fail with
   "not implemented" instead of being silently ignored.
 - Custom policy validators receive the snapshot input instead of an empty dict.
@@ -48,4 +52,5 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.2.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.2.0
 [0.1.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.1.0
