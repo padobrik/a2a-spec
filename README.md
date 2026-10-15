@@ -259,10 +259,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install a2a-spec
-      - run: a2aspec test
+      - run: a2aspec test --format github
 ```
 
-If your specs have semantic rules, install `a2a-spec[semantic]` instead.
+`--format github` shows each failure as an annotation in the pull request. For JUnit XML, use `--format junit > results.xml`. If your specs have semantic rules, install `a2a-spec[semantic]` instead.
 
 ## Write a spec by hand
 

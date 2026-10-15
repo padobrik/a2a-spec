@@ -1,46 +1,57 @@
-# CI Integration
+# CI integration
+
+The tests use the committed snapshots, so CI needs no API keys and makes no
+LLM calls. Record snapshots on your machine, commit them, and run the tests
+in CI.
 
 ## GitHub Actions
 
 ```yaml
-name: a2a-spec Tests
+name: Agent contracts
 on: [push, pull_request]
 
 jobs:
-  spec-tests:
+  contracts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install a2a-spec
-      - run: a2aspec test --replay --format junit > results.xml
-      - uses: mikepenz/action-junit-report@v4
-        if: always()
-        with:
-          report_paths: results.xml
+      - run: a2aspec test --format github
 ```
 
-## Key Principles
+`--format github` prints the usual output and one annotation for each
+failure, so the pull request shows the failure on the spec file.
 
-1. **Always use replay mode in CI** — no LLM calls, no API keys needed
-2. **Commit snapshots to git** — they are your test baselines
-3. **Record locally, test in CI** — developers record, CI replays
-4. **Fail on semantic drift** — catch regressions before merge
+## JUnit XML
 
-## Output Formats
+To give the results to a test report tool, write JUnit XML:
 
-| Format | Flag | Use Case |
-|--------|------|----------|
-| Console | `--format console` | Local development |
-| Markdown | `--format markdown` | PR comments |
-| JUnit XML | `--format junit` | CI systems |
+```bash
+a2aspec test --format junit > results.xml
+```
 
-## Exit Codes
+`pytest --junitxml=results.xml` gives the same result when you use the
+pytest plugin.
 
-| Code | Meaning |
-|------|---------|
-| 0 | All tests passed |
-| 1 | One or more tests failed |
-| 2 | Semantic drift above threshold |
+## Output formats
+
+| Format | Flag | Output |
+|--------|------|--------|
+| Console | `--format console` (default) | Results for people, on stdout |
+| GitHub | `--format github` | Console output plus GitHub Actions annotations |
+| Markdown | `--format markdown` | Only a Markdown report on stdout, for example for a PR comment |
+| JUnit XML | `--format junit` | Only JUnit XML on stdout |
+
+With `markdown` and `junit`, warnings go to stderr, so you can redirect stdout
+to a file.
+
+## Exit codes
+
+| Command | Code | Meaning |
+|---------|------|---------|
+| `a2aspec test` | 0 | All tests passed |
+| `a2aspec test` | 1 | One or more tests failed, or the configuration is not valid |
+| `a2aspec diff` | 2 | High-severity drift or a deleted snapshot (with `ci.fail_on_semantic_drift`) |

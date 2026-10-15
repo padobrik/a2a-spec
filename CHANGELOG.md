@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+- `a2aspec test --format` was ignored. `junit` and `markdown` now print only
+  the report on stdout, and the new `github` format adds a GitHub Actions
+  annotation for each failure. Unknown formats are rejected.
+
 ### Changed
 - `a2aspec diff` rates a new field as LOW instead of HIGH, so adding a field
   no longer fails CI; a removed field stays HIGH.
