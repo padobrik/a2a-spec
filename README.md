@@ -317,6 +317,26 @@ spec:
 
 Semantic rules need `pip install "a2a-spec[semantic]"`. See [Writing specs](docs/writing-specs.md) for all options.
 
+## Check exact values
+
+A scenario can also give exact values for the output of an agent. `a2aspec test` and pytest compare these values with the snapshot or with the live output.
+
+```yaml
+scenarios:
+  - name: double_charge
+    input:
+      message: "I was charged twice. This is urgent."
+    expectations:
+      triage-agent:
+        category: billing
+```
+
+```
+FAIL triage-agent-to-resolution-agent / double_charge
+  expectations FAIL
+    expected 'category' = 'billing', got 'general'
+```
+
 ## Connect your agents
 
 | Agent type | Adapter |
