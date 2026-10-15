@@ -60,7 +60,10 @@ def diff_command(
 
     semantic_model = None
     if config.semantic.enabled:
+        # EmbeddingModel loads lazily, so probe the optional dependency here.
         try:
+            import sentence_transformers  # noqa: F401
+
             from a2a_spec.semantic.embeddings import EmbeddingModel
 
             semantic_model = EmbeddingModel(config.semantic.model)
