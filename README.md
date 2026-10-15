@@ -346,6 +346,7 @@ This command writes `path/to/skills/a2a-spec/SKILL.md`. Export the skill again a
 | `a2aspec record` | Calls the producers and saves their output as snapshots. |
 | `a2aspec infer` | Makes a spec from the fields that a consumer reads. |
 | `a2aspec test` | Tests the snapshots against the specs. |
+| `a2aspec test --live` | Calls the producers with each scenario and tests their output. It saves nothing. |
 | `a2aspec diff` | Compares the snapshots with the committed snapshots. |
 | `a2aspec skill` | Exports the skill for coding agents. |
 

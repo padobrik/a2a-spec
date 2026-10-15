@@ -16,6 +16,9 @@ Record live agent outputs as snapshots by calling agents through adapters.
 a2aspec record [--suite PATH] [--scenario NAME] [--config PATH]
 ```
 
+`--suite` records only the scenarios in one file; `--scenario` records one
+scenario by name.
+
 ## `a2aspec test`
 
 Run spec validation against snapshots (replay) or live agents.
@@ -23,6 +26,10 @@ Run spec validation against snapshots (replay) or live agents.
 ```bash
 a2aspec test [--replay/--live] [--specs DIR] [--config PATH] [--format FORMAT] [--fail-fast] [--no-semantic]
 ```
+
+`--live` calls each spec's producer through `ADAPTERS` with every scenario
+and checks the live output; it saves no snapshots. A producer without an
+adapter is skipped with a warning, and a failed agent call is a failed test.
 
 `--format` is `console` (default), `github` (console output plus GitHub
 Actions annotations), `markdown` or `junit` (only the report on stdout).
