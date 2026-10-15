@@ -228,3 +228,72 @@ class TestCliTestFormats:
         config = _struct_project(tmp_path, OUTPUTS)
         result = runner.invoke(app, ["test", "--config", str(config), "--format", "html"])
         assert result.exit_code == 2
+
+
+LIVE_ADAPTERS = """
+from a2a_spec import FunctionAdapter
+
+async def triage(data):
+    if "boom" in data["message"]:
+        raise RuntimeError("model down")
+    key = "issue_type" if "rename" in data["message"] else "category"
+    return {key: "billing"}
+
+ADAPTERS = {"triage-agent": FunctionAdapter(fn=triage, agent_id="triage-agent", version="1")}
+"""
+
+
+def _live_project(tmp_path, messages: dict[str, str], adapters: str = LIVE_ADAPTERS):
+    specs = tmp_path / "a2a_spec" / "specs"
+    specs.mkdir(parents=True)
+    (specs / "triage.yaml").write_text(STRUCT_SPEC)
+    pkg = tmp_path / "a2a_spec" / "adapters"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text(adapters)
+    scenarios = tmp_path / "a2a_spec" / "scenarios"
+    scenarios.mkdir()
+    body = "".join(
+        f"  - name: {name}\n    input:\n      message: {msg}\n" for name, msg in messages.items()
+    )
+    (scenarios / "s.yaml").write_text("scenarios:\n" + body)
+    (tmp_path / "a2a-spec.yaml").write_text("project_name: demo\n")
+
+
+class TestCliTestLive:
+    def test_live_checks_producer_output_without_snapshots(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        _live_project(tmp_path, {"ok": "charged twice", "renamed": "please rename"})
+        result = runner.invoke(app, ["test", "--live"])
+        assert result.exit_code == 1, result.output
+        assert "PASS triage-to-resolution / ok" in result.output
+        assert "FAIL triage-to-resolution / renamed" in result.output
+        assert "'category' is a required property" in result.output
+        assert not (tmp_path / "a2a_spec" / "snapshots").exists()
+
+    def test_live_all_pass(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        _live_project(tmp_path, {"ok": "charged twice"})
+        result = runner.invoke(app, ["test", "--live"])
+        assert result.exit_code == 0, result.output
+        assert "1 passed" in result.output
+
+    def test_agent_error_fails(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        _live_project(tmp_path, {"broken": "boom"})
+        result = runner.invoke(app, ["test", "--live"])
+        assert result.exit_code == 1
+        assert "agent call failed: " in result.output and "model down" in result.output
+
+    def test_producer_without_adapter_is_skipped(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        _live_project(tmp_path, {"ok": "charged twice"}, adapters="ADAPTERS = {}\n")
+        result = runner.invoke(app, ["test", "--live"])
+        assert result.exit_code == 0
+        assert "No adapter for 'triage-agent'" in " ".join(result.output.split())
+
+    def test_live_junit(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        _live_project(tmp_path, {"ok": "charged twice", "renamed": "please rename"})
+        result = runner.invoke(app, ["test", "--live", "--format", "junit"])
+        assert result.exit_code == 1
+        assert 'tests="2" failures="1"' in result.stdout
