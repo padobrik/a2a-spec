@@ -19,6 +19,8 @@ class Scenario:
     suite: str
     name: str
     input: dict[str, Any] = field(default_factory=dict)
+    # Exact output values per agent id, e.g. {"triage-agent": {"category": "billing"}}.
+    expectations: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 
 def load_scenarios(config: A2ASpecConfig, suite: str | None = None) -> list[Scenario]:
@@ -45,7 +47,14 @@ def load_scenarios(config: A2ASpecConfig, suite: str | None = None) -> list[Scen
             raise ConfigError(f"Invalid YAML in {path}: {e}") from e
         suite_name = (raw.get("test_suite") or {}).get("name", path.stem)
         for item in raw.get("scenarios") or []:
-            scenarios.append(Scenario(suite_name, item["name"], item.get("input") or {}))
+            scenarios.append(
+                Scenario(
+                    suite_name,
+                    item["name"],
+                    item.get("input") or {},
+                    item.get("expectations") or {},
+                )
+            )
     return scenarios
 
 

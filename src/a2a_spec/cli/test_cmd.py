@@ -13,7 +13,7 @@ import typer
 from rich.console import Console
 
 from a2a_spec.config.loader import load_config
-from a2a_spec.exceptions import A2ASpecError, SnapshotNotFoundError
+from a2a_spec.exceptions import A2ASpecError, ConfigError, SnapshotNotFoundError
 from a2a_spec.project import Scenario, load_adapters, load_scenarios
 from a2a_spec.reporting.console import print_summary, print_validation_result
 from a2a_spec.reporting.github import format_github_annotation
@@ -38,6 +38,7 @@ class Case:
     input: dict[str, Any]
     output: dict[str, Any] | None = None
     error: str | None = None
+    expected: dict[str, Any] | None = None
 
 
 class OutputFormat(StrEnum):
@@ -127,6 +128,12 @@ def test_command(
         except Exception as e:
             out.print(f"[red]Cannot run live: {e}[/red]")
             raise typer.Exit(1) from None
+    else:
+        try:
+            scenarios = load_scenarios(config)
+        except ConfigError:
+            scenarios = []  # no scenario files: no expectations to check
+    by_name = {sc.name: sc for sc in scenarios}
     semantic = semantic and config.semantic.enabled
     checker = SpecChecker(
         semantic_engine=SemanticEngine(model=EmbeddingModel(config.semantic.model))
@@ -149,7 +156,7 @@ def test_command(
                     f"Run 'a2aspec record' first.[/yellow]"
                 )
                 continue
-            cases = _replay_cases(spec, store, replay_engine)
+            cases = _replay_cases(spec, store, replay_engine, by_name)
         else:
             if spec.producer not in adapters:
                 out.print(
@@ -157,7 +164,7 @@ def test_command(
                     f"skipping {spec.name}.[/yellow]"
                 )
                 continue
-            cases = _live_cases(adapters[spec.producer], scenarios)
+            cases = _live_cases(spec, adapters[spec.producer], scenarios)
 
         if not report_only:
             out.print(f"  [bold]Spec: {spec.name}[/bold]")
@@ -171,7 +178,7 @@ def test_command(
                 passed_one = False
             else:
                 try:
-                    result = checker.check(spec, case.output, case.input)
+                    result = checker.check(spec, case.output, case.input, case.expected)
                 except ImportError as e:
                     out.print(f"[red]{e}[/red]")
                     out.print("[red]Or pass --no-semantic to skip semantic rules.[/red]")
@@ -186,6 +193,7 @@ def test_command(
                         result.policy,
                         result.semantic,
                         semantic_skipped=result.semantic_skipped,
+                        expectation_errors=result.expectations,
                     )
 
             if not passed_one:
@@ -230,22 +238,27 @@ def test_command(
         raise typer.Exit(1)
 
 
-def _replay_cases(spec: Spec, store: SnapshotStore, engine: ReplayEngine) -> Iterator[Case]:
+def _replay_cases(
+    spec: Spec, store: SnapshotStore, engine: ReplayEngine, by_name: dict[str, Scenario]
+) -> Iterator[Case]:
     for scenario in store.list_scenarios(spec.producer):
         try:
             snapshot = engine.replay_snapshot(spec.producer, scenario)
         except SnapshotNotFoundError:
             yield Case(scenario, {}, error="snapshot not found")
             continue
-        yield Case(scenario, snapshot.input_data, snapshot.output_data)
+        sc = by_name.get(scenario)
+        expected = sc.expectations.get(spec.producer) if sc else None
+        yield Case(scenario, snapshot.input_data, snapshot.output_data, expected=expected)
 
 
-def _live_cases(adapter: Any, scenarios: list[Scenario]) -> Iterator[Case]:
+def _live_cases(spec: Spec, adapter: Any, scenarios: list[Scenario]) -> Iterator[Case]:
     """Call the producer for each scenario; nothing is saved."""
     for sc in scenarios:
+        expected = sc.expectations.get(spec.producer)
         try:
             response = asyncio.run(adapter.call(sc.input))
         except Exception as e:
-            yield Case(sc.name, sc.input, error=f"agent call failed: {e}")
+            yield Case(sc.name, sc.input, error=f"agent call failed: {e}", expected=expected)
             continue
-        yield Case(sc.name, sc.input, response.output)
+        yield Case(sc.name, sc.input, response.output, expected=expected)
