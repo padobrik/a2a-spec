@@ -22,3 +22,24 @@ Assumptions made where the request or the code was ambiguous.
 
 - The pending dependabot PRs were reproduced on a branch instead of being
   merged on GitHub; the remote was not reachable from this environment.
+
+## `a2aspec infer`
+
+- The consumer is analyzed statically (no import, no execution). The first
+  parameter after `self`/`cls` is taken to be the producer's output.
+- Only top-level string keys are tracked; nested reads (`data["a"]["b"]`)
+  contribute only the top-level field `a`.
+- A field read via `.get()` or `in` is required when every snapshot contains
+  it, because a silent fallback is the failure the tool exists to catch.
+- `enum` constraints are not inferred: snapshots show which values were
+  sent, not which values are allowed.
+
+## pytest plugin
+
+- The plugin is installed with the package but stays inert unless enabled
+  (`--a2a`, `--a2a-config`, or `a2a_config` in the ini file), so installing
+  a2a-spec never changes an unrelated test suite.
+- Relative paths resolve like the CLI (working directory); a path set in the
+  ini file resolves relative to that ini file.
+- A spec whose producer has no snapshots is reported as a skip, matching the
+  CLI's warning rather than failing.
