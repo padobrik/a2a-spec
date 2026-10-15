@@ -21,8 +21,11 @@ a2aspec record [--suite PATH] [--scenario NAME] [--config PATH]
 Run spec validation against snapshots (replay) or live agents.
 
 ```bash
-a2aspec test [--replay/--live] [--specs DIR] [--config PATH] [--format FORMAT] [--fail-fast]
+a2aspec test [--replay/--live] [--specs DIR] [--config PATH] [--format FORMAT] [--fail-fast] [--no-semantic]
 ```
+
+`--format` is `console` (default), `github` (console output plus GitHub
+Actions annotations), `markdown` or `junit` (only the report on stdout).
 
 ## `a2aspec diff`
 
