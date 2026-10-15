@@ -404,6 +404,7 @@ version: "1.0"
 
 specs_dir: "./a2a_spec/specs"
 scenarios_dir: "./a2a_spec/scenarios"
+adapters_dir: "./a2a_spec/adapters"   # package defining ADAPTERS
 
 semantic:
   provider: sentence-transformers
