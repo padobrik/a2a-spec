@@ -4,7 +4,24 @@ The tests use the committed snapshots, so CI needs no API keys and makes no
 LLM calls. Record snapshots on your machine, commit them, and run the tests
 in CI.
 
-## GitHub Actions
+## GitHub Action
+
+```yaml
+steps:
+  - uses: actions/checkout@v6
+  - uses: padobrik/a2a-spec@v0.5.0
+    with:
+      package: a2a-spec[semantic]          # pip requirement to install
+      working-directory: services/agents   # where a2a-spec.yaml is
+      config: a2a-spec.yaml                # optional
+      check-inferred: "true"               # run a2aspec infer --check
+      args: --fail-fast                    # extra flags for a2aspec test
+```
+
+All inputs are optional. Annotations point at the spec files relative to the
+repository root.
+
+## GitHub Actions without the action
 
 ```yaml
 name: Agent contracts

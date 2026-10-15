@@ -8,6 +8,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- A GitHub Action (`uses: padobrik/a2a-spec@v0.5.0`) that installs a2a-spec,
+  runs `a2aspec infer --check` and `a2aspec test --format github`. CI runs it
+  on the example project.
+- `--format github` annotations use paths relative to the repository root, so
+  they attach to the spec file when the project is in a subdirectory.
 - Scenario `expectations` are checked: `a2aspec test` (replay and live) and the
   pytest plugin fail when an agent's output does not have the expected value.
   Before, the field in scenario files was ignored.
