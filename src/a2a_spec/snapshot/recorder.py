@@ -40,8 +40,10 @@ class Recorder:
         Returns:
             The recorded Snapshot.
         """
-        metadata = adapter.get_metadata()
         response = await adapter.call(input_data)
+        # Read metadata after the call: some adapters (e.g. A2A) learn their
+        # version from the agent during the first call.
+        metadata = adapter.get_metadata()
 
         fingerprint = Fingerprint.create(
             agent_id=metadata.agent_id,

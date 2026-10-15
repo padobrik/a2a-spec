@@ -2,6 +2,7 @@
 
 __version__ = "0.2.0"
 
+from a2a_spec.adapters.a2a_adapter import A2AAdapter
 from a2a_spec.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
 from a2a_spec.adapters.function_adapter import FunctionAdapter
 from a2a_spec.adapters.http_adapter import HTTPAdapter
@@ -50,6 +51,7 @@ __all__ = [
     "PipelineExecutor",
     "PipelineTrace",
     # Adapters
+    "A2AAdapter",
     "AgentAdapter",
     "AgentResponse",
     "AgentMetadata",
