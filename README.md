@@ -339,45 +339,33 @@ This command writes `path/to/skills/a2a-spec/SKILL.md`. Export the skill again a
 - `A2AAdapter` supports A2A 1.0 with JSON-RPC. It does not support streaming or file parts.
 - Semantic rules use a local embedding model. The `semantic` extra installs PyTorch.
 
-## CLI Reference
+## Commands
 
-| Command | Description |
-|---------|-------------|
-| `a2aspec init [DIR]` | Scaffold a new a2a-spec project with examples |
-| `a2aspec record` | Record live agent outputs as snapshots |
-| `a2aspec test --replay` | Validate snapshots against specs (deterministic, zero LLM calls) |
-| `a2aspec test --live` | Validate live agent outputs against specs |
-| `a2aspec infer --producer A --consumer B --source FILE:FN` | Generate a spec from the fields the consumer reads |
-| `a2aspec diff` | Compare recorded snapshots against their committed version |
-| `a2aspec diff --agent NAME --base REF` | Diff one agent against a git revision |
-| `a2aspec skill [--dir DIR]` | Export the bundled agent skill |
-| `a2aspec pipeline test FILE` | Test a multi-agent pipeline DAG |
-| `a2aspec --version` | Show version |
+| Command | What it does |
+|---|---|
+| `a2aspec init` | Creates the project files. |
+| `a2aspec record` | Calls the producers and saves their output as snapshots. |
+| `a2aspec infer` | Makes a spec from the fields that a consumer reads. |
+| `a2aspec test` | Tests the snapshots against the specs. |
+| `a2aspec diff` | Compares the snapshots with the committed snapshots. |
+| `a2aspec skill` | Exports the skill for coding agents. |
 
-→ See [docs/cli-reference.md](docs/cli-reference.md) for full options and flags.
-
----
+See [CLI reference](docs/cli-reference.md) for all options.
 
 ## Documentation
 
-| Guide | Description |
-|-------|-------------|
-| [Getting Started](docs/getting-started.md) | Installation and first test in 2 minutes |
-| [Core Concepts](docs/concepts.md) | Specs, snapshots, replay, diff explained |
-| [CLI Reference](docs/cli-reference.md) | Every command with all options |
-| [Writing Specs](docs/writing-specs.md) | Structural, semantic, and policy rules |
-| [Writing Adapters](docs/writing-adapters.md) | Wrap any agent for a2a-spec |
-| [CI Integration](docs/ci-integration.md) | GitHub Actions, JUnit, exit codes |
-| [Architecture](docs/architecture.md) | Module design and extension points |
-
----
+- [Writing specs](docs/writing-specs.md)
+- [Writing adapters](docs/writing-adapters.md)
+- [CLI reference](docs/cli-reference.md)
+- [CI integration](docs/ci-integration.md)
+- [Concepts](docs/concepts.md)
+- [Architecture](docs/architecture.md)
+- [Example project](examples/customer_support/)
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, check commands, and PR process.
-
----
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE) for details.
+Apache 2.0. See [LICENSE](LICENSE).
