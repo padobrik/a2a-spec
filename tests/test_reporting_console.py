@@ -45,3 +45,13 @@ class TestConsoleReporting:
         result = ValidationResult()
         policies = [PolicyResult(rule_name="no_pii", passed=False, detail="PII found")]
         print_validation_result("test-spec", "scenario1", result, policies)
+
+
+class TestGithubAnnotationEscaping:
+    def test_escapes_message_and_properties(self) -> None:
+        from a2a_spec.reporting.github import format_github_annotation
+
+        line = format_github_annotation(
+            file="specs/a,b.yaml", line=3, level="error", message="50% bad\nnext", title="x: y"
+        )
+        assert line == "::error file=specs/a%2Cb.yaml,line=3,title=x%3A y::50%25 bad%0Anext"

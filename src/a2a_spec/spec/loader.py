@@ -71,15 +71,20 @@ def load_all_specs(directory: str | Path) -> list[Spec]:
     Returns:
         List of parsed Spec objects.
     """
+    return [spec for _, spec in load_spec_files(directory)]
+
+
+def load_spec_files(directory: str | Path) -> list[tuple[Path, Spec]]:
+    """Load all spec files from a directory, keeping each file's path.
+
+    Raises:
+        ConfigError: If the directory does not exist or a spec is invalid.
+    """
     directory = Path(directory)
     if not directory.is_dir():
         raise ConfigError(f"Specs directory not found: {directory}")
 
-    specs: list[Spec] = []
-    for path in sorted(directory.glob("*.yaml")):
-        specs.append(load_spec(path))
-    for path in sorted(directory.glob("*.yml")):
-        specs.append(load_spec(path))
-
+    paths = sorted(directory.glob("*.yaml")) + sorted(directory.glob("*.yml"))
+    specs = [(path, load_spec(path)) for path in paths]
     logger.debug("Loaded %d spec(s) from %s", len(specs), directory)
     return specs

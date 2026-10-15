@@ -25,7 +25,20 @@ def format_github_annotation(
     Returns:
         GitHub annotation string.
     """
-    return f"::{level} file={file},line={line},title={title}::{message}"
+    return (
+        f"::{level} file={_escape_property(file)},line={line},"
+        f"title={_escape_property(title)}::{_escape_data(message)}"
+    )
+
+
+def _escape_data(value: str) -> str:
+    """Escape a workflow command message (GitHub Actions toolkit rules)."""
+    return value.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def _escape_property(value: str) -> str:
+    """Escape a workflow command property value."""
+    return _escape_data(value).replace(":", "%3A").replace(",", "%2C")
 
 
 def generate_annotations(

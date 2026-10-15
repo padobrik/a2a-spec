@@ -138,3 +138,93 @@ class TestCliTestSemantic:
         result = runner.invoke(app, ["test", "--config", str(config)])
         assert result.exit_code == 0, result.output
         assert "semantic SKIPPED" in result.output
+
+
+STRUCT_SPEC = """
+spec:
+  name: triage-to-resolution
+  version: "1.0"
+  producer: triage-agent
+  consumer: resolution-agent
+  structural:
+    type: object
+    required: [category]
+"""
+
+
+def _struct_project(tmp_path, outputs: dict[str, dict]):
+    import json
+
+    specs = tmp_path / "specs"
+    specs.mkdir()
+    (specs / "triage.yaml").write_text(STRUCT_SPEC)
+    snaps = tmp_path / "snapshots" / "triage-agent"
+    snaps.mkdir(parents=True)
+    for scenario, output in outputs.items():
+        (snaps / f"{scenario}_abc123.json").write_text(
+            json.dumps(
+                {
+                    "fingerprint": "abc123",
+                    "agent_id": "triage-agent",
+                    "scenario": scenario,
+                    "input": {"message": "hi"},
+                    "output": output,
+                }
+            )
+        )
+    config = tmp_path / "a2a-spec.yaml"
+    config.write_text(
+        f'project_name: demo\nspecs_dir: "{specs}"\nstorage:\n  path: "{tmp_path / "snapshots"}"\n'
+    )
+    return config
+
+
+OUTPUTS = {"billing": {"category": "billing"}, "renamed": {"issue_type": "billing"}}
+
+
+class TestCliTestFormats:
+    def test_junit_is_clean_xml(self, tmp_path) -> None:
+        import xml.etree.ElementTree as ET
+
+        config = _struct_project(tmp_path, OUTPUTS)
+        result = runner.invoke(app, ["test", "--config", str(config), "--format", "junit"])
+        assert result.exit_code == 1
+        suite = ET.fromstring(result.stdout.split("?>", 1)[1])
+        assert suite.get("name") == "demo"
+        assert suite.get("tests") == "2" and suite.get("failures") == "1"
+        [failure] = suite.iter("failure")
+        assert "'category' is a required property" in failure.get("message", "")
+        names = {tc.get("name"): tc.get("classname") for tc in suite.iter("testcase")}
+        assert names == {"billing": "triage-to-resolution", "renamed": "triage-to-resolution"}
+
+    def test_markdown_report(self, tmp_path) -> None:
+        config = _struct_project(tmp_path, OUTPUTS)
+        result = runner.invoke(app, ["test", "--config", str(config), "--format", "markdown"])
+        assert result.exit_code == 1
+        assert result.stdout.startswith("# a2a-spec Report: demo")
+        assert "**1/2 passed** | 1 failed" in result.stdout
+        assert "### triage-to-resolution / renamed" in result.stdout
+        assert "Spec:" not in result.stdout
+
+    def test_github_annotations(self, tmp_path) -> None:
+        config = _struct_project(tmp_path, OUTPUTS)
+        result = runner.invoke(app, ["test", "--config", str(config), "--format", "github"])
+        assert result.exit_code == 1
+        lines = [line for line in result.stdout.splitlines() if line.startswith("::error")]
+        assert len(lines) == 1
+        spec_path = tmp_path / "specs" / "triage.yaml"
+        assert lines[0].startswith(
+            f"::error file={spec_path},line=1,title=a2a-spec triage-to-resolution::"
+        )
+        assert "renamed: structural: [<root>] 'category' is a required property" in lines[0]
+
+    def test_passing_run_has_no_annotations(self, tmp_path) -> None:
+        config = _struct_project(tmp_path, {"billing": {"category": "billing"}})
+        result = runner.invoke(app, ["test", "--config", str(config), "--format", "github"])
+        assert result.exit_code == 0
+        assert "::error" not in result.stdout
+
+    def test_unknown_format_rejected(self, tmp_path) -> None:
+        config = _struct_project(tmp_path, OUTPUTS)
+        result = runner.invoke(app, ["test", "--config", str(config), "--format", "html"])
+        assert result.exit_code == 2
