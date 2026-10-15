@@ -7,6 +7,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- `a2aspec test` evaluates `embedding_similarity` semantic rules against the
+  recorded input and output of each snapshot; `--no-semantic` skips them.
+- `LangChainAdapter` is exported from the package root.
+
+### Changed
+- Semantic rules using `entailment` or `language_detection` now fail with
+  "not implemented" instead of being silently ignored.
+- Custom policy validators receive the snapshot input instead of an empty dict.
+- The result header reports FAIL when any layer fails, not only structural.
+- Widened upper bounds for rich, langchain-core, sentence-transformers and dev tools.
+
+### Fixed
+- `LangChainAdapter` returns `{"content": ...}` for chat messages and uses
+  `model_dump()` for pydantic models instead of the deprecated `.dict()`.
+
 ## [0.1.0] - 2026-02-19
 
 ### Added

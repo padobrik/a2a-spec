@@ -137,7 +137,9 @@ spec:
     - rule: summary_reflects_input
       description: "Summary must faithfully reflect the customer message"
       method: embedding_similarity
-      threshold: 0.8
+      threshold: 0.5
+      source_field: message    # field in the agent's input
+      target_field: summary    # field in the agent's output
 
   policy:
     - rule: no_pii
@@ -182,7 +184,7 @@ a2aspec test --replay  # Validates saved snapshots against specs
  FAIL  triage-agent :: product_defect        structural ✗  field 'confidence' missing
 ```
 
-No API keys needed. No LLM costs. Fully deterministic. Runs in milliseconds.
+No API keys needed. No LLM costs. Fully deterministic. Structural and policy checks run in milliseconds; semantic rules need `pip install a2a-spec[semantic]` and run a small local embedding model (pass `--no-semantic` to skip them).
 
 ### Detect semantic drift
 
