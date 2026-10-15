@@ -262,6 +262,25 @@ async def test_triage_live(a2a_check):
 
 The tests use the committed snapshots. CI needs no API keys.
 
+On GitHub, use the a2a-spec action. It runs `a2aspec infer --check` and `a2aspec test`, and it shows each failure as an annotation in the pull request:
+
+```yaml
+# .github/workflows/contracts.yml
+name: Agent contracts
+on: [push, pull_request]
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: padobrik/a2a-spec@v0.5.0
+```
+
+The action has these inputs: `package` (for example `a2a-spec[semantic]`), `working-directory`, `config`, `check-inferred` and `args`.
+
+You can also run the commands yourself:
+
 ```yaml
 # .github/workflows/contracts.yml
 name: Agent contracts
