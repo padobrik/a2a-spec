@@ -12,7 +12,7 @@ from rich.console import Console
 
 from a2a_spec.config.loader import load_config
 from a2a_spec.config.settings import A2ASpecConfig
-from a2a_spec.exceptions import A2ASpecError
+from a2a_spec.exceptions import A2ASpecError, ConfigError
 from a2a_spec.snapshot.recorder import Recorder
 from a2a_spec.snapshot.store import SnapshotStore
 
@@ -67,12 +67,13 @@ def record_command(
         adapters = _load_user_adapters(config)
     except Exception as e:
         console.print(f"[red]Failed to load adapters: {e}[/red]")
-        console.print("\nMake sure you have adapters defined in a2a_spec/adapters/__init__.py")
         raise typer.Exit(1) from None
 
     if not adapters:
         console.print("[yellow]No adapters found. Create adapters first.[/yellow]")
-        console.print("See: https://github.com/yourorg/a2a-spec/docs/writing-adapters.md")
+        console.print(
+            "See: https://github.com/padobrik/a2a-spec/blob/main/docs/writing-adapters.md"
+        )
         raise typer.Exit(1)
 
     store = SnapshotStore(config.storage.path)
@@ -115,16 +116,45 @@ def record_command(
 
 
 def _load_user_adapters(config: A2ASpecConfig) -> dict[str, Any]:
-    """Attempt to load adapters from the user's project."""
-    import importlib
+    """Load the ADAPTERS mapping from the project's adapters package.
+
+    The package is loaded from its file path under a private module name:
+    importing it as ``a2a_spec.adapters`` would resolve to this library's
+    own subpackage, because the project directory shares the library's name.
+
+    Raises:
+        ConfigError: If the package is missing or does not define ADAPTERS.
+    """
+    import hashlib
+    import importlib.util
     import sys
 
-    # Add current directory to path so we can import user's adapters
-    sys.path.insert(0, ".")
+    package_dir = Path(config.adapters_dir).resolve()
+    init_file = package_dir / "__init__.py"
+    if not init_file.exists():
+        raise ConfigError(
+            f"No adapters package at {init_file}. Define ADAPTERS = {{agent_id: adapter}} there."
+        )
 
+    # Let adapters import the user's own modules relative to the project root.
+    if "" not in sys.path and str(Path.cwd()) not in sys.path:
+        sys.path.insert(0, str(Path.cwd()))
+
+    name = "_a2a_spec_project_adapters_" + hashlib.sha1(str(package_dir).encode()).hexdigest()[:8]
+    spec = importlib.util.spec_from_file_location(
+        name, init_file, submodule_search_locations=[str(package_dir)]
+    )
+    if spec is None or spec.loader is None:
+        raise ConfigError(f"Cannot load adapters from {init_file}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     try:
-        mod = importlib.import_module("a2a_spec.adapters")
-        adapters = getattr(mod, "ADAPTERS", {})
-        return adapters
-    except ImportError:
-        return {}
+        spec.loader.exec_module(module)
+    except BaseException:
+        del sys.modules[name]
+        raise
+
+    adapters = getattr(module, "ADAPTERS", None)
+    if not isinstance(adapters, dict):
+        raise ConfigError(f"{init_file} must define ADAPTERS as a dict of agent_id -> adapter")
+    return adapters

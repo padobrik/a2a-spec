@@ -35,6 +35,7 @@ class A2ASpecConfig(BaseModel):
     version: str = "1.0"
     specs_dir: str = "./a2a_spec/specs"
     scenarios_dir: str = "./a2a_spec/scenarios"
+    adapters_dir: str = "./a2a_spec/adapters"
     semantic: SemanticConfig = Field(default_factory=SemanticConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
     ci: CIConfig = Field(default_factory=CIConfig)
