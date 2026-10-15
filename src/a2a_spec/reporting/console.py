@@ -38,12 +38,14 @@ def print_validation_result(
     policy_results: list[PolicyResult] | None = None,
     semantic_results: list[SemanticResult] | None = None,
     semantic_skipped: bool = False,
+    expectation_errors: list[str] | None = None,
 ) -> None:
     """Print a single validation result."""
     overall = (
         structural.passed
         and all(p.passed for p in policy_results or [])
         and all(r.passed for r in semantic_results or [])
+        and not expectation_errors
     )
     label = "PASS" if overall else "FAIL"
     color = "green" if overall else "red"
@@ -74,6 +76,11 @@ def print_validation_result(
                 parts.append(f"    [red]{r.rule_name}: {r.detail}[/red]")
     elif semantic_skipped:
         parts.append("  semantic [yellow]SKIPPED[/yellow] (disabled)")
+
+    if expectation_errors:
+        parts.append("  expectations [red]FAIL[/red]")
+        for error in expectation_errors:
+            parts.append(f"    [red]{error}[/red]")
 
     console.print("\n".join(parts))
 

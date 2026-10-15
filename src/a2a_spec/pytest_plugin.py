@@ -17,7 +17,9 @@ import pytest
 
 from a2a_spec.config.loader import load_config
 from a2a_spec.config.settings import A2ASpecConfig
+from a2a_spec.exceptions import ConfigError
 from a2a_spec.infer.check import check_inferred_spec
+from a2a_spec.project import load_scenarios
 from a2a_spec.semantic.embeddings import EmbeddingModel
 from a2a_spec.semantic.engine import SemanticEngine
 from a2a_spec.snapshot.store import SnapshotStore
@@ -34,6 +36,13 @@ class _A2AState:
         self.config: A2ASpecConfig = load_config(config_path)
         self.specs_dir = self._resolve(self.config.specs_dir)
         self.store = SnapshotStore(self._resolve(self.config.storage.path))
+        scenarios_config = self.config.model_copy(
+            update={"scenarios_dir": str(self._resolve(self.config.scenarios_dir))}
+        )
+        try:
+            self.scenarios = {sc.name: sc for sc in load_scenarios(scenarios_config)}
+        except ConfigError:
+            self.scenarios = {}
         engine = None
         if semantic and self.config.semantic.enabled:
             engine = SemanticEngine(model=EmbeddingModel(self.config.semantic.model))
@@ -111,7 +120,9 @@ class SnapshotItem(pytest.Item):
         state = self.config.stash[_STATE]
         assert state is not None
         snapshot = state.store.load(self.spec.producer, self.name)
-        result = state.checker.check(self.spec, snapshot.output_data, snapshot.input_data)
+        scenario = state.scenarios.get(self.name)
+        expected = scenario.expectations.get(self.spec.producer) if scenario else None
+        result = state.checker.check(self.spec, snapshot.output_data, snapshot.input_data, expected)
         if not result.passed:
             raise ContractViolationError(result)
 
