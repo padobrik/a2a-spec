@@ -7,12 +7,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-15
+
 ### Fixed
 - `a2aspec record` never found project adapters: `a2a_spec/adapters` was
   shadowed by the library's own subpackage. Adapters now load from
   `adapters_dir` (default `./a2a_spec/adapters`) and import errors are reported.
 - The customer support example records and imports correctly from its own
   directory.
+- The `[record]`, `[done]` and `[diff]` labels were swallowed by rich markup.
 
 ## [0.3.0] - 2026-10-15
 
@@ -69,6 +72,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.3.1]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.1
 [0.3.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.0
 [0.2.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.2.0
 [0.1.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.1.0
