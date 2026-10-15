@@ -192,7 +192,7 @@ a2aspec diff
 ```
   triage-agent / double_charge:
     FAIL priority: Field 'priority' was removed
-    FAIL urgency: Field 'urgency' was added
+    LOW  urgency: Field 'urgency' was added
 ```
 
 **4. Run the tests.**

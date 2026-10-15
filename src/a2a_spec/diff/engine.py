@@ -115,8 +115,14 @@ class DiffEngine:
 
     @staticmethod
     def _structural_severity(fd: FieldDiff) -> DriftSeverity:
-        """Determine severity based on structural change type."""
-        if fd.change_type in ("added", "removed"):
+        """Determine severity based on structural change type.
+
+        A new field is LOW: consumers ignore fields they do not read. A
+        removed field is HIGH because a consumer may depend on it.
+        """
+        if fd.change_type == "added":
+            return DriftSeverity.LOW
+        if fd.change_type == "removed":
             return DriftSeverity.HIGH
         if fd.change_type == "type_changed":
             return DriftSeverity.CRITICAL

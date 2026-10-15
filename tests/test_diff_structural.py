@@ -54,3 +54,24 @@ class TestStructuralDiff:
     def test_empty_dicts(self) -> None:
         diffs = structural_diff({}, {})
         assert diffs == []
+
+
+class TestStructuralSeverity:
+    def test_added_field_is_low(self) -> None:
+        from a2a_spec.diff.engine import DiffEngine, DriftSeverity
+
+        [result] = DiffEngine().diff({"a": 1}, {"a": 1, "b": 2})
+        assert result.field == "b"
+        assert result.severity == DriftSeverity.LOW
+
+    def test_removed_field_is_high(self) -> None:
+        from a2a_spec.diff.engine import DiffEngine, DriftSeverity
+
+        [result] = DiffEngine().diff({"a": 1, "b": 2}, {"a": 1})
+        assert result.severity == DriftSeverity.HIGH
+
+    def test_type_change_is_critical(self) -> None:
+        from a2a_spec.diff.engine import DiffEngine, DriftSeverity
+
+        [result] = DiffEngine().diff({"a": 1}, {"a": "1"})
+        assert result.severity == DriftSeverity.CRITICAL
