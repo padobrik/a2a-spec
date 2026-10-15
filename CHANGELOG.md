@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-16
+
 ### Added
 - `a2aspec infer --check` compares every inferred spec with its consumer's
   current code and fails when the code reads a field the spec does not cover.
@@ -16,15 +18,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   every scenario and checks the live output without saving it. Before, the
   flag only changed the header and still replayed snapshots.
 
+### Changed
+- `a2aspec diff` rates a new field as LOW instead of HIGH, so adding a field
+  no longer fails CI; a removed field stays HIGH.
+
 ### Fixed
 - `a2aspec record --suite` was ignored; it now records one scenario file.
 - `a2aspec test --format` was ignored. `junit` and `markdown` now print only
   the report on stdout, and the new `github` format adds a GitHub Actions
   annotation for each failure. Unknown formats are rejected.
-
-### Changed
-- `a2aspec diff` rates a new field as LOW instead of HIGH, so adding a field
-  no longer fails CI; a removed field stays HIGH.
 
 ## [0.3.2] - 2026-10-16
 
@@ -104,6 +106,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.4.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.4.0
 [0.3.2]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.2
 [0.3.1]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.1
 [0.3.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.3.0
