@@ -156,3 +156,14 @@ class TestCliDiffGitBaseline:
         assert result.exception is None or isinstance(result.exception, SystemExit), result.output
         assert "Using token overlap" in _flat(result.output)
         assert "summary" in result.output
+
+    def test_added_field_does_not_fail(self, tmp_path, monkeypatch) -> None:
+        repo = _repo(tmp_path, monkeypatch)
+        _write_snapshot(
+            repo,
+            "billing",
+            {"category": "billing", "summary": "duplicate charge", "confidence": 0.9},
+        )
+        result = runner.invoke(app, ["diff"])
+        assert result.exit_code == 0, result.output
+        assert "LOW" in result.output and "confidence" in result.output

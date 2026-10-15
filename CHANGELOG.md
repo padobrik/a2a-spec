@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+- `a2aspec diff` rates a new field as LOW instead of HIGH, so adding a field
+  no longer fails CI; a removed field stays HIGH.
+
 ## [0.3.2] - 2026-10-16
 
 ### Changed
