@@ -14,6 +14,7 @@ from a2a_spec.cli.infer_cmd import infer_command
 from a2a_spec.cli.init_cmd import init_command
 from a2a_spec.cli.pipeline_cmd import pipeline_app
 from a2a_spec.cli.record_cmd import record_command
+from a2a_spec.cli.skill_cmd import skill_command
 from a2a_spec.cli.test_cmd import test_command
 from a2a_spec.exceptions import A2ASpecError
 
@@ -32,6 +33,7 @@ app.command("record")(record_command)
 app.command("test")(test_command)
 app.command("diff")(diff_command)
 app.command("infer")(infer_command)
+app.command("skill")(skill_command)
 app.add_typer(pipeline_app, name="pipeline")
 
 
