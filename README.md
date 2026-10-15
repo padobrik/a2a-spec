@@ -174,6 +174,97 @@ git commit -m "test: add agent contracts"
 
 The committed snapshots are the baseline for the next steps.
 
+## When you change an agent
+
+**1. Change the producer.** For example, change its prompt, its model or its code. In this example, the producer now sends `urgency` instead of `priority`.
+
+**2. Record the output again.**
+
+```bash
+a2aspec record
+```
+
+**3. Compare the new output with the committed snapshots.**
+
+```bash
+a2aspec diff
+```
+
+```
+  triage-agent / double_charge:
+    FAIL priority: Field 'priority' was removed
+    FAIL urgency: Field 'urgency' was added
+```
+
+**4. Run the tests.**
+
+```bash
+a2aspec test
+```
+
+```
+FAIL triage-agent-to-resolution-agent / double_charge
+    [<root>] 'priority' is a required property
+```
+
+**5. Correct the problem.**
+
+- If the change in the producer is an error, correct the producer. Then do steps 2 to 4 again.
+- If the change is necessary, change the consumer. Then run `a2aspec infer` with `--force` and commit the new spec and snapshots.
+
+Do not record the snapshots again only to make a test pass. Do not delete snapshots or remove fields from a spec for this purpose.
+
+## Run the tests with pytest
+
+a2a-spec has a pytest plugin. Add these lines to `pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+a2a_config = "a2a-spec.yaml"
+testpaths = ["tests", "a2a_spec/specs"]
+```
+
+pytest then runs one test for each snapshot:
+
+```
+$ pytest -v
+a2a_spec/specs/triage-agent-to-resolution-agent.yaml::double_charge PASSED   [ 50%]
+a2a_spec/specs/triage-agent-to-resolution-agent.yaml::question PASSED        [100%]
+```
+
+The usual pytest options work, for example `-k`, `-x` and `--junitxml`. To run the tests one time without the configuration, use `pytest --a2a`.
+
+To test a live output in your own test, use the `a2a_check` fixture. This example is an `async` test, so it needs an async plugin such as `pytest-asyncio`.
+
+```python
+async def test_triage_live(a2a_check):
+    output = await triage_agent({"message": "I was charged twice"})
+    a2a_check("triage-agent-to-resolution-agent", output)
+```
+
+## Run the tests in CI
+
+The tests use the committed snapshots. CI needs no API keys.
+
+```yaml
+# .github/workflows/contracts.yml
+name: Agent contracts
+on: [push, pull_request]
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install a2a-spec
+      - run: a2aspec test
+```
+
+If your specs have semantic rules, install `a2a-spec[semantic]` instead.
+
 ## Adapters — Wrap Any Agent
 
 a2a-spec is **framework-agnostic**. Adapters wrap your agents so the framework can call them during recording and testing.
@@ -274,40 +365,6 @@ class MyCrewAIAdapter(AgentAdapter):
 | `a2aspec --version` | Show version |
 
 → See [docs/cli-reference.md](docs/cli-reference.md) for full options and flags.
-
----
-
-## CI Integration
-
-a2a-spec is designed for CI-first workflows. Record locally with your API keys; test in CI against committed snapshots — no secrets required in CI.
-
-```yaml
-# .github/workflows/a2a-spec.yml
-name: Agent Contract Tests
-on: [push, pull_request]
-
-jobs:
-  spec-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install a2a-spec
-      - run: a2aspec test --replay
-```
-
-**Output formats:**
-
-| Format | Flag | Use Case |
-|---|---|---|
-| Console (Rich) | `--format console` | Local development |
-| Markdown | `--format markdown` | PR comments |
-| JUnit XML | `--format junit` | CI test reporters |
-| GitHub Annotations | `--format github` | Inline PR annotations |
-
-→ See [docs/ci-integration.md](docs/ci-integration.md) for GitHub Actions, Jenkins, and more.
 
 ---
 
