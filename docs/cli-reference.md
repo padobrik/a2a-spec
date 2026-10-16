@@ -83,6 +83,13 @@ command shows a `WARN` line, and the spec lists it under `allow_missing`.
 `--check` accepts a `data["key"]` read of such a field, and its
 "Regenerate" command repeats the flags.
 
+The parameter that holds the producer's output is chosen by its type
+(Pydantic, `TypedDict`, dataclass; TypeScript `interface`, `type` or Zod
+schema), with the producer's snapshot keys deciding between several typed
+parameters. If no parameter fits, the command exits 2 and names the
+parameters it looked at. `--check` picks the parameter again from the spec's
+own fields.
+
 `--source` can also name a TypeScript or JavaScript function
 (`agents/resolution.ts:resolutionAgent`) when the `typescript` extra is
 installed. Function declarations, methods, and functions bound to a name
