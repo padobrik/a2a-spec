@@ -5,21 +5,36 @@ Snapshots were written by hand from each project's code, tests and sample
 outputs. No project code was run and no model was called. The details, with
 file and line references, are in one file per project.
 
+The fields, snapshots and specs are frozen in `benchmarks/recon/`;
+`make benchmark` recomputes the found / total column.
+
 ## Results
 
-| Project | Type of links | Model fits | Fields found / total | Main reason for misses | Real risk found |
+| Project | Type of links | Model fits | Fields found / total | Main reason for misses | Risks: explicit / disputed |
 |---|---|---|---|---|---|
-| [GPT Researcher](gpt-researcher.md) (LangGraph, Python) | Shared graph state (TypedDict, read as a dict with `.get`), subgraph input and result dicts, free text and model JSON in state | partly | 38 / 77 (65 / 77 with each helper run by hand) | The node passes the whole state to a helper method (37 of 39 misses) | yes: the writer spreads unchecked model JSON into state; the fact checker reads `introduction` and `conclusion` with a `""` default; the publisher hides bad `headers` with `or {}` |
-| [OpenAI Agents SDK, Python](openai-agents-python.md) (financial research) | Pydantic outputs read by attribute in an orchestrator class, then put in prompts; agents as tools | partly | 0 / 12 | Attribute access on Pydantic models; the producer data is not the first parameter | yes: failed searches and analyst tool errors are swallowed, and a helper reads fields with defaults |
-| [OpenAI Agents SDK, TypeScript](openai-agents-js.md) (financial research) | Zod outputs passed through manager methods, free text, agents as tools | partly | 2 / 8 | The producer data is not the first parameter; list items go to a helper; the SDK result wrapper | yes (latent): `String(runResult.finalOutput.summary)` on an `any` value sends the text `"undefined"` if the field is renamed |
-| [Microsoft Agent Framework](agent-framework.md) (switch-case workflow) | Dataclass messages, Pydantic output as JSON text, chat text, shared workflow state | partly | 0 / 19 | Attribute access on dataclass and Pydantic messages; shared state on the second parameter | yes: `getattr(email, "email_content", "")` on shared state turns a rename into an empty string |
-| [CrewAI flow template](crewai-flow-template.md) (`crewai create flow`) | Dict parameter, shared Pydantic flow state, prompt placeholders, free-text task context | partly | 1 / 11 | Flow steps take no parameter and read `self.state`; agents exchange text inside the framework | yes: `payload.get("topic", "AI Agents")` writes a post on the default topic when the key is renamed |
-| **Total** | | partly in 5 of 5 | **41 / 127 (32%)** | | 5 of 5 |
+| [GPT Researcher](gpt-researcher.md) (LangGraph, Python) | Shared graph state (TypedDict, read as a dict with `.get`), subgraph input and result dicts, free text and model JSON in state | partly | 38 / 77 (65 / 77 with each helper run by hand) | The node passes the whole state to a helper method (37 of 39 misses) | 2 / 1: the fact checker reads `introduction` and `conclusion` with a `""` default from unchecked model JSON the writer spreads into state; the publisher hides bad `headers` with `or {}` |
+| [OpenAI Agents SDK, Python](openai-agents-python.md) (financial research) | Pydantic outputs read by attribute in an orchestrator class, then put in prompts; agents as tools | partly | 0 / 12 | Attribute access on Pydantic models; the producer data is not the first parameter | 0 / 4: swallowed search and analyst tool errors, a helper that reads framework items with defaults (framework internals, latent) |
+| [OpenAI Agents SDK, TypeScript](openai-agents-js.md) (financial research) | Zod outputs passed through manager methods, free text, agents as tools | partly | 2 / 8 | The producer data is not the first parameter; list items go to a helper; the SDK result wrapper | 0 / 2: `String(runResult.finalOutput.summary)` on an `any` value sends `"undefined"` if the field is renamed (latent) |
+| [Microsoft Agent Framework](agent-framework.md) (switch-case workflow) | Dataclass messages, Pydantic output as JSON text, chat text, shared workflow state | partly | 0 / 19 | Attribute access on dataclass and Pydantic messages; shared state on the second parameter | 0 / 1: `getattr(email, "email_content", "")` on shared state (latent: the state is always set today) |
+| [CrewAI flow template](crewai-flow-template.md) (`crewai create flow`) | Dict parameter, shared Pydantic flow state, prompt placeholders, free-text task context | partly | 1 / 11 | Flow steps take no parameter and read `self.state`; agents exchange text inside the framework | 0 / 4: `payload.get("topic", "AI Agents")` on an external trigger payload, empty prompt values, state and output defaults |
+| **Total** | | partly in 5 of 5 | **41 / 127 (32%)** | | **2 / 12** |
 
 The model fits each project partly. Every project has clear producers and
 consumers, and every producer output has a fixed shape. The gap is on the
 consumer side: in four of five projects the consumer does not read a dict
 parameter with `["key"]`, `.get()` or `in`.
+
+Risks are split as follows (one line each in `benchmarks/recon/<project>/risks.md`):
+
+- **Explicit**: a consumer agent reads a producer agent's output with a
+  default, and the producer does not guarantee the field. 2 risks, both in
+  GPT Researcher.
+- **Disputed**: the default reads an external payload or user input, sits in
+  framework internals, or only breaks after a future change (latent). 12
+  risks, in all five projects.
+
+Every project reads some output with a default, but only one project has a
+default that hides a break between two agents today.
 
 ## Links
 
