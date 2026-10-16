@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "fingerprint": "8e770c534edc",
   "agent_id": "triage-agent",
   "scenario": "shipping_delay",

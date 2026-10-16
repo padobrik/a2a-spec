@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "fingerprint": "69524abe4d67",
   "agent_id": "resolution-agent",
   "scenario": "product_defect",

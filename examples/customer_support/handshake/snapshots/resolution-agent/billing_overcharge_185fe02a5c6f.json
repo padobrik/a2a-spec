@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "fingerprint": "185fe02a5c6f",
   "agent_id": "resolution-agent",
   "scenario": "billing_overcharge",

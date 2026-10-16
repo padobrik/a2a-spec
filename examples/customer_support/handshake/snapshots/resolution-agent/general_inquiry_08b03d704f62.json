@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "fingerprint": "08b03d704f62",
   "agent_id": "resolution-agent",
   "scenario": "general_inquiry",

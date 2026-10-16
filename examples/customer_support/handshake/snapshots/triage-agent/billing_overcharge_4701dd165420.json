@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "fingerprint": "4701dd165420",
   "agent_id": "triage-agent",
   "scenario": "billing_overcharge",

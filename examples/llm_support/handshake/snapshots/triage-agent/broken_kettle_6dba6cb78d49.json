@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "fingerprint": "6dba6cb78d49",
   "agent_id": "triage-agent",
   "scenario": "broken_kettle",
