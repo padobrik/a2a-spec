@@ -9,11 +9,13 @@ from rich.console import Console
 
 from agent_handshake.cli.exit_codes import EXIT_FAILED, EXIT_INPUT
 from agent_handshake.config.loader import load_config
+from agent_handshake.diff.consumers import rate_for_consumers
 from agent_handshake.diff.engine import DiffEngine, DriftSeverity
 from agent_handshake.exceptions import HandshakeError, SnapshotFormatError
 from agent_handshake.reporting.console import print_diff_results
 from agent_handshake.snapshot.baseline import GitBaseline
 from agent_handshake.snapshot.store import SnapshotStore, read_snapshot
+from agent_handshake.spec.loader import load_all_specs
 
 console = Console()
 
@@ -66,6 +68,14 @@ def diff_command(
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(EXIT_INPUT) from None
 
+    # Specs tell which changes break a consumer; without them every removal is high.
+    try:
+        specs_dir = Path(config.specs_dir)
+        specs = load_all_specs(specs_dir) if specs_dir.is_dir() else []
+    except HandshakeError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(EXIT_INPUT) from None
+
     console.print("\n[bold]\\[diff][/bold] Diff Report\n")
 
     total_diffs = 0
@@ -88,7 +98,10 @@ def diff_command(
                 if old.output_data == new.output_data:
                     continue
 
-                results = engine.diff(old.output_data, new.output_data)
+                results = rate_for_consumers(
+                    engine.diff(old.output_data, new.output_data),
+                    [s for s in specs if s.producer == agent_id],
+                )
                 print_diff_results(agent_id, new.scenario, results)
 
                 total_diffs += len(results)

@@ -16,6 +16,7 @@ class DriftSeverity(StrEnum):
     """Severity levels for detected drift."""
 
     NONE = "none"
+    INFO = "info"  # a change no consumer spec reads
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"

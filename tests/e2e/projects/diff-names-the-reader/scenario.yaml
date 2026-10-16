@@ -1,0 +1,16 @@
+description: diff names the consumer and the line that reads a removed field, and keeps other changes as INFO.
+steps:
+  - run: handshake record
+  - run: handshake infer --producer triage-agent --consumer resolution-agent --source agents/resolution.py:resolve
+    files:
+      handshake/specs/triage-agent-to-resolution-agent.yaml: ["read_at:", "priority:"]
+  - run: git init -q
+  - run: git add handshake.yaml agents handshake
+  - run: git commit -q -m baseline
+  - copy: {changed/triage.py: agents/triage.py}
+  - run: handshake record
+  - run: handshake diff --base HEAD
+    exit: 1
+    output:
+      - "FAIL priority: Field 'priority' was removed; resolution-agent reads it at agents/resolution.py:2"
+      - "INFO urgency: Field 'urgency' was added; no consumer spec reads it"
