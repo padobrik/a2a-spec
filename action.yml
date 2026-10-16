@@ -25,6 +25,11 @@ inputs:
     description: Extra arguments for handshake test, for example "--no-semantic".
     default: ""
 
+outputs:
+  test-exit-code:
+    description: Exit code of handshake test (0 when every contract passed). Empty when that step did not run, for example because the installation failed.
+    value: ${{ steps.test.outputs.exit-code }}
+
 runs:
   using: composite
   steps:
@@ -47,10 +52,15 @@ runs:
       run: handshake infer --check ${CONFIG:+--config "$CONFIG"}
 
     - name: Test contracts
+      id: test
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         CONFIG: ${{ inputs.config }}
         ARGS: ${{ inputs.args }}
       # ARGS is split into words on purpose so it can carry several flags.
-      run: handshake test --format github ${CONFIG:+--config "$CONFIG"} $ARGS
+      run: |
+        status=0
+        handshake test --format github ${CONFIG:+--config "$CONFIG"} $ARGS || status=$?
+        echo "exit-code=$status" >> "$GITHUB_OUTPUT"
+        exit "$status"

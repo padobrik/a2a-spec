@@ -147,8 +147,12 @@ jobs:
           check-inferred: "false"
           args: --no-semantic --format console
 
-      - name: Check that the action failed on the broken contract
-        if: steps.broken.outcome != 'failure'
+      # Exit code 1 from handshake test, not a failed installation.
+      - name: Check that the contract test failed the action
+        if: steps.broken.outputs.test-exit-code != '1'
+        env:
+          OUTCOME: ${{ steps.broken.outcome }}
+          TEST_EXIT_CODE: ${{ steps.broken.outputs.test-exit-code }}
         run: |
-          echo "::error::The action passed on a project whose contract is broken"
+          echo "::error::Expected handshake test to exit 1 on the broken contract; step outcome $OUTCOME, test exit code '$TEST_EXIT_CODE'"
           exit 1

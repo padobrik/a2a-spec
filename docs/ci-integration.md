@@ -18,6 +18,8 @@ steps:
       args: --fail-fast                    # extra flags for handshake test
 ```
 
+The output `test-exit-code` is the exit code of `handshake test`: `0` when every contract passed, `1` when one failed, empty when the step did not run (for example, the installation failed). Use it with `continue-on-error: true` to act on the result in a later step.
+
 All inputs are optional. Annotations point at the spec files relative to the
 repository root.
 
