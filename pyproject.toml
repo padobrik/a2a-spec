@@ -43,6 +43,10 @@ semantic = [
 langchain = [
     "langchain-core>=0.2,<2.0",
 ]
+typescript = [
+    "tree-sitter>=0.23,<1.0",
+    "tree-sitter-typescript>=0.23,<1.0",
+]
 dev = [
     "pytest>=8.0,<10.0",
     "pytest-asyncio>=0.23,<2.0",
@@ -55,7 +59,7 @@ dev = [
     "a2a-sdk[http-server]>=1.0,<2.0",
 ]
 all = [
-    "agent-handshake[semantic,langchain,dev]",
+    "agent-handshake[semantic,langchain,typescript,dev]",
 ]
 
 [project.scripts]
