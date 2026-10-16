@@ -46,6 +46,17 @@ Assumptions made where the request or the code was ambiguous.
   it, because a silent fallback is the failure the tool exists to catch.
 - `enum` constraints are not inferred: snapshots show which values were
   sent, not which values are allowed.
+- TypeScript and JavaScript consumers are parsed with tree-sitter (the
+  `typescript` extra) instead of the TypeScript compiler, so Node.js is not
+  needed and types are not resolved. `.js`, `.jsx` and `.tsx` use the TSX
+  grammar, which also parses plain JavaScript.
+- In JavaScript a missing key gives `undefined`, so the last key of a read is
+  never strict. An earlier key is strict when the code reads through it
+  without `?.` or a destructuring default, or calls a method on it, because
+  that throws at run time.
+- `.length` and method calls on a read value (`data.tags.length`,
+  `data.category.toLowerCase()`) are treated as uses of a string or array, not
+  as fields of the input.
 
 ## pytest plugin
 
