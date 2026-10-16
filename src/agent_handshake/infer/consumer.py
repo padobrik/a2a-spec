@@ -114,7 +114,7 @@ def analyze_consumer(
         raise ConfigError(f"Function '{function}' in {path} takes no input parameter")
 
     module = PyModule(path, tree)
-    scope = _Scope(module, _helpers(tree, fn))
+    scope = _Scope(module, _helpers(tree, fn), local=_bound_names(fn))
 
     def visit(param: str, annotation: Annotation) -> _ReadVisitor:
         visitor = _ReadVisitor(param, annotation, scope)
@@ -154,6 +154,21 @@ class _Scope:
     helpers: dict[str, tuple[Function, bool]]  # name -> (function, is a method)
     depth: int = 0
     active: frozenset[str] = frozenset()
+    # Names the visited function binds itself; a call to one is not a file-level helper.
+    local: frozenset[str] = frozenset()
+
+
+def _bound_names(fn: Function) -> frozenset[str]:
+    """Parameters, assigned names and nested definitions of ``fn``."""
+    names = {a.arg for a in ast.walk(fn.args) if isinstance(a, ast.arg)}
+    for node in ast.walk(fn):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            names.add(node.id)
+        elif node is not fn and isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            names.add(node.name)
+        elif isinstance(node, ast.Import | ast.ImportFrom):
+            names.update((a.asname or a.name).split(".")[0] for a in node.names)
+    return frozenset(names)
 
 
 def _helpers(tree: ast.Module, fn: Function) -> dict[str, tuple[Function, bool]]:
@@ -492,6 +507,8 @@ class _ReadVisitor(ast.NodeVisitor):
             return None
         func = node.func
         if isinstance(func, ast.Name):
+            if func.id in scope.local:
+                return None  # a parameter or local name, not the file's function
             name = func.id
         elif (
             isinstance(func, ast.Attribute)
@@ -512,7 +529,12 @@ class _ReadVisitor(ast.NodeVisitor):
             (arg, param) for arg, param in zip(node.args, params, strict=False)
         ]
         pairs += [(k.value, by_name.get(k.arg or "")) for k in node.keywords]
-        inner = replace(scope, depth=scope.depth + 1, active=scope.active | {name})
+        inner = replace(
+            scope,
+            depth=scope.depth + 1,
+            active=scope.active | {name},
+            local=_bound_names(helper),
+        )
         followed: set[int] = set()
         for arg, param in pairs:
             chain = self._chain(arg) if param is not None else None
