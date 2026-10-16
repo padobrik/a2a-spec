@@ -16,7 +16,7 @@
 
 agent-handshake finds the fields that one agent reads from another agent. It tests these fields in CI. The tests use recorded outputs, so they make no LLM calls and need no API keys.
 
-> agent-handshake was called a2a-spec before version 0.7. The old command (`a2aspec`), config file (`a2a-spec.yaml`), project folder (`a2a_spec/`) and pytest options still work. To move a project, see [Rename from a2a-spec](#rename-from-a2a-spec).
+agent-handshake was called a2a-spec before version 0.7.
 
 ## The problem
 
@@ -399,17 +399,6 @@ This command writes `path/to/skills/agent-handshake/SKILL.md`. Export the skill 
 - `handshake diff` compares with the snapshots in git. Commit the snapshots before you use it.
 - `A2AAdapter` supports A2A 1.0 with JSON-RPC. It does not support streaming.
 - Semantic rules use a local embedding model. The `semantic` extra installs PyTorch.
-
-## Rename from a2a-spec
-
-To move a project from a2a-spec to agent-handshake:
-
-1. Replace `a2a-spec` with `agent-handshake` in your requirements, and `a2a_spec` with `agent_handshake` in imports.
-2. Rename `a2a-spec.yaml` to `handshake.yaml` and the folder `a2a_spec/` to `handshake/`. Change the paths in `handshake.yaml` if it gives them.
-3. Use `handshake` instead of `a2aspec`, `--handshake` instead of `--a2a`, `handshake_config` instead of `a2a_config` and `handshake_check` instead of `a2a_check`.
-4. In GitHub Actions, use `padobrik/agent-handshake@v0.7.0`.
-
-The package `a2a-spec` on PyPI now only installs agent-handshake and makes `import a2a_spec` work.
 
 ## Commands
 
