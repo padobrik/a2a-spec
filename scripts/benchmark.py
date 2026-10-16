@@ -1,0 +1,220 @@
+"""Measure how many consumer field reads `handshake infer` finds on real projects.
+
+Each project in benchmarks/recon/<project>/benchmark.yaml names a repository,
+a commit and a list of cases. A case is one consumer function and the fields
+it really reads from the producer's output (the expected list, written by
+hand with a file:line for each field). The script fetches each repository at
+its commit, runs the consumer analysis on every case and prints, per project
+and in total: fields found, expected fields, and false fields (fields the
+analysis reports that are not on the expected list).
+
+    python scripts/benchmark.py                      # all projects
+    python scripts/benchmark.py --project crewai-flow-template -v
+    python scripts/benchmark.py --repo-dir gpt-researcher=../gpt-researcher
+
+Repositories are cached in .cache/benchmarks/. Exits 2 when a benchmark file
+is invalid or a repository cannot be fetched; the counts never change the
+exit code.
+"""
+
+from __future__ import annotations
+
+import argparse
+import shutil
+import subprocess
+import sys
+import tempfile
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from agent_handshake.exceptions import HandshakeError
+from agent_handshake.infer.consumer import analyze_consumer
+
+ROOT = Path(__file__).resolve().parent.parent
+BENCHMARKS = ROOT / "benchmarks" / "recon"
+CACHE = ROOT / ".cache" / "benchmarks"
+
+
+@dataclass(frozen=True)
+class CaseScore:
+    """One consumer function compared with its expected fields."""
+
+    case_id: str
+    expected: frozenset[str]
+    found: frozenset[str]
+    error: str | None = None
+
+    @property
+    def hits(self) -> frozenset[str]:
+        return self.expected & self.found
+
+    @property
+    def false(self) -> frozenset[str]:
+        return self.found - self.expected
+
+    @property
+    def missed(self) -> frozenset[str]:
+        return self.expected - self.found
+
+
+@dataclass
+class ProjectScore:
+    name: str
+    cases: list[CaseScore] = field(default_factory=list)
+
+    @property
+    def hits(self) -> int:
+        return sum(len(c.hits) for c in self.cases)
+
+    @property
+    def total(self) -> int:
+        return sum(len(c.expected) for c in self.cases)
+
+    @property
+    def false(self) -> int:
+        return sum(len(c.false) for c in self.cases)
+
+
+def dotted(path: tuple[str, ...]) -> str:
+    """``("searches", "[]", "query")`` as ``searches[].query``; ``[]`` marks list items."""
+    text = ""
+    for key in path:
+        text += key if key == "[]" else (f".{key}" if text else key)
+    return text
+
+
+def field_paths(path: str | Path, function: str) -> frozenset[str]:
+    """Every field path the analysis finds, parents included, as in a spec."""
+    reads = analyze_consumer(path, function).reads
+    return frozenset(
+        dotted(r.path[:n])
+        for r in reads
+        for n in range(1, len(r.path) + 1)
+        if r.path[n - 1] != "[]"
+    )
+
+
+def score_case(case: dict[str, Any], repo: Path) -> CaseScore:
+    """Run the analysis for one case; a case without a source finds nothing."""
+    expected = frozenset(str(e["path"]) for e in case.get("expected") or [])
+    source = case.get("source")
+    if not source:
+        return CaseScore(case["id"], expected, frozenset(), "no consumer function")
+    file, function = str(source).rsplit(":", 1)
+    target = repo / file
+    with tempfile.TemporaryDirectory() as tmp:
+        if case.get("replace"):
+            # Template files are not valid code until rendered; render a copy.
+            text = target.read_text(encoding="utf-8")
+            for old, new in case["replace"]:
+                text = text.replace(old, new)
+            target = Path(tmp) / target.name
+            target.write_text(text, encoding="utf-8")
+        try:
+            found = field_paths(target, function)
+        except HandshakeError as e:
+            return CaseScore(case["id"], expected, frozenset(), str(e).replace(str(repo), "<repo>"))
+    return CaseScore(case["id"], expected, found)
+
+
+def _git(repo: Path, *args: str) -> str:
+    git = shutil.which("git")
+    if git is None:
+        raise OSError("git is required to fetch the benchmark repositories")
+    # A fixed program with arguments built here, not a shell command.
+    proc = subprocess.run(  # noqa: S603
+        [git, "-C", str(repo), *args], capture_output=True, text=True, check=True
+    )
+    return proc.stdout.strip()
+
+
+def checkout(slug: str, repository: str, commit: str, cache: Path) -> Path:
+    """The repository at ``commit``, fetched once into the cache."""
+    repo = cache / slug
+    if (repo / ".git").is_dir():
+        if _git(repo, "rev-parse", "HEAD") == commit:
+            return repo
+        shutil.rmtree(repo)
+    repo.mkdir(parents=True)
+    _git(repo, "init", "-q")
+    _git(repo, "remote", "add", "origin", repository)
+    _git(repo, "fetch", "-q", "--depth", "1", "origin", commit)
+    _git(repo, "checkout", "-q", "FETCH_HEAD")
+    return repo
+
+
+def load(path: Path) -> dict[str, Any]:
+    data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8"))
+    for key in ("project", "repository", "commit", "cases"):
+        if key not in data:
+            raise ValueError(f"{path}: missing '{key}'")
+    for case in data["cases"]:
+        if "id" not in case or "expected" not in case:
+            raise ValueError(f"{path}: every case needs 'id' and 'expected'")
+    return data
+
+
+def run(
+    slugs: list[str], repo_dirs: dict[str, Path], cache: Path, benchmarks: Path = BENCHMARKS
+) -> list[ProjectScore]:
+    scores = []
+    for slug in slugs:
+        data = load(benchmarks / slug / "benchmark.yaml")
+        repo = repo_dirs.get(slug) or checkout(slug, data["repository"], data["commit"], cache)
+        project = ProjectScore(data["project"])
+        project.cases = [score_case(case, repo) for case in data["cases"]]
+        scores.append(project)
+    return scores
+
+
+def report(scores: list[ProjectScore], verbose: bool) -> str:
+    lines = [f"{'project':<40} {'found':>6} {'total':>6} {'false':>6}"]
+    for project in scores:
+        lines.append(f"{project.name:<40} {project.hits:>6} {project.total:>6} {project.false:>6}")
+        if verbose:
+            for case in project.cases:
+                note = f"  ({case.error})" if case.error else ""
+                lines.append(f"  {case.case_id}: {len(case.hits)}/{len(case.expected)}{note}")
+                for name in sorted(case.missed):
+                    lines.append(f"    missed {name}")
+                for name in sorted(case.false):
+                    lines.append(f"    false  {name}")
+    hits = sum(p.hits for p in scores)
+    total = sum(p.total for p in scores)
+    false = sum(p.false for p in scores)
+    share = f"{100 * hits / total:.0f}%" if total else "-"
+    lines.append(f"{'total':<40} {hits:>6} {total:>6} {false:>6}   found {share}")
+    return "\n".join(lines)
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--project", action="append", help="Only this project (repeatable).")
+    parser.add_argument(
+        "--repo-dir",
+        action="append",
+        default=[],
+        metavar="PROJECT=DIR",
+        help="Use a local checkout at the benchmark's commit instead of fetching.",
+    )
+    parser.add_argument("--cache", type=Path, default=CACHE)
+    parser.add_argument("--benchmarks", type=Path, default=BENCHMARKS, help=argparse.SUPPRESS)
+    parser.add_argument("-v", "--verbose", action="store_true", help="Show each case.")
+    args = parser.parse_args(argv[1:])
+
+    slugs = args.project or sorted(p.parent.name for p in args.benchmarks.glob("*/benchmark.yaml"))
+    try:
+        repo_dirs = {k: Path(v) for k, v in (item.split("=", 1) for item in args.repo_dir)}
+        scores = run(slugs, repo_dirs, args.cache, args.benchmarks)
+    except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as e:
+        print(f"benchmark: {e}", file=sys.stderr)
+        return 2
+    print(report(scores, args.verbose))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
