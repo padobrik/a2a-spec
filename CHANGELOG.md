@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-17
+
 ### Added
 - Agents that return plain text. `FunctionAdapter` accepts a `str`, and a
   snapshot's `output` can be a string. A spec that expects an object fails on
@@ -328,6 +330,7 @@ it and says what to use instead.
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.9.1]: https://github.com/padobrik/agent-handshake/releases/tag/v0.9.1
 [0.9.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.9.0
 [0.8.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.8.0
 [0.7.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.7.0
