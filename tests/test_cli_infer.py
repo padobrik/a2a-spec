@@ -133,7 +133,8 @@ class TestCliInferCheck:
         config = self._inferred(tmp_path)
         result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
         assert result.exit_code == 0, result.output
-        assert "OK" in result.output and "triage-agent-to-resolution-agent" in result.output
+        assert "OK" in result.output
+        assert "triage-agent-to-resolution-agent" in result.output
 
     def test_check_fails_when_consumer_reads_new_field(self, tmp_path: Path) -> None:
         config = self._inferred(tmp_path)

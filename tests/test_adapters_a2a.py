@@ -81,7 +81,7 @@ class TestRequest:
         server = Server(result={"message": {"role": "ROLE_AGENT", "parts": [{"text": "ok"}]}})
         await _call(server)
 
-        post = [r for r in server.requests if r.method == "POST"][0]
+        post = next(r for r in server.requests if r.method == "POST")
         assert str(post.url) == f"{BASE}/a2a/jsonrpc"
         assert post.headers["A2A-Version"] == "1.0"
         body = server.rpc_body()
@@ -118,7 +118,7 @@ class TestRequest:
         }
         server = Server(result={"message": {"parts": [{"text": "ok"}]}}, card=card)
         await _call(server, headers={"Authorization": "Bearer x"})
-        post = [r for r in server.requests if r.method == "POST"][0]
+        post = next(r for r in server.requests if r.method == "POST")
         assert str(post.url) == f"{BASE}/rpc"
         assert post.headers["Authorization"] == "Bearer x"
         assert server.rpc_body()["params"]["tenant"] == "acme"

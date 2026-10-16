@@ -193,7 +193,8 @@ class TestCliTestFormats:
         assert result.exit_code == 1
         suite = ET.fromstring(result.stdout.split("?>", 1)[1])
         assert suite.get("name") == "demo"
-        assert suite.get("tests") == "2" and suite.get("failures") == "1"
+        assert suite.get("tests") == "2"
+        assert suite.get("failures") == "1"
         [failure] = suite.iter("failure")
         assert "'category' is a required property" in failure.get("message", "")
         names = {tc.get("name"): tc.get("classname") for tc in suite.iter("testcase")}
@@ -286,7 +287,8 @@ class TestCliTestLive:
         _live_project(tmp_path, {"broken": "boom"})
         result = runner.invoke(app, ["test", "--live"])
         assert result.exit_code == 1
-        assert "agent call failed: " in result.output and "model down" in result.output
+        assert "agent call failed: " in result.output
+        assert "model down" in result.output
 
     def test_producer_without_adapter_is_skipped(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)

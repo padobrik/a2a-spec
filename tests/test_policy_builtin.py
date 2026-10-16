@@ -7,7 +7,7 @@ from agent_handshake.policy.builtin import no_pii_in_output, output_not_empty
 
 class TestNoPII:
     def test_clean_output_passes(self) -> None:
-        passed, detail = no_pii_in_output({"text": "Hello world"}, {})
+        passed, _ = no_pii_in_output({"text": "Hello world"}, {})
         assert passed
 
     def test_credit_card_detected(self) -> None:
@@ -26,17 +26,17 @@ class TestNoPII:
         assert "email" in detail
 
     def test_nested_pii_detected(self) -> None:
-        passed, detail = no_pii_in_output({"nested": {"deep": "Call 555.123.4567"}}, {})
+        passed, _ = no_pii_in_output({"nested": {"deep": "Call 555.123.4567"}}, {})
         assert not passed
 
 
 class TestOutputNotEmpty:
     def test_valid_output_passes(self) -> None:
-        passed, detail = output_not_empty({"text": "This is a proper response"}, {})
+        passed, _ = output_not_empty({"text": "This is a proper response"}, {})
         assert passed
 
     def test_empty_dict_fails(self) -> None:
-        passed, detail = output_not_empty({}, {})
+        passed, _ = output_not_empty({}, {})
         assert not passed
 
     def test_trivially_short_fails(self) -> None:
@@ -45,5 +45,5 @@ class TestOutputNotEmpty:
         assert "too short" in detail
 
     def test_numeric_only_passes(self) -> None:
-        passed, detail = output_not_empty({"score": 0.95, "text": "Valid response here"}, {})
+        passed, _ = output_not_empty({"score": 0.95, "text": "Valid response here"}, {})
         assert passed

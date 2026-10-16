@@ -49,7 +49,8 @@ class TestSemanticEngine:
             {"summary": "duplicate charge"}, {"message": "charged twice"}, [_rule()]
         )
         assert result.passed
-        assert result.similarity is not None and result.similarity > 0.9
+        assert result.similarity is not None
+        assert result.similarity > 0.9
 
     def test_unrelated_texts_fail(self) -> None:
         engine = SemanticEngine(model=ENCODER)

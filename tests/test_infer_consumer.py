@@ -171,5 +171,5 @@ class TestParseSourceRef:
 
     @pytest.mark.parametrize("ref", ["agents/res.py", ":run", "agents/res.py:"])
     def test_invalid(self, ref: str) -> None:
-        with pytest.raises(ConfigError, match="path/to/file.py:function"):
+        with pytest.raises(ConfigError, match=r"path/to/file\.py:function"):
             parse_source_ref(ref)

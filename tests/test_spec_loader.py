@@ -42,7 +42,7 @@ class TestLoadSpec:
     def test_load_spec_wrong_extension(self, tmp_path: Path) -> None:
         spec_file = tmp_path / "test.json"
         spec_file.write_text("{}")
-        with pytest.raises(ConfigError, match=".yaml or .yml"):
+        with pytest.raises(ConfigError, match=r"\.yaml or \.yml"):
             load_spec(spec_file)
 
     def test_load_spec_invalid_yaml(self, tmp_path: Path) -> None:

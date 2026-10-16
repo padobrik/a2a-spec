@@ -11,7 +11,8 @@ import agent_handshake
 
 SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "changelog_section.py"
 _spec = importlib.util.spec_from_file_location("changelog_section", SCRIPT)
-assert _spec is not None and _spec.loader is not None
+assert _spec is not None
+assert _spec.loader is not None
 changelog_section = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(changelog_section)
 

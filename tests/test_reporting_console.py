@@ -12,7 +12,7 @@ from agent_handshake.spec.validator import ValidationResult
 
 class TestConsoleReporting:
     def test_print_summary_all_passed(self) -> None:
-        _console = Console(file=StringIO())  # noqa: F841
+        _console = Console(file=StringIO())
         # Just verify it doesn't crash with valid inputs
         print_summary(5, 5, 0)
 

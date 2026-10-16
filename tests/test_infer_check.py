@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -32,7 +33,8 @@ class TestCheckInferredSpec:
     def test_up_to_date(self, tmp_path: Path) -> None:
         src = _consumer(tmp_path, "return data['category'], data.get('priority')")
         result = check_inferred_spec(_spec(src, ["category", "priority"], ["category", "priority"]))
-        assert result.passed and result.warnings == []
+        assert result.passed
+        assert result.warnings == []
 
     def test_new_field_read_fails(self, tmp_path: Path) -> None:
         src = _consumer(tmp_path, "return data['category'], data.get('urgency')")
@@ -80,12 +82,17 @@ def _nested_spec(source: str, customer: dict[str, object], required: list[str]) 
 
 
 class TestCheckNestedSpec:
-    TIER = {"type": "object", "required": ["tier"], "properties": {"tier": {}}}
+    TIER: ClassVar[dict[str, object]] = {
+        "type": "object",
+        "required": ["tier"],
+        "properties": {"tier": {}},
+    }
 
     def test_up_to_date(self, tmp_path: Path) -> None:
         src = _consumer(tmp_path, "return data['customer']['tier']")
         result = check_inferred_spec(_nested_spec(src, self.TIER, ["customer"]))
-        assert result.passed and result.warnings == []
+        assert result.passed
+        assert result.warnings == []
 
     def test_new_nested_field_fails(self, tmp_path: Path) -> None:
         src = _consumer(tmp_path, "c = data['customer']\n    return c['tier'], c.get('region')")
