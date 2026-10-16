@@ -1,0 +1,28 @@
+# Written by hand: rules about the LLM output that the consumer code cannot show.
+spec:
+  name: triage-quality
+  version: "1.0"
+  producer: triage-agent
+  consumer: resolution-agent
+  description: "The triage summary restates the message and leaks no card numbers"
+
+  structural:
+    type: object
+    required: [summary]
+    properties:
+      summary:
+        type: string
+        minLength: 10
+
+  semantic:
+    - rule: summary_restates_message
+      description: "The summary means the same as the customer's message"
+      method: embedding_similarity
+      source_field: message
+      target_field: summary
+      threshold: 0.5
+
+  policy:
+    - rule: no_card_numbers
+      method: regex
+      patterns: ['\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b']
