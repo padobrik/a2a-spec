@@ -7,13 +7,6 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from agent_handshake.config.loader import (
-    DEFAULT_CONFIG_NAMES,
-    LEGACY_CONFIG_NAMES,
-    LEGACY_PROJECT_DIR,
-    PROJECT_DIR,
-)
-
 console = Console()
 
 CONFIG_TEMPLATE = """# agent-handshake configuration
@@ -129,28 +122,15 @@ def init_command(
     if project_name is None:
         project_name = root.name
 
-    # A new handshake.yaml would take precedence over an a2a-spec project's own
-    # config and folder, so the project would silently switch to empty examples.
-    legacy = [name for name in LEGACY_CONFIG_NAMES if (root / name).exists()]
-    if (root / LEGACY_PROJECT_DIR).is_dir():
-        legacy.append(f"{LEGACY_PROJECT_DIR}/")
-    if legacy and not any((root / name).exists() for name in DEFAULT_CONFIG_NAMES):
-        console.print(
-            f"[red]{root} already has an a2a-spec project ({', '.join(legacy)}).[/red]\n"
-            "It keeps working with agent-handshake as it is. To move it to the new names, see "
-            "https://github.com/padobrik/agent-handshake#rename-from-a2a-spec"
-        )
-        raise typer.Exit(1)
-
-    project_dir = root / PROJECT_DIR
+    a2a_dir = root / "handshake"
 
     # Create directories
     dirs = [
-        project_dir / "specs",
-        project_dir / "snapshots",
-        project_dir / "scenarios",
-        project_dir / "adapters",
-        project_dir / "reports",
+        a2a_dir / "specs",
+        a2a_dir / "snapshots",
+        a2a_dir / "scenarios",
+        a2a_dir / "adapters",
+        a2a_dir / "reports",
     ]
 
     for d in dirs:
@@ -169,19 +149,19 @@ def init_command(
         console.print("  [yellow]Exists[/yellow]  handshake.yaml")
 
     # Write example spec
-    example_spec_path = project_dir / "specs" / "example-spec.yaml"
+    example_spec_path = a2a_dir / "specs" / "example-spec.yaml"
     if not example_spec_path.exists():
         example_spec_path.write_text(EXAMPLE_SPEC, encoding="utf-8")
         console.print("  [green]Created[/green] handshake/specs/example-spec.yaml")
 
     # Write example scenario
-    example_scenario_path = project_dir / "scenarios" / "example-scenarios.yaml"
+    example_scenario_path = a2a_dir / "scenarios" / "example-scenarios.yaml"
     if not example_scenario_path.exists():
         example_scenario_path.write_text(EXAMPLE_SCENARIO, encoding="utf-8")
         console.print("  [green]Created[/green] handshake/scenarios/example-scenarios.yaml")
 
     # Write adapters __init__.py
-    adapters_init = project_dir / "adapters" / "__init__.py"
+    adapters_init = a2a_dir / "adapters" / "__init__.py"
     if not adapters_init.exists():
         adapters_init.write_text(ADAPTERS_TEMPLATE, encoding="utf-8")
 
