@@ -1,0 +1,277 @@
+project: GPT Researcher (multi_agents)
+repository: https://github.com/assafelovic/gpt-researcher
+commit: 3582a6841fe7dc801e2a34e34ee408641aea9bce
+cases:
+  - id: planner
+    links: [L1, L2]
+    producer: browser
+    consumer: planner
+    source: multi_agents/agents/editor.py:plan_research
+    note: shared LangGraph state; human_feedback is written by the human node, task by the browser (re-emitted user task)
+    expected:
+      - path: initial_research
+        at: multi_agents/agents/editor.py:34
+      - path: task
+        at: multi_agents/agents/editor.py:35
+      - path: task.include_human_feedback
+        at: multi_agents/agents/editor.py:36
+      - path: human_feedback
+        at: multi_agents/agents/editor.py:37
+      - path: task.max_sections
+        at: multi_agents/agents/editor.py:38
+      - path: task.model
+        at: multi_agents/agents/editor.py:47
+
+  - id: human
+    links: [L3]
+    producer: planner
+    consumer: human
+    source: multi_agents/agents/human.py:review_plan
+    note: task comes from the browser, plan_revision_count from the human node's previous round
+    expected:
+      - path: task
+        at: multi_agents/agents/human.py:13
+      - path: sections
+        at: multi_agents/agents/human.py:14
+      - path: task.include_human_feedback
+        at: multi_agents/agents/human.py:18
+      - path: plan_revision_count
+        at: multi_agents/agents/human.py:52
+
+  - id: plan_router
+    links: [L2]
+    producer: human
+    consumer: plan_router
+    source: multi_agents/agents/plan_review.py:route_human_feedback
+    note: conditional edge; the graph calls ChiefEditorAgent._route_human_feedback (orchestrator.py:107), which only passes the state on
+    expected:
+      - path: human_feedback
+        at: multi_agents/agents/plan_review.py:9
+      - path: plan_revision_count
+        at: multi_agents/agents/plan_review.py:15
+
+  - id: researcher
+    links: [L4]
+    producer: planner
+    consumer: researcher
+    source: multi_agents/agents/editor.py:run_parallel_research
+    note: task is read in the helper _create_task_input
+    expected:
+      - path: sections
+        at: multi_agents/agents/editor.py:68
+      - path: title
+        at: multi_agents/agents/editor.py:69
+      - path: task
+        at: multi_agents/agents/editor.py:185
+
+  - id: depth_researcher
+    links: [L15]
+    producer: editor
+    consumer: depth_researcher
+    source: multi_agents/agents/researcher.py:run_depth_research
+    note: input of the inner DraftState graph, built by EditorAgent._create_task_input (editor.py:184-192)
+    expected:
+      - path: task
+        at: multi_agents/agents/researcher.py:54
+      - path: topic
+        at: multi_agents/agents/researcher.py:55
+      - path: task.query
+        at: multi_agents/agents/researcher.py:56
+      - path: task.source
+        at: multi_agents/agents/researcher.py:57
+      - path: task.verbose
+        at: multi_agents/agents/researcher.py:58
+      - path: sibling_sections
+        at: multi_agents/agents/researcher.py:65
+
+  - id: reviewer
+    links: [L16, L18]
+    producer: depth_researcher
+    consumer: reviewer
+    source: multi_agents/agents/reviewer.py:run
+    note: draft comes from the depth researcher (round 1) or the reviser; revision_notes, draft and task.model are read in the helper review_draft, task.model through `task = ... or {}`
+    expected:
+      - path: task
+        at: multi_agents/agents/reviewer.py:69
+      - path: task.guidelines
+        at: multi_agents/agents/reviewer.py:70
+      - path: task.follow_guidelines
+        at: multi_agents/agents/reviewer.py:71
+      - path: task.verbose
+        at: multi_agents/agents/reviewer.py:76
+      - path: draft_revision_count
+        at: multi_agents/agents/reviewer.py:86
+      - path: revision_notes
+        at: multi_agents/agents/reviewer.py:26
+      - path: draft
+        at: multi_agents/agents/reviewer.py:40
+      - path: task.model
+        at: multi_agents/agents/reviewer.py:47
+
+  - id: editor_draft_router
+    links: [L17]
+    producer: reviewer
+    consumer: editor_draft_router
+    source: multi_agents/agents/editor.py:_route_draft_review
+    note: conditional edge of the inner graph; task.max_draft_revisions is read through `task = draft.get("task") or {}`; the rest is read in route_draft_review (own case)
+    expected:
+      - path: task
+        at: multi_agents/agents/editor.py:158
+      - path: task.max_draft_revisions
+        at: multi_agents/agents/editor.py:159
+
+  - id: draft_router
+    links: [L17]
+    producer: reviewer
+    consumer: draft_router
+    source: multi_agents/agents/draft_review.py:route_draft_review
+    note: called by EditorAgent._route_draft_review (editor.py:162)
+    expected:
+      - path: review
+        at: multi_agents/agents/draft_review.py:17
+      - path: draft_revision_count
+        at: multi_agents/agents/draft_review.py:23
+
+  - id: reviser
+    links: [L17, L19]
+    producer: reviewer
+    consumer: reviser
+    source: multi_agents/agents/reviser.py:run
+    note: review, draft and task.model are read in the helper revise_draft; draft comes from the depth researcher or an earlier reviser round
+    expected:
+      - path: task
+        at: multi_agents/agents/reviser.py:58
+      - path: task.verbose
+        at: multi_agents/agents/reviser.py:58
+      - path: review
+        at: multi_agents/agents/reviser.py:27
+      - path: draft
+        at: multi_agents/agents/reviser.py:29
+      - path: task.model
+        at: multi_agents/agents/reviser.py:49
+
+  - id: subgraph_result
+    links: [L20]
+    producer: reviser
+    consumer: researcher
+    source: null
+    note: final DraftState of each inner graph run, read as list items from asyncio.gather; no function takes it as a parameter
+    expected:
+      - path: draft
+        at: multi_agents/agents/editor.py:79
+
+  - id: writer
+    links: [L5, L6, L7]
+    producer: researcher
+    consumer: writer
+    source: multi_agents/agents/writer.py:run
+    note: title comes from the planner, fact_check_notes from the fact checker; most reads are in the helper write_sections (title also in get_headers, writer.py:24)
+    expected:
+      - path: task
+        at: multi_agents/agents/writer.py:114
+      - path: task.verbose
+        at: multi_agents/agents/writer.py:114
+      - path: task.follow_guidelines
+        at: multi_agents/agents/writer.py:129
+      - path: title
+        at: multi_agents/agents/writer.py:33
+      - path: research_data
+        at: multi_agents/agents/writer.py:34
+      - path: task.guidelines
+        at: multi_agents/agents/writer.py:37
+      - path: fact_check_notes
+        at: multi_agents/agents/writer.py:39
+      - path: task.model
+        at: multi_agents/agents/writer.py:68
+
+  - id: fact_checker
+    links: [L8, L9]
+    producer: writer
+    consumer: fact_checker
+    source: multi_agents/agents/fact_checker.py:run
+    note: research_data comes from the parallel researcher; all reads but the counter are in the helper check_facts; introduction and conclusion have a "" default
+    expected:
+      - path: fact_check_revision_count
+        at: multi_agents/agents/fact_checker.py:63
+      - path: task
+        at: multi_agents/agents/fact_checker.py:11
+      - path: introduction
+        at: multi_agents/agents/fact_checker.py:14
+      - path: conclusion
+        at: multi_agents/agents/fact_checker.py:15
+      - path: research_data
+        at: multi_agents/agents/fact_checker.py:16
+      - path: task.model
+        at: multi_agents/agents/fact_checker.py:31
+
+  - id: fact_router
+    links: [L7]
+    producer: fact_checker
+    consumer: fact_router
+    source: multi_agents/agents/fact_review.py:route_fact_check
+    note: conditional edge; the graph calls ChiefEditorAgent._route_fact_check (orchestrator.py:123), which only passes the state on
+    expected:
+      - path: fact_check_notes
+        at: multi_agents/agents/fact_review.py:9
+      - path: fact_check_revision_count
+        at: multi_agents/agents/fact_review.py:15
+
+  - id: visualizer
+    links: [L10]
+    producer: researcher
+    consumer: visualizer
+    source: multi_agents/agents/visualizer.py:run
+    note: run reads nothing itself; all reads are in the helper generate_visualizations
+    expected:
+      - path: task
+        at: multi_agents/agents/visualizer.py:13
+      - path: research_data
+        at: multi_agents/agents/visualizer.py:14
+      - path: task.model
+        at: multi_agents/agents/visualizer.py:27
+
+  - id: publisher
+    links: [L11, L12, L13, L14]
+    producer: writer
+    consumer: publisher
+    source: multi_agents/agents/publisher.py:run
+    note: diagrams come from the visualizer, research_data from the parallel researcher, date from the planner; reads are in the helpers generate_layout (headers.* through `headers = ... or {}`) and write_report_by_formats (publish_formats.*)
+    expected:
+      - path: task
+        at: multi_agents/agents/publisher.py:82
+      - path: task.publish_formats
+        at: multi_agents/agents/publisher.py:83
+      - path: task.publish_formats.pdf
+        at: multi_agents/agents/publisher.py:74
+      - path: task.publish_formats.docx
+        at: multi_agents/agents/publisher.py:76
+      - path: task.publish_formats.markdown
+        at: multi_agents/agents/publisher.py:78
+      - path: research_data
+        at: multi_agents/agents/publisher.py:24
+      - path: sources
+        at: multi_agents/agents/publisher.py:37
+      - path: headers
+        at: multi_agents/agents/publisher.py:41
+      - path: diagrams
+        at: multi_agents/agents/publisher.py:46
+      - path: headers.title
+        at: multi_agents/agents/publisher.py:54
+      - path: headers.date
+        at: multi_agents/agents/publisher.py:55
+      - path: date
+        at: multi_agents/agents/publisher.py:55
+      - path: headers.introduction
+        at: multi_agents/agents/publisher.py:57
+      - path: introduction
+        at: multi_agents/agents/publisher.py:58
+      - path: headers.table_of_contents
+        at: multi_agents/agents/publisher.py:60
+      - path: table_of_contents
+        at: multi_agents/agents/publisher.py:61
+      - path: headers.conclusion
+        at: multi_agents/agents/publisher.py:65
+      - path: conclusion
+        at: multi_agents/agents/publisher.py:66
+      - path: headers.references
+        at: multi_agents/agents/publisher.py:68
