@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "agent_id": "rb_search",
+  "scenario": "vacation",
+  "input": {
+    "prompt": "Search term: Caribbean surfing April\nReason for searching: Find surf breaks that work in April."
+  },
+  "output": {
+    "text": "Barbados and Puerto Rico have good surf in April."
+  }
+}

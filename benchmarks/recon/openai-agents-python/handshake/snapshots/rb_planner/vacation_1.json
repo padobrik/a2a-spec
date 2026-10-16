@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "agent_id": "rb_planner",
+  "scenario": "vacation",
+  "input": {
+    "prompt": "Query: Caribbean vacation spots in April, optimizing for surfing, hiking and water sports"
+  },
+  "output": {
+    "searches": [
+      {
+        "reason": "Find surf breaks that work in April.",
+        "query": "Caribbean surfing April"
+      }
+    ]
+  }
+}

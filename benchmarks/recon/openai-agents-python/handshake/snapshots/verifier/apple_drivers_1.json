@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "agent_id": "verifier",
+  "scenario": "apple_drivers",
+  "input": {
+    "prompt": "json from FinancialResearchManager._verification_input"
+  },
+  "output": {
+    "verified": true,
+    "issues": []
+  }
+}
