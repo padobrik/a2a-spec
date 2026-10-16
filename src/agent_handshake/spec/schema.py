@@ -8,30 +8,11 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
-class SemanticMethod(StrEnum):
-    """Supported semantic validation methods."""
-
-    ENTAILMENT = "entailment"
-    EMBEDDING_SIMILARITY = "embedding_similarity"
-    LANGUAGE_DETECTION = "language_detection"
-
-
 class PolicyMethod(StrEnum):
     """Supported policy check methods."""
 
     REGEX = "regex"
     CUSTOM = "custom"
-
-
-class SemanticRule(BaseModel):
-    """A single semantic validation rule."""
-
-    rule: str
-    description: str = ""
-    method: SemanticMethod
-    threshold: float = 0.8
-    source_field: str | None = None
-    target_field: str | None = None
 
 
 class PolicyRule(BaseModel):
@@ -65,7 +46,6 @@ class Spec(BaseModel):
     inferred_from: str | None = None
 
     structural: StructuralSpec
-    semantic: list[SemanticRule] = Field(default_factory=list)
     policy: list[PolicyRule] = Field(default_factory=list)
 
     model_config = {"extra": "forbid"}

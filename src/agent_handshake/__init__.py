@@ -22,7 +22,7 @@ from agent_handshake.snapshot.recorder import Recorder
 from agent_handshake.snapshot.replay import ReplayEngine
 from agent_handshake.snapshot.store import SnapshotStore
 from agent_handshake.spec.loader import load_spec
-from agent_handshake.spec.schema import PolicyRule, SemanticRule, Spec, StructuralSpec
+from agent_handshake.spec.schema import PolicyRule, Spec, StructuralSpec
 from agent_handshake.spec.validator import validate_output
 
 __all__ = [
@@ -30,7 +30,6 @@ __all__ = [
     # Spec
     "Spec",
     "StructuralSpec",
-    "SemanticRule",
     "PolicyRule",
     "load_spec",
     "validate_output",
