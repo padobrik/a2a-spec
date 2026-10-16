@@ -1,0 +1,1 @@
+{"schema_version": 1, "agent_id": "content_crew", "scenario": "ai_agents", "input": {"topic": "AI Agents"}, "output": {"raw": "# AI Agents: A Practical Introduction\n\nAI agents are programs that plan and act toward a goal...", "pydantic": null, "json_dict": null, "tasks_output": []}}
