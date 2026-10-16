@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+- A `custom` policy rule now loads its `validator` from the dotted path in
+  the spec, including modules in the project directory. Before, the CLI and
+  the pytest plugin never loaded it, so every `custom` rule failed with
+  "not registered".
+
 ### Added
 - `handshake infer` and `handshake infer --check` read TypeScript and
   JavaScript consumers (`.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`) with the

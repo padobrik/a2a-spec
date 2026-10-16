@@ -70,6 +70,20 @@ input-to-summary comparisons.
 | `regex` | Match forbidden patterns (PII, profanity) |
 | `custom` | Run a custom Python validator function |
 
+A `custom` rule names its function by dotted path. The module is imported
+from the directory you run `handshake` in, so a file in your project works:
+
+```yaml
+policy:
+  - rule: no_refund_promise
+    method: custom
+    validator: checks.no_refund_promise   # checks.py: def no_refund_promise(output, input_data)
+```
+
+The function returns `(passed, detail)`. The built-in validators work the
+same way: `agent_handshake.policy.builtin.no_pii_in_output` and
+`agent_handshake.policy.builtin.output_not_empty`.
+
 ## Best Practices
 
 1. Start with structural specs — they're fast and free
