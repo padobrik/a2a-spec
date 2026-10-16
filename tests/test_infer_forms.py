@@ -24,6 +24,8 @@ PY_FORMS = [
     ("nested get", "return d.get('a', {}).get('b')", [("a.b", (False, False))]),
     ("in on nested", "return 'b' in d['a']", [("a.b", (True, False))]),
     ("alias", "a = d['a']\n    return a.get('b')", [("a", (True,)), ("a.b", (True, False))]),
+    ("method of a list item", "return [t.upper() for t in d['tags']]", [("tags", (True,))]),
+    ("attribute of a nested value", "return d['date'].year", [("date", (True,))]),
 ]
 
 TS_FORMS = [
@@ -45,6 +47,13 @@ PY_WARNINGS = [
     ("method on input", "return d.items()", "'d' calls .items()"),
     ("reassignment", "d = {}\n    return d", "'d' is reassigned"),
     ("alias whole use", "a = d['a']\n    a['b']\n    return helper(a)", "'a' is used as a whole"),
+    ("alias through or", "a = d.get('a') or {}\n    return a.get('b')", "holds 'a' through `or`"),
+    ("alias through if", "a = d['a'] if key else {}\n    return a['b']", "a conditional"),
+    ("loop item", "for r in d['rs']:\n        r['x']\n    return 1", "'r' is an item of 'rs'"),
+    ("comprehension item", "return [r['x'] for r in d['rs']]", "'r' is an item of 'rs'"),
+    ("item passed on", "for r in d['rs']:\n        h(r)\n    return 1", "'r' is an item of 'rs'"),
+    ("item read by index", "return d['rs'][0]['x']", "an item of 'rs' is read"),
+    ("attribute", "return d.spam", "'d' reads the attribute .spam, which is not followed yet"),
 ]
 
 TS_WARNINGS = [
