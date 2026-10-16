@@ -21,6 +21,7 @@ from agent_handshake.exceptions import ConfigError, HandshakeError, SnapshotForm
 from agent_handshake.project import Scenario, load_adapters, load_scenarios
 from agent_handshake.reporting.console import print_summary, print_validation_result
 from agent_handshake.reporting.github import format_github_annotation
+from agent_handshake.reporting.json_report import generate_json_report
 from agent_handshake.reporting.junit import generate_junit_xml
 from agent_handshake.reporting.markdown import generate_report
 from agent_handshake.snapshot.fingerprint import Fingerprint
@@ -48,6 +49,7 @@ class OutputFormat(StrEnum):
     MARKDOWN = "markdown"
     JUNIT = "junit"
     GITHUB = "github"
+    JSON = "json"
 
 
 def test_command(
@@ -75,7 +77,7 @@ def test_command(
             "--format",
             "-f",
             case_sensitive=False,
-            help="console; markdown or junit (report only, on stdout); "
+            help="console; markdown, junit or json (report only, on stdout); "
             "github (console plus GitHub Actions annotations).",
         ),
     ] = OutputFormat.CONSOLE,
@@ -92,7 +94,7 @@ def test_command(
     spec's producer is called through its adapter for every scenario.
     """
     # Report formats keep stdout for the report so it can be redirected.
-    report_only = format in (OutputFormat.MARKDOWN, OutputFormat.JUNIT)
+    report_only = format in (OutputFormat.MARKDOWN, OutputFormat.JUNIT, OutputFormat.JSON)
     out = Console(stderr=True) if report_only else console
 
     try:
@@ -226,6 +228,8 @@ def test_command(
         typer.echo(generate_report(config.project_name, records))
     elif format == OutputFormat.JUNIT:
         typer.echo(generate_junit_xml(records, suite_name=config.project_name))
+    elif format == OutputFormat.JSON:
+        typer.echo(generate_json_report(records, project_name=config.project_name))
     else:
         print_summary(len(records), len(records) - failed, failed)
 

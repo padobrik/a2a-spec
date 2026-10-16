@@ -42,7 +42,8 @@ and checks the live output; it saves no snapshots. A producer without an
 adapter is skipped with a warning, and a failed agent call is a failed test.
 
 `--format` is `console` (default), `github` (console output plus GitHub
-Actions annotations), `markdown` or `junit` (only the report on stdout).
+Actions annotations), `markdown`, `junit` or `json` (only the report on
+stdout).
 
 ## `handshake diff`
 

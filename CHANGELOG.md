@@ -14,6 +14,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Snapshot files carry `schema_version` (now 1). A file without it is read
   as version 1 with a warning; recording it again adds the field. A file with
   a newer version fails with a message to upgrade agent-handshake.
+- `handshake test --format json` prints one JSON object on stdout: the
+  project name, a summary (`total`, `passed`, `failed`) and one entry per
+  checked output (`spec`, `scenario`, `passed`, `errors`, `duration_ms`).
+  It describes the same run as `--format junit`, for CI jobs and scripts.
 
 ### Changed
 - `handshake.yaml` rejects unknown settings, also inside `storage` and `ci`,
