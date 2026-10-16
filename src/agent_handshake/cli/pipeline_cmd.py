@@ -111,7 +111,7 @@ def pipeline_test(
     if mode == Mode.LIVE:
         try:
             adapters = load_adapters(config)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  # the user's adapters package can raise anything
             console.print(f"[red]Cannot run live: {e}[/red]")
             raise typer.Exit(1) from None
 

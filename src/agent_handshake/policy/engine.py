@@ -128,7 +128,7 @@ class PolicyEngine:
 
         try:
             passed, detail = fn(output, input_data)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  # a failing validator fails its rule
             return PolicyResult(
                 rule_name=rule.rule,
                 passed=False,

@@ -97,7 +97,7 @@ def load_adapters(config: HandshakeConfig) -> dict[str, Any]:
 
     name = (
         "_agent_handshake_project_adapters_"
-        + hashlib.sha1(str(package_dir).encode()).hexdigest()[:8]
+        + hashlib.sha1(str(package_dir).encode(), usedforsecurity=False).hexdigest()[:8]
     )
     spec = importlib.util.spec_from_file_location(
         name, init_file, submodule_search_locations=[str(package_dir)]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -60,16 +61,17 @@ class GitBaseline:
         return path
 
     def _git(self, *args: str, cwd: Path | None = None) -> str:
-        try:
-            proc = subprocess.run(
-                ["git", *args],
-                cwd=cwd or self.root,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-        except FileNotFoundError as e:
-            raise ConfigError("git is required for 'handshake diff'") from e
+        git = shutil.which("git")
+        if git is None:
+            raise ConfigError("git is required for 'handshake diff'")
+        # A fixed program with arguments built here, not a shell command.
+        proc = subprocess.run(  # noqa: S603
+            [git, *args],
+            cwd=cwd or self.root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         if proc.returncode != 0:
             detail = proc.stderr.strip() or f"git {args[0]} failed"
             logger.debug("git %s failed: %s", " ".join(args), detail)

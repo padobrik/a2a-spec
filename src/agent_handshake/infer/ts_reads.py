@@ -167,10 +167,9 @@ class ReadVisitor:
             and right is not None
             and string_value(left) is not None
         ):
+            key = string_value(left) or ""
             base = self._base(right)
             if base is not None:
-                key = string_value(left)
-                assert key is not None
                 self._record(self._extend(base, key, optional=False), node)
                 return
         for child in node.named_children:

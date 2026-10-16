@@ -158,8 +158,11 @@ class _ReadVisitor(ast.NodeVisitor):
             if base is not None and isinstance(key, ast.Constant) and isinstance(key.value, str):
                 return base[0] + (key.value,), base[1] + (True,)
             return None
-        if self._is_get(node):
-            assert isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and self._is_get(node)
+        ):
             base = self._base(node.func.value)
             key = node.args[0]
             if base is not None and isinstance(key, ast.Constant) and isinstance(key.value, str):
