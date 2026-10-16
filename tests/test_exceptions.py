@@ -8,7 +8,6 @@ from agent_handshake.exceptions import (
     AdapterError,
     ConfigError,
     PolicyViolationError,
-    SemanticDriftError,
     SnapshotMismatchError,
     SnapshotNotFoundError,
     SpecValidationError,
@@ -78,33 +77,6 @@ class TestSnapshotMismatchError:
         assert err.actual_hash == "actual"
 
 
-class TestSemanticDriftError:
-    """Tests for SemanticDriftError."""
-
-    def test_contains_similarity_value(self) -> None:
-        """Similarity value must appear in the message."""
-        err = SemanticDriftError("summary", 0.42, 0.85)
-        msg = str(err)
-        assert "0.42" in msg or "0.420" in msg
-
-    def test_contains_threshold(self) -> None:
-        """Threshold value must appear in the message."""
-        err = SemanticDriftError("summary", 0.42, 0.85)
-        assert "0.85" in str(err) or "0.850" in str(err)
-
-    def test_contains_field_name(self) -> None:
-        """Field name must appear in the message."""
-        err = SemanticDriftError("summary", 0.42, 0.85)
-        assert "summary" in str(err)
-
-    def test_attributes_stored(self) -> None:
-        """All attributes must be accessible."""
-        err = SemanticDriftError("f", 0.5, 0.9)
-        assert err.field == "f"
-        assert err.similarity == 0.5
-        assert err.threshold == 0.9
-
-
 class TestPolicyViolationError:
     """Tests for PolicyViolationError."""
 
@@ -172,7 +144,6 @@ class TestExceptionHierarchy:
             SpecValidationError("s", []),
             SnapshotNotFoundError("a", "b"),
             SnapshotMismatchError("a", "b", "c"),
-            SemanticDriftError("f", 0.1, 0.9),
             PolicyViolationError("r", "d"),
             AdapterError("a", "d"),
             ConfigError("msg"),
