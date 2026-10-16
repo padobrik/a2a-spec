@@ -364,3 +364,56 @@ class TestCliTestExpectations:
         result = runner.invoke(app, ["test", "--config", str(config), "--format", "github"])
         expected = f"::error file={tmp_path.name}/specs/triage.yaml,line=1,"
         assert any(line.startswith(expected) for line in result.stdout.splitlines()), result.stdout
+
+
+CUSTOM_POLICY_SPEC = """
+spec:
+  name: reply-policy
+  version: "1.0"
+  producer: support-agent
+  consumer: user
+  structural:
+    type: object
+  policy:
+    - rule: no_refund_promise
+      method: custom
+      validator: cli_shop_checks.no_refund_promise
+"""
+
+
+class TestCliTestCustomPolicy:
+    def test_validator_from_project_module(self, tmp_path, monkeypatch) -> None:
+        import json
+        import sys
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(sys, "path", [p for p in sys.path if p not in ("", str(tmp_path))])
+        monkeypatch.delitem(sys.modules, "cli_shop_checks", raising=False)
+        (tmp_path / "cli_shop_checks.py").write_text(
+            "def no_refund_promise(output, input_data):\n"
+            "    ok = 'refund' not in output['reply']\n"
+            "    return ok, '' if ok else 'reply promises a refund'\n"
+        )
+        specs = tmp_path / "handshake" / "specs"
+        specs.mkdir(parents=True)
+        (specs / "reply.yaml").write_text(CUSTOM_POLICY_SPEC)
+        snaps = tmp_path / "handshake" / "snapshots" / "support-agent"
+        snaps.mkdir(parents=True)
+        for name, reply in (("calm", "We are checking."), ("promise", "We will refund you.")):
+            (snaps / f"{name}_abc.json").write_text(
+                json.dumps(
+                    {
+                        "fingerprint": "abc",
+                        "agent_id": "support-agent",
+                        "scenario": name,
+                        "input": {},
+                        "output": {"reply": reply},
+                    }
+                )
+            )
+        result = runner.invoke(app, ["test", "--no-semantic"])
+        out = " ".join(result.output.split())
+        assert result.exit_code == 1, result.output
+        assert "PASS reply-policy / calm" in out
+        assert "FAIL reply-policy / promise" in out
+        assert "reply promises a refund" in out

@@ -7,6 +7,8 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from agent_handshake.exceptions import ConfigError
+from agent_handshake.policy.custom import load_custom_validator
 from agent_handshake.spec.schema import PolicyRule
 
 logger = logging.getLogger(__name__)
@@ -117,11 +119,12 @@ class PolicyEngine:
 
         fn = self._custom_validators.get(rule.validator)
         if fn is None:
-            return PolicyResult(
-                rule_name=rule.rule,
-                passed=False,
-                detail=f"Validator '{rule.validator}' not registered",
-            )
+            # Not registered in code: load it from the dotted path in the spec.
+            try:
+                fn = load_custom_validator(rule.validator)
+            except ConfigError as e:
+                return PolicyResult(rule_name=rule.rule, passed=False, detail=str(e))
+            self._custom_validators[rule.validator] = fn
 
         try:
             passed, detail = fn(output, input_data)

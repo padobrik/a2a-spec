@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib
+import sys
+from pathlib import Path
 from typing import Any
 
 from agent_handshake.exceptions import ConfigError
@@ -27,6 +29,12 @@ def load_custom_validator(dotted_path: str) -> Any:
         )
 
     module_path, func_name = parts
+
+    # Validators usually live in the user's project, which is not on sys.path
+    # when the CLI runs as an installed script.
+    cwd = str(Path.cwd())
+    if "" not in sys.path and cwd not in sys.path:
+        sys.path.insert(0, cwd)
 
     try:
         module = importlib.import_module(module_path)
