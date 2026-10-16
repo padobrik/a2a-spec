@@ -11,7 +11,7 @@ steps:
   - uses: actions/checkout@v6
   - uses: padobrik/agent-handshake@v0.8.0
     with:
-      package: agent-handshake[semantic]          # pip requirement to install
+      package: agent-handshake[typescript]        # pip requirement to install
       working-directory: services/agents   # where handshake.yaml is
       config: handshake.yaml                # optional
       check-inferred: "true"               # run handshake infer --check
@@ -73,4 +73,4 @@ to a file.
 |---------|------|---------|
 | `handshake test` | 0 | All tests passed |
 | `handshake test` | 1 | One or more tests failed, or the configuration is not valid |
-| `handshake diff` | 2 | High-severity drift or a deleted snapshot (with `ci.fail_on_semantic_drift`) |
+| `handshake diff` | 2 | High-severity drift or a deleted snapshot |

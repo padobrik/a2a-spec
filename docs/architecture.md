@@ -7,10 +7,9 @@ src/agent_handshake/
 ├── cli/          # Typer CLI commands
 ├── spec/         # Spec schema, loading, validation
 ├── snapshot/     # Record and replay engine
-├── diff/         # Structural + semantic comparison
+├── diff/         # Structural comparison with severities
 ├── adapters/     # Agent wrappers (function, HTTP, A2A)
 ├── policy/       # Policy enforcement engine
-├── semantic/     # Embedding model interface
 ├── reporting/    # Console, Markdown, JUnit output
 ├── config/       # Project configuration
 └── exceptions.py # Error hierarchy
@@ -36,13 +35,12 @@ src/agent_handshake/
 2. **Replay is the default** — CI never calls LLMs; it replays stored outputs
 3. **Adapters are pluggable** — any agent framework can be wrapped
 4. **Specs are YAML** — human-readable, diffable, reviewable in PRs
-5. **Semantic features are optional** — the `[semantic]` extra keeps the base install lightweight
 
 ## Module Dependencies
 
 ```
 cli → config, spec, snapshot, diff, infer, reporting
-diff → structural, semantic, engine
+diff → structural, engine
 spec → schema, loader, validator, registry
 snapshot → store, fingerprint, recorder, replay
 ```

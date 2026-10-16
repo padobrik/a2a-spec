@@ -2,10 +2,9 @@
 
 ## Spec
 
-A **spec** is a YAML file that defines the contract between two agents — what the consumer expects from the producer. Specs have three layers:
+A **spec** is a YAML file that defines the contract between two agents — what the consumer expects from the producer. Specs have two layers:
 
 - **Structural** — JSON Schema defining required fields, types, and constraints
-- **Semantic** — Rules about the meaning of outputs (e.g., "summary must reflect input")
 - **Policy** — Hard rules that must never be violated (e.g., "no PII in output")
 
 ## Snapshot
@@ -21,7 +20,6 @@ A **snapshot** is a recorded LLM output for a specific input, stored as JSON and
 A **diff** compares two agent outputs (typically old baseline vs. new recording) and reports:
 
 - Structural changes (fields added, removed, type changed)
-- Semantic drift (meaning has shifted beyond threshold)
 - Severity assessment (low/medium/high/critical)
 
 ## Adapter

@@ -281,7 +281,7 @@ jobs:
       - uses: padobrik/agent-handshake@v0.8.0
 ```
 
-The action has these inputs: `package` (for example `agent-handshake[semantic]`), `working-directory`, `config`, `check-inferred` and `args`. Its output `test-exit-code` is the exit code of `handshake test` (0 when every contract passed), and it is empty when that step did not run.
+The action has these inputs: `package` (for example `agent-handshake[typescript]`), `working-directory`, `config`, `check-inferred` and `args`. Its output `test-exit-code` is the exit code of `handshake test` (0 when every contract passed), and it is empty when that step did not run.
 
 You can also run the commands yourself:
 
@@ -303,16 +303,15 @@ jobs:
       - run: handshake test --format github
 ```
 
-`--format github` shows each failure as an annotation in the pull request. For JUnit XML, use `--format junit > results.xml`. If your specs have semantic rules, install `agent-handshake[semantic]` instead.
+`--format github` shows each failure as an annotation in the pull request. For JUnit XML, use `--format junit > results.xml`.
 
 ## Write a spec by hand
 
-A spec can have three types of rules:
+A spec can have two types of rules:
 
 | Rule type | What it finds | How |
 |---|---|---|
 | `structural` | A missing field, a wrong type, a value out of range | JSON Schema |
-| `semantic` | A text field that no longer means the same thing | Similarity of local embeddings |
 | `policy` | Text that must not occur, for example a card number | Regular expressions or your own function |
 
 ```yaml
@@ -326,19 +325,13 @@ spec:
     required: [category]
     properties:
       category: {type: string, enum: [billing, general]}
-  semantic:
-    - rule: summary_matches_message
-      method: embedding_similarity
-      source_field: message     # field in the producer input
-      target_field: summary     # field in the producer output
-      threshold: 0.5
   policy:
     - rule: no_card_numbers
       method: regex
       patterns: ['\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b']
 ```
 
-Semantic rules need `pip install "agent-handshake[semantic]"`. See [Writing specs](docs/writing-specs.md) for all options.
+See [Writing specs](docs/writing-specs.md) for all options.
 
 ## Check exact values
 
@@ -399,7 +392,6 @@ This command writes `path/to/skills/agent-handshake/SKILL.md`. Export the skill 
 - `handshake infer --check` checks only specs that contain `inferred_from`. Specs from agent-handshake 0.3 and earlier do not have it. Run `handshake infer` with `--force` again to add it.
 - `handshake diff` compares with the snapshots in git. Commit the snapshots before you use it.
 - `A2AAdapter` supports A2A 1.0 with JSON-RPC, with or without streaming. It does not support gRPC or HTTP+JSON.
-- Semantic rules use a local embedding model. The `semantic` extra installs PyTorch.
 
 ## Commands
 

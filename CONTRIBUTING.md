@@ -8,10 +8,10 @@ cd agent-handshake
 pip install -e ".[dev]"
 ```
 
-To install the optional extras for semantic rules and TypeScript consumers:
+To install the optional extra for TypeScript consumers:
 
 ```bash
-pip install -e ".[dev,semantic,typescript]"
+pip install -e ".[dev,typescript]"
 ```
 
 ## Running the checks

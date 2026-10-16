@@ -29,8 +29,7 @@ class PolicyResult:
 class PolicyEngine:
     """Evaluates policy rules against agent outputs.
 
-    Policies are hard rules that must always pass — unlike semantic
-    checks which have thresholds, policies are binary pass/fail.
+    Policies are hard rules with a binary pass or fail.
     """
 
     def __init__(self) -> None:

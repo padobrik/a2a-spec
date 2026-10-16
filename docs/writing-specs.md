@@ -23,13 +23,6 @@ spec:
         type: string
         minLength: 10
 
-  semantic:                        # Meaning-based validation
-    - rule: summary_reflects_input
-      method: embedding_similarity
-      threshold: 0.5
-      source_field: message        # field in the agent's input
-      target_field: summary        # field in the agent's output
-
   policy:                          # Hard rules (pass/fail)
     - rule: no_pii
       method: regex
@@ -45,23 +38,6 @@ Uses JSON Schema (Draft 7) to validate output structure. Supports:
 - `enum`, `minLength`, `maxLength`
 - `minimum`, `maximum`
 - Nested objects
-
-## Semantic Rules
-
-| Method | Description |
-|--------|-------------|
-| `embedding_similarity` | Cosine similarity between `input[source_field]` and `output[target_field]` |
-| `entailment` | Not implemented yet — a rule using it fails |
-| `language_detection` | Not implemented yet — a rule using it fails |
-
-`handshake test` evaluates semantic rules against each snapshot's recorded input
-and output. It requires `pip install agent-handshake[semantic]`; pass `--no-semantic`
-(or set `semantic.enabled: false` in `handshake.yaml`) to skip them.
-
-Calibrate thresholds on real outputs. With the default `all-MiniLM-L6-v2`
-model, faithful summaries of a short message typically score 0.6–0.8 and
-off-topic ones around 0.3, so `0.8` is usually too strict for
-input-to-summary comparisons.
 
 ## Policy Rules
 
@@ -85,6 +61,5 @@ The function returns `(passed, detail)`.
 ## Best Practices
 
 1. Start with structural specs — they're fast and free
-2. Add semantic rules for text fields that can vary in wording
-3. Use policies for hard safety requirements
-4. Keep specs focused — one spec per producer-consumer pair
+2. Use policies for hard rules, such as text that must never appear
+3. Keep specs focused — one spec per producer-consumer pair
