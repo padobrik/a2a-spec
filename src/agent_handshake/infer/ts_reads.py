@@ -238,11 +238,13 @@ class ReadVisitor:
             chain = self.chain(arg) if _unwrap(arg).type == "identifier" else None
             if chain is not None and chain[0] and chain[0][-1] == ITEMS:
                 # A list item given to a function that is not followed.
-                self.warnings.append(
+                warning = (
                     f"line {node_line(arg)}: '{node_text(_unwrap(arg))}' is an item of "
                     f"'{dotted(chain[0][:-1])}' and goes to a function that is not followed; "
                     "the inferred contract may be incomplete"
                 )
+                if warning not in self.warnings:
+                    self.warnings.append(warning)
         found = self._callback_item(callee, args)
         if found is None:
             self._visit_call(node, callee, args)

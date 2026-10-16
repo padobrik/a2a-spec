@@ -152,6 +152,13 @@ class TestTypeScriptHelpers:
         assert _names(result) == ["searches", "searches[].query", "searches[].reason"]
         assert result.warnings == []
 
+    def test_item_given_twice_warns_once(self, tmp_path: Path) -> None:
+        code = "function run(d) {\n  for (const r of d.rs) { send(r, r); }\n}\n"
+        assert _analyze(tmp_path, code, suffix=".ts").warnings == [
+            "line 2: 'r' is an item of 'rs' and goes to a function that is not followed; "
+            "the inferred contract may be incomplete"
+        ]
+
     def test_nullish_fallback(self, tmp_path: Path) -> None:
         code = "function run(d) {\n  const h = d.headers ?? {};\n  return h.title;\n}\n"
         assert _names(_analyze(tmp_path, code, suffix=".ts")) == ["headers", "headers.title"]
