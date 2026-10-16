@@ -42,7 +42,7 @@ handshake test
 pytest --handshake handshake/specs
 ```
 
-`handshake/specs/triage-quality.yaml` is written by hand. It adds rules that the consumer code cannot show: the summary must be at least 10 characters long (structural), and the output must not contain a card number (policy).
+`handshake/specs/triage-quality.yaml` is written by hand. It adds rules that the consumer code cannot show: the summary must be at least 10 characters long (structural), and the output must not contain an internal ticket ID such as `INT-123456` (policy).
 
 **5. Change the model or the prompt.** Edit `SYSTEM` in `agents/triage.py`, or set `TRIAGE_MODEL`, and record again:
 

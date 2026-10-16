@@ -4,7 +4,7 @@ spec:
   version: "1.0"
   producer: triage-agent
   consumer: resolution-agent
-  description: "The triage summary is a sentence and leaks no card numbers"
+  description: "The triage summary is a sentence and leaks no internal ticket IDs"
 
   structural:
     type: object
@@ -15,6 +15,6 @@ spec:
         minLength: 10
 
   policy:
-    - rule: no_card_numbers
+    - rule: no_internal_ticket_ids
       method: regex
-      patterns: ['\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b']
+      patterns: ['\bINT-\d{6}\b']
