@@ -9,18 +9,21 @@ test file with one test per recorded producer snapshot, and the
 from __future__ import annotations
 
 import warnings
+from collections import Counter
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from agent_handshake.api import check as check_snapshots
+from agent_handshake.api import load_snapshots
 from agent_handshake.config.loader import load_config
 from agent_handshake.config.settings import HandshakeConfig
 from agent_handshake.exceptions import ConfigError, SnapshotFormatError
 from agent_handshake.infer.check import check_inferred_spec
 from agent_handshake.project import load_scenarios
-from agent_handshake.snapshot.store import SnapshotStore
+from agent_handshake.snapshot.store import Snapshot, SnapshotStore
 from agent_handshake.spec.checker import SpecCheck, SpecChecker
 from agent_handshake.spec.loader import load_all_specs, load_spec
 from agent_handshake.spec.schema import Spec
@@ -41,7 +44,18 @@ class _A2AState:
             self.scenarios = {sc.name: sc for sc in load_scenarios(scenarios_config)}
         except ConfigError:
             self.scenarios = {}
-        self.checker = SpecChecker()
+        self._snapshots: list[Snapshot] | None = None
+
+    def snapshots(self) -> list[Snapshot]:
+        """Every recorded snapshot, read once per session.
+
+        Raises:
+            SnapshotFormatError: If a snapshot file is not valid.
+        """
+        if self._snapshots is None:
+            base = self.store.base_dir
+            self._snapshots = load_snapshots(base) if base.exists() else []
+        return self._snapshots
 
     def _resolve(self, path: str) -> Path:
         p = Path(path)
@@ -102,28 +116,39 @@ class SpecFile(pytest.File):
         spec = load_spec(self.path)
         if spec.inferred_from:
             yield ConsumerCodeItem.from_parent(self, name="consumer_code", spec=spec)
-        scenarios = state.store.list_scenarios(spec.producer)
-        if not scenarios:
+        try:
+            own = [s for s in state.snapshots() if s.fingerprint.agent_id == spec.producer]
+        except SnapshotFormatError as e:
+            yield BrokenSnapshotItem.from_parent(self, name="snapshots", error=e)
+            return
+        if not own:
             yield MissingSnapshots.from_parent(self, name=spec.name, spec=spec)
-        for scenario in scenarios:
-            yield SnapshotItem.from_parent(self, name=scenario, spec=spec)
+        counts = Counter(s.scenario for s in own)
+        for snapshot in own:
+            name = snapshot.scenario
+            if counts[name] > 1:  # several recordings of one scenario
+                name = f"{name}[{snapshot.fingerprint.key}]"
+            yield SnapshotItem.from_parent(self, name=name, spec=spec, snapshot=snapshot)
 
 
 class SnapshotItem(pytest.Item):
     """Validates one recorded snapshot against its spec."""
 
-    def __init__(self, *, spec: Spec, **kwargs: Any) -> None:
+    def __init__(self, *, spec: Spec, snapshot: Snapshot, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.spec = spec
+        self.snapshot = snapshot
 
     def runtest(self) -> None:
         state = _enabled_state(self.config)
-        snapshot = state.store.load(self.spec.producer, self.name)
-        scenario = state.scenarios.get(self.name)
+        scenario = state.scenarios.get(self.snapshot.scenario)
         expected = scenario.expectations.get(self.spec.producer) if scenario else None
-        result = state.checker.check(self.spec, snapshot.output_data, snapshot.input_data, expected)
-        if not result.passed:
-            raise ContractViolationError(result)
+        result = check_snapshots(
+            self.spec, [self.snapshot], {self.snapshot.scenario: expected or {}}
+        )
+        [case] = result.cases
+        if not case.passed:
+            raise ContractViolationError(case.check)
 
     def repr_failure(self, excinfo: pytest.ExceptionInfo[BaseException], style: Any = None) -> str:
         # A broken snapshot file is reported by its message, not a traceback.
@@ -159,6 +184,23 @@ class ConsumerCodeItem(pytest.Item):
 
     def reportinfo(self) -> tuple[Path, int | None, str]:
         return self.path, None, f"{self.spec.name} / consumer_code"
+
+
+class BrokenSnapshotItem(pytest.Item):
+    """Fails with the error of a snapshot file that is not valid."""
+
+    def __init__(self, *, error: SnapshotFormatError, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.error = error
+
+    def runtest(self) -> None:
+        raise self.error
+
+    def repr_failure(self, excinfo: pytest.ExceptionInfo[BaseException], style: Any = None) -> str:
+        return str(excinfo.value)
+
+    def reportinfo(self) -> tuple[Path, int | None, str]:
+        return self.path, None, "snapshots"
 
 
 class SpecOutOfDateError(AssertionError):
@@ -203,13 +245,14 @@ def handshake_check(request: pytest.FixtureRequest) -> Callable[..., SpecCheck]:
             "(--handshake or handshake_config)"
         )
     specs = {s.name: s for s in load_all_specs(state.specs_dir)}
+    checker = SpecChecker()
 
     def check(
         spec_name: str, output: dict[str, Any], input_data: dict[str, Any] | None = None
     ) -> SpecCheck:
         if spec_name not in specs:
             pytest.fail(f"unknown spec '{spec_name}'; known: {', '.join(sorted(specs))}")
-        result = state.checker.check(specs[spec_name], output, input_data or {})
+        result = checker.check(specs[spec_name], output, input_data or {})
         if not result.passed:
             raise ContractViolationError(result)
         return result

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import time
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -14,21 +14,17 @@ from typing import Annotated, Any
 import typer
 from rich.console import Console
 
+from agent_handshake.api import check, load_snapshots
 from agent_handshake.config.loader import load_config
-from agent_handshake.exceptions import (
-    ConfigError,
-    HandshakeError,
-    SnapshotFormatError,
-    SnapshotNotFoundError,
-)
+from agent_handshake.exceptions import ConfigError, HandshakeError, SnapshotFormatError
 from agent_handshake.project import Scenario, load_adapters, load_scenarios
 from agent_handshake.reporting.console import print_summary, print_validation_result
 from agent_handshake.reporting.github import format_github_annotation
 from agent_handshake.reporting.junit import generate_junit_xml
 from agent_handshake.reporting.markdown import generate_report
-from agent_handshake.snapshot.replay import ReplayEngine
-from agent_handshake.snapshot.store import SnapshotStore
-from agent_handshake.spec.checker import SpecChecker
+from agent_handshake.snapshot.fingerprint import Fingerprint
+from agent_handshake.snapshot.store import Snapshot
+from agent_handshake.spec.checker import SpecCheck
 from agent_handshake.spec.loader import load_spec_files
 from agent_handshake.spec.schema import Spec
 
@@ -37,13 +33,11 @@ console = Console()
 
 @dataclass(frozen=True)
 class Case:
-    """One producer output to check, or the reason there is none."""
+    """One checked producer output, or the reason there is none."""
 
     scenario: str
-    input: dict[str, Any]
-    output: dict[str, Any] | None = None
+    check: SpecCheck | None = None
     error: str | None = None
-    expected: dict[str, Any] | None = None
 
 
 class OutputFormat(StrEnum):
@@ -117,10 +111,9 @@ def test_command(
         out.print("[yellow]No spec files found. Run 'handshake init' first.[/yellow]")
         raise typer.Exit(0)
 
-    store = SnapshotStore(config.storage.path)
-    replay_engine = ReplayEngine(store)
     adapters: dict[str, Any] = {}
     scenarios: list[Scenario] = []
+    snapshots: list[Snapshot] = []
     if not replay:
         try:
             adapters = load_adapters(config)
@@ -133,8 +126,13 @@ def test_command(
             scenarios = load_scenarios(config)
         except ConfigError:
             scenarios = []  # no scenario files: no expectations to check
-    by_name = {sc.name: sc for sc in scenarios}
-    checker = SpecChecker()
+        try:
+            if Path(config.storage.path).exists():
+                snapshots = load_snapshots(config.storage.path)
+        except SnapshotFormatError as e:
+            # A snapshot file that is not valid stops the run: it is an input error.
+            out.print(f"[red]{e}[/red]")
+            raise typer.Exit(2) from None
 
     records: list[dict[str, Any]] = []
     failed = 0
@@ -143,82 +141,76 @@ def test_command(
     if not report_only:
         out.print(f"\n[bold]agent-handshake[/bold] running tests ({mode_label} mode)\n")
 
-    # A snapshot file that is not valid stops the run: it is an input error.
-    try:
-        for spec_path, spec in spec_files:
-            if replay:
-                if not store.list_scenarios(spec.producer):
-                    out.print(
-                        f"  [yellow]WARN: No snapshots for '{spec.producer}'. "
-                        f"Run 'handshake record' first.[/yellow]"
-                    )
-                    continue
-                cases = _replay_cases(spec, store, replay_engine, by_name)
-            else:
-                if spec.producer not in adapters:
-                    out.print(
-                        f"  [yellow]WARN: No adapter for '{spec.producer}' in ADAPTERS; "
-                        f"skipping {spec.name}.[/yellow]"
-                    )
-                    continue
-                cases = _live_cases(spec, adapters[spec.producer], scenarios)
-
-            if not report_only:
-                out.print(f"  [bold]Spec: {spec.name}[/bold]")
-
-            start = time.monotonic()
-            for case in cases:
-                scenario = case.scenario
-                if case.output is None:
-                    out.print(f"    [red]FAIL[/red] {spec.name} / {scenario}: {case.error}")
-                    errors = [case.error or "no output"]
-                    passed_one = False
-                else:
-                    result = checker.check(spec, case.output, case.input, case.expected)
-                    errors = result.failures()
-                    passed_one = result.passed
-                    if not report_only:
-                        print_validation_result(
-                            spec.name,
-                            scenario,
-                            result.structural,
-                            result.policy,
-                            expectation_errors=result.expectations,
-                        )
-
-                if not passed_one:
-                    failed += 1
-                    if format == OutputFormat.GITHUB:
-                        for error in errors:
-                            typer.echo(
-                                format_github_annotation(
-                                    file=_annotation_path(spec_path),
-                                    line=1,
-                                    level="error",
-                                    message=f"{scenario}: {error}",
-                                    title=f"agent-handshake {spec.name}",
-                                )
-                            )
-                records.append(
-                    {
-                        "spec_name": spec.name,
-                        "scenario": scenario,
-                        "name": scenario,
-                        "passed": passed_one,
-                        "errors": errors,
-                        "duration_ms": (time.monotonic() - start) * 1000,
-                    }
+    for spec_path, spec in spec_files:
+        expected = {sc.name: sc.expectations.get(spec.producer) or {} for sc in scenarios}
+        if replay:
+            result = check(spec, snapshots, expected)
+            if result.errors:
+                for error in result.errors:
+                    out.print(f"  [yellow]WARN: {error}[/yellow]")
+                continue
+            cases: Iterable[Case] = [Case(c.snapshot.scenario, check=c.check) for c in result.cases]
+        else:
+            if spec.producer not in adapters:
+                out.print(
+                    f"  [yellow]WARN: No adapter for '{spec.producer}' in ADAPTERS; "
+                    f"skipping {spec.name}.[/yellow]"
                 )
-                start = time.monotonic()
+                continue
+            cases = _live_cases(spec, adapters[spec.producer], scenarios, expected)
 
-                if fail_fast and failed > 0:
-                    break
+        if not report_only:
+            out.print(f"  [bold]Spec: {spec.name}[/bold]")
+
+        start = time.monotonic()
+        for case in cases:
+            scenario = case.scenario
+            if case.check is None:
+                out.print(f"    [red]FAIL[/red] {spec.name} / {scenario}: {case.error}")
+                errors = [case.error or "no output"]
+                passed_one = False
+            else:
+                errors = case.check.failures()
+                passed_one = case.check.passed
+                if not report_only:
+                    print_validation_result(
+                        spec.name,
+                        scenario,
+                        case.check.structural,
+                        case.check.policy,
+                        expectation_errors=case.check.expectations,
+                    )
+
+            if not passed_one:
+                failed += 1
+                if format == OutputFormat.GITHUB:
+                    for error in errors:
+                        typer.echo(
+                            format_github_annotation(
+                                file=_annotation_path(spec_path),
+                                line=1,
+                                level="error",
+                                message=f"{scenario}: {error}",
+                                title=f"agent-handshake {spec.name}",
+                            )
+                        )
+            records.append(
+                {
+                    "spec_name": spec.name,
+                    "scenario": scenario,
+                    "name": scenario,
+                    "passed": passed_one,
+                    "errors": errors,
+                    "duration_ms": (time.monotonic() - start) * 1000,
+                }
+            )
+            start = time.monotonic()
 
             if fail_fast and failed > 0:
                 break
-    except SnapshotFormatError as e:
-        out.print(f"[red]{e}[/red]")
-        raise typer.Exit(2) from None
+
+        if fail_fast and failed > 0:
+            break
 
     if format == OutputFormat.MARKDOWN:
         typer.echo(generate_report(config.project_name, records))
@@ -231,32 +223,26 @@ def test_command(
         raise typer.Exit(1)
 
 
-def _replay_cases(
-    spec: Spec, store: SnapshotStore, engine: ReplayEngine, by_name: dict[str, Scenario]
+def _live_cases(
+    spec: Spec, adapter: Any, scenarios: list[Scenario], expected: dict[str, dict[str, Any]]
 ) -> Iterator[Case]:
-    for scenario in store.list_scenarios(spec.producer):
-        try:
-            snapshot = engine.replay_snapshot(spec.producer, scenario)
-        except SnapshotNotFoundError:
-            yield Case(scenario, {}, error="snapshot not found")
-            continue
-        sc = by_name.get(scenario)
-        expected = sc.expectations.get(spec.producer) if sc else None
-        yield Case(scenario, snapshot.input_data, snapshot.output_data, expected=expected)
-
-
-def _live_cases(spec: Spec, adapter: Any, scenarios: list[Scenario]) -> Iterator[Case]:
-    """Call the producer for each scenario; nothing is saved."""
+    """Call the producer for each scenario and check the output; nothing is saved."""
     for sc in scenarios:
         if not sc.applies_to(spec.producer):
             continue
-        expected = sc.expectations.get(spec.producer)
         try:
             response = asyncio.run(adapter.call(sc.input))
         except Exception as e:  # noqa: BLE001  # a failing agent fails its case
-            yield Case(sc.name, sc.input, error=f"agent call failed: {e}", expected=expected)
+            yield Case(sc.name, error=f"agent call failed: {e}")
             continue
-        yield Case(sc.name, sc.input, response.output, expected=expected)
+        snapshot = Snapshot(
+            fingerprint=Fingerprint.create(spec.producer, sc.input),
+            scenario=sc.name,
+            input_data=sc.input,
+            output_data=response.output,
+        )
+        [case] = check(spec, [snapshot], expected).cases
+        yield Case(sc.name, check=case.check)
 
 
 def _annotation_path(path: Path) -> str:
