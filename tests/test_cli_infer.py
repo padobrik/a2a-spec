@@ -173,6 +173,16 @@ class TestCliInferCheck:
         assert result.exit_code == 0, result.output
         assert runner.invoke(app, check).exit_code == 0
 
+    def test_regenerate_quotes_allowed_fields(self, tmp_path: Path) -> None:
+        config = _project(tmp_path)
+        consumer = tmp_path / "resolution.py"
+        consumer.write_text("def resolution_agent(data):\n    return data['issue type']\n")
+        args = _args(tmp_path, config, "--allow-missing", "issue type")
+        assert runner.invoke(app, args).exit_code == 0
+        consumer.write_text("def resolution_agent(d):\n    return d['issue type'], d['x']\n")
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert _flat(result.output).endswith("--force --allow-missing 'issue type'")
+
     def test_check_without_inferred_specs(self, tmp_path: Path) -> None:
         config = _project(tmp_path)
         (tmp_path / "specs").mkdir()

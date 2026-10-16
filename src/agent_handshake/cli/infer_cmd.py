@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 from typing import Annotated
 
@@ -153,7 +154,7 @@ def _check(config_path: str | None) -> None:
             console.print(f"    [yellow]WARN: {warning}[/yellow]")
         if not result.passed:
             stale += 1
-            allowed = "".join(f" --allow-missing {name}" for name in spec.allow_missing)
+            allowed = "".join(f" --allow-missing {shlex.quote(n)}" for n in spec.allow_missing)
             console.print(
                 f"    Regenerate: handshake infer --producer {spec.producer} "
                 f"--consumer {spec.consumer} --source {spec.inferred_from} "

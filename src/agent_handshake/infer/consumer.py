@@ -281,6 +281,23 @@ class _ReadVisitor(ast.NodeVisitor):
     def _visit_comprehension(
         self, node: ast.ListComp | ast.SetComp | ast.GeneratorExp | ast.DictComp
     ) -> None:
+        # Comprehension names are local to the comprehension.
+        names = [g.target.id for g in node.generators if isinstance(g.target, ast.Name)]
+        saved = {n: (self.aliases.get(n), self._untracked.get(n)) for n in names}
+        try:
+            self._visit_generators(node)
+        finally:
+            for name, (alias, untracked) in saved.items():
+                self.aliases.pop(name, None)
+                self._untracked.pop(name, None)
+                if alias is not None:
+                    self.aliases[name] = alias
+                if untracked is not None:
+                    self._untracked[name] = untracked
+
+    def _visit_generators(
+        self, node: ast.ListComp | ast.SetComp | ast.GeneratorExp | ast.DictComp
+    ) -> None:
         for generator in node.generators:
             self.visit(generator.iter)
             self._bind_items(generator.target, generator.iter)
