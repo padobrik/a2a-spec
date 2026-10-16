@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+- A spec made with `handshake infer --allow-missing x` for a consumer that
+  reads `data["x"]` failed `infer --check` at once, and the "Regenerate"
+  command that `--check` prints dropped `--allow-missing`. The spec now lists
+  the allowed fields in `allow_missing`; `--check` accepts a `[]` read of them
+  and repeats the flags in "Regenerate".
+
 ## [0.9.0] - 2026-10-16
 
 ### Migrating from 0.8

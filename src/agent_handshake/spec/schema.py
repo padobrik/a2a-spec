@@ -52,6 +52,10 @@ class Spec(BaseModel):
     # example data[key]. Set by `handshake infer`; `handshake diff` then keeps
     # the rating of a changed field the spec does not name.
     reads_unknown_keys: bool = False
+    # Fields the consumer reads that the producer leaves out on purpose, as
+    # dotted paths. Set by `handshake infer --allow-missing`; they stay optional,
+    # and `handshake infer --check` accepts a [] read of them.
+    allow_missing: list[str] = Field(default_factory=list)
 
     structural: StructuralSpec
     policy: list[PolicyRule] = Field(default_factory=list)
