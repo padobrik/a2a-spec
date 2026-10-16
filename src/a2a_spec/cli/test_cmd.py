@@ -257,6 +257,8 @@ def _replay_cases(
 def _live_cases(spec: Spec, adapter: Any, scenarios: list[Scenario]) -> Iterator[Case]:
     """Call the producer for each scenario; nothing is saved."""
     for sc in scenarios:
+        if not sc.applies_to(spec.producer):
+            continue
         expected = sc.expectations.get(spec.producer)
         try:
             response = asyncio.run(adapter.call(sc.input))
