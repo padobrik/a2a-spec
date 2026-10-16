@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "agent_id": "to_detection_result",
+  "scenario": "not_spam",
+  "input": {
+    "agent_response": {
+      "text": "{\"spam_decision\": \"NotSpam\", \"reason\": \"Ordinary follow-up from a colleague with concrete action items and no links or requests for credentials.\"}"
+    }
+  },
+  "output": {
+    "spam_decision": "NotSpam",
+    "reason": "Ordinary follow-up from a colleague with concrete action items and no links or requests for credentials.",
+    "email_id": "3f1c2a9e-6b7d-4c1e-9a52-0d8e4b7f1a21"
+  }
+}
