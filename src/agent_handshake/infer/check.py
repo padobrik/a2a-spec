@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from agent_handshake.infer.consumer import analyze_consumer, parse_source_ref
+from agent_handshake.spec.fields import field_paths, schema_dict, schema_list, spec_schema
 from agent_handshake.spec.schema import Spec
 
 
@@ -38,7 +39,7 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
 
     path, function = parse_source_ref(spec.inferred_from)
     reads = analyze_consumer(path, function)
-    root = {"required": spec.structural.required, "properties": spec.structural.properties}
+    root = spec_schema(spec)
 
     failures: list[str] = []
     reported: set[tuple[str, ...]] = set()
@@ -49,8 +50,8 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
             name = ".".join(path_)
             below = [r for r in reads.reads if r.path[: depth + 1] == path_]
             lines = ", ".join(str(n) for n in sorted({r.line for r in below}))
-            required = _list(schema, "required")
-            properties = _dict(schema, "properties")
+            required = schema_list(schema, "required")
+            properties = schema_dict(schema, "properties")
             if key not in properties and key not in required:
                 problem = f"{function} reads '{name}' (line {lines}), which the spec does not cover"
             elif any(r.strict[depth] for r in below) and key not in required:
@@ -69,29 +70,8 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
     read_paths = {r.path[:n] for r in reads.reads for n in range(1, len(r.path) + 1)}
     warnings = [
         f"the spec covers '{'.'.join(p)}', which {function} no longer reads"
-        for p in _covered(root, ())
+        for p in field_paths(root)
         if p not in read_paths
     ]
     warnings += reads.warnings
     return FreshnessResult(spec=spec, failures=failures, warnings=warnings)
-
-
-def _covered(schema: Any, parent: tuple[str, ...]) -> list[tuple[str, ...]]:
-    """Every key path the spec names, parents before children."""
-    paths: list[tuple[str, ...]] = []
-    properties = _dict(schema, "properties")
-    for key in dict.fromkeys([*_list(schema, "required"), *properties]):
-        path = (*parent, key)
-        paths.append(path)
-        paths += _covered(properties.get(key), path)
-    return paths
-
-
-def _list(schema: Any, key: str) -> list[Any]:
-    value = schema.get(key) if isinstance(schema, dict) else None
-    return value if isinstance(value, list) else []
-
-
-def _dict(schema: Any, key: str) -> dict[str, Any]:
-    value = schema.get(key) if isinstance(schema, dict) else None
-    return value if isinstance(value, dict) else {}
