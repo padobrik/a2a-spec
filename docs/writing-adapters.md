@@ -65,8 +65,10 @@ adapter = A2AAdapter(
 - Requests use `SendMessage` with `A2A-Version: 1.0` and block until the task
   finishes. Streaming is not used.
 - Output: object `data` parts are merged (conflicting keys are an error),
-  other `data` values go under `"data"`, text under `"text"`. File parts are
-  not supported yet.
+  other `data` values go under `"data"`, text under `"text"`, file parts
+  under `"files"`. A file sent by URL keeps `url`; a file sent as bytes
+  (`raw`) is stored as `size` and `sha256`, not as its content. `filename`
+  and `mediaType` are kept when present.
 - Tasks that end in any state other than completed raise `AdapterError`.
 - Agents that only offer A2A 0.3 are rejected with a clear message.
 

@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- `A2AAdapter` reads file parts. They go under `"files"` in the output: a URL
+  file keeps its `url`, a raw file is stored as `size` and `sha256`, and
+  `filename` and `mediaType` are kept. Before, a reply with a file part
+  raised `AdapterError`.
+
 ## [0.6.0] - 2026-10-16
 
 ### Added
