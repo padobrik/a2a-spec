@@ -149,3 +149,10 @@ report.md
 # NOTE: Snapshots ARE committed to git!
 # They are your test baselines for deterministic replay.
 # Do NOT add handshake/snapshots/ to .gitignore.
+
+# ========================
+# Nix
+# ========================
+result
+result-*
+.direnv/
