@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- `A2AAdapter(streaming=True)` uses `SendStreamingMessage`. It reads the
+  server-sent events, applies status and artifact updates to the task, and
+  returns the same output as without streaming. The Agent Card must declare
+  `capabilities.streaming`.
+
 ## [0.7.0] - 2026-10-16
 
 ### Changed
