@@ -413,6 +413,7 @@ See [CLI reference](docs/cli-reference.md) for all options.
 - [Writing specs](docs/writing-specs.md)
 - [Writing adapters](docs/writing-adapters.md)
 - [CLI reference](docs/cli-reference.md)
+- [Python API](docs/api.md)
 - [CI integration](docs/ci-integration.md)
 - [Concepts](docs/concepts.md)
 - [Architecture](docs/architecture.md)

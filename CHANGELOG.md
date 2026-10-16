@@ -8,11 +8,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- A core Python API: `load_snapshots(source)` and `check(spec, snapshots)`
+  return a `CheckResult` with one result per snapshot (see docs/api.md).
+  `handshake test` and the pytest plugin use it.
 - Snapshot files carry `schema_version` (now 1). A file without it is read
   as version 1 with a warning; recording it again adds the field. A file with
   a newer version fails with a message to upgrade agent-handshake.
 
 ### Changed
+- `handshake test` and the pytest plugin check every snapshot file of a
+  producer. Before, only the newest file of each scenario was checked.
 - `handshake record` keeps a snapshot file as it is when the input, the
   output and the format version have not changed, so git shows no change.
 
