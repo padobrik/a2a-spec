@@ -19,7 +19,6 @@ from agent_handshake.exceptions import (
     SnapshotNotFoundError,
     SpecValidationError,
 )
-from agent_handshake.pipeline.trace import PipelineTrace
 from agent_handshake.snapshot.recorder import Recorder
 from agent_handshake.snapshot.replay import ReplayEngine
 from agent_handshake.snapshot.store import SnapshotStore
@@ -44,8 +43,6 @@ __all__ = [
     "DiffEngine",
     "DiffResult",
     "DriftSeverity",
-    # Pipeline
-    "PipelineTrace",
     # Adapters
     "A2AAdapter",
     "AgentAdapter",

@@ -5,7 +5,6 @@ from __future__ import annotations
 from rich.console import Console
 
 from agent_handshake.diff.engine import DiffResult, DriftSeverity
-from agent_handshake.pipeline.trace import PipelineTrace
 from agent_handshake.policy.engine import PolicyResult
 from agent_handshake.semantic.engine import SemanticResult
 from agent_handshake.spec.validator import ValidationResult
@@ -100,25 +99,6 @@ def print_diff_results(
         style = SEVERITY_STYLES.get(r.severity, "white")
         label = SEVERITY_LABELS.get(r.severity, r.severity.value.upper())
         console.print(f"    [{style}]{label}[/{style}] {r.field}: {r.explanation}")
-
-
-def print_pipeline_trace(trace: PipelineTrace) -> None:
-    """Print a pipeline execution trace."""
-    status_label = "[green]PASS[/green]" if trace.passed else "[red]FAIL[/red]"
-    console.print(f"\n  {status_label} Pipeline: {trace.pipeline_name} / {trace.scenario}")
-    console.print(f"    Path: {' -> '.join(trace.path)}")
-    console.print(f"    Latency: {trace.total_latency_ms:.0f}ms")
-
-    for step in trace.steps:
-        if step.spec_passed is None:
-            step_label = "[dim]NO SPEC[/dim]"
-        else:
-            step_label = "[green]PASS[/green]" if step.spec_passed else "[red]FAIL[/red]"
-        console.print(f"    {step_label} {step.agent_id} ({step.latency_ms:.0f}ms)")
-        for error in step.spec_errors:
-            console.print(f"        [red]{error}[/red]")
-        if step.semantic_skipped:
-            console.print("        [yellow]semantic SKIPPED[/yellow]")
 
 
 def print_summary(
