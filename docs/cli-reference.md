@@ -75,12 +75,14 @@ a2aspec skill [--dir DIR] [--force]
 Test a pipeline DAG definition, validating each agent against specs.
 
 ```bash
-a2aspec pipeline test PIPELINE_FILE [--scenario NAME] [--mode replay|live] [--config PATH]
+a2aspec pipeline test PIPELINE_FILE [--scenario NAME] [--mode replay|live] [--no-semantic] [--config PATH]
 ```
 
 `--mode replay` uses each agent's snapshot for the test case name; `--mode
 live` calls the agents in `ADAPTERS`. Each step is checked against the
-structural rules of the specs where that agent is the producer.
+structural, policy and semantic rules of the specs where that agent is the
+producer. Semantic rules compare with the input the agent got in the
+pipeline. `--no-semantic` skips them, as in `a2aspec test`.
 
 ## Global Options
 
