@@ -6,7 +6,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from a2a_spec.cli.main import app
+from agent_handshake.cli.main import app
 
 runner = CliRunner()
 
@@ -14,7 +14,7 @@ runner = CliRunner()
 class TestCliRecord:
     def test_record_no_scenarios_dir(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
-        config = tmp_path / "a2a-spec.yaml"
+        config = tmp_path / "handshake.yaml"
         config.write_text('project_name: test\nscenarios_dir: "./nonexistent"')
         result = runner.invoke(app, ["record", "--config", str(config)])
         assert result.exit_code != 0
@@ -24,7 +24,7 @@ class TestCliRecord:
         scenarios = tmp_path / "scenarios"
         scenarios.mkdir()
         (scenarios / "test.yaml").write_text("test_suite:\n  name: test\nscenarios: []")
-        config = tmp_path / "a2a-spec.yaml"
+        config = tmp_path / "handshake.yaml"
         config.write_text(
             f'project_name: test\nscenarios_dir: "{scenarios}"\n'
             f'storage:\n  path: "{tmp_path / "snaps"}"'
@@ -60,18 +60,18 @@ def _project(tmp_path: Path, adapters_init: str) -> Path:
     (tmp_path / "agents" / "triage.py").write_text(
         "async def triage(data):\n    return {'category': 'billing', 'echo': data['message']}\n"
     )
-    adapters = tmp_path / "a2a_spec" / "adapters"
+    adapters = tmp_path / "handshake" / "adapters"
     adapters.mkdir(parents=True)
     (adapters / "triage_adapter.py").write_text(
-        "from a2a_spec import FunctionAdapter\n"
+        "from agent_handshake import FunctionAdapter\n"
         "from agents.triage import triage\n"
         "adapter = FunctionAdapter(fn=triage, agent_id='triage-agent', version='1.0')\n"
     )
     (adapters / "__init__.py").write_text(adapters_init)
-    scenarios = tmp_path / "a2a_spec" / "scenarios"
+    scenarios = tmp_path / "handshake" / "scenarios"
     scenarios.mkdir()
     (scenarios / "support.yaml").write_text(SCENARIOS)
-    config = tmp_path / "a2a-spec.yaml"
+    config = tmp_path / "handshake.yaml"
     config.write_text("project_name: test\n")
     return config
 
@@ -93,9 +93,9 @@ class TestCliRecordAdapters:
         assert "[record] Recording snapshots" in result.output
         assert "[done] 1 snapshots saved" in _flat(result.output)
 
-        from a2a_spec.snapshot.store import SnapshotStore
+        from agent_handshake.snapshot.store import SnapshotStore
 
-        snap = SnapshotStore(tmp_path / "a2a_spec" / "snapshots").load("triage-agent", "billing")
+        snap = SnapshotStore(tmp_path / "handshake" / "snapshots").load("triage-agent", "billing")
         assert snap.output_data == {"category": "billing", "echo": "charged twice"}
 
     def test_adapter_import_error_is_reported(self, tmp_path: Path, monkeypatch) -> None:
@@ -127,9 +127,9 @@ class TestCliRecordAdapters:
             tmp_path,
             "from .triage_adapter import adapter\nADAPTERS = {'triage-agent': adapter}\n",
         )
-        other = tmp_path / "a2a_spec" / "scenarios" / "other.yaml"
+        other = tmp_path / "handshake" / "scenarios" / "other.yaml"
         other.write_text("scenarios:\n  - name: other\n    input:\n      message: x\n")
-        suite = tmp_path / "a2a_spec" / "scenarios" / "support.yaml"
+        suite = tmp_path / "handshake" / "scenarios" / "support.yaml"
         result = runner.invoke(app, ["record", "--config", str(config), "--suite", str(suite)])
         assert result.exit_code == 0, result.output
         assert "triage-agent / billing recorded" in _flat(result.output)
@@ -144,7 +144,7 @@ class TestCliRecordAdapters:
 
 
 TWO_ADAPTERS = (
-    "from a2a_spec import FunctionAdapter\n"
+    "from agent_handshake import FunctionAdapter\n"
     "from .triage_adapter import adapter\n"
     "async def resolve(ticket):\n    return {'escalate': ticket['category'] == 'billing'}\n"
     "ADAPTERS = {\n"
@@ -185,7 +185,7 @@ class TestCliRecordAgentFilter:
     def test_scenario_agents_list(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
         config = _project(tmp_path, TWO_ADAPTERS)
-        suite = tmp_path / "a2a_spec" / "scenarios" / "support.yaml"
+        suite = tmp_path / "handshake" / "scenarios" / "support.yaml"
         suite.write_text(SCENARIOS + "    agents: [triage-agent]\n")
         result = runner.invoke(app, ["record", "--config", str(config)])
         assert result.exit_code == 0, result.output
@@ -195,7 +195,7 @@ class TestCliRecordAgentFilter:
     def test_scenario_agents_must_be_a_list(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
         config = _project(tmp_path, TWO_ADAPTERS)
-        suite = tmp_path / "a2a_spec" / "scenarios" / "support.yaml"
+        suite = tmp_path / "handshake" / "scenarios" / "support.yaml"
         suite.write_text(SCENARIOS + "    agents: triage-agent\n")
         result = runner.invoke(app, ["record", "--config", str(config)])
         assert result.exit_code == 1

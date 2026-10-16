@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typer.testing import CliRunner
 
-from a2a_spec.cli.main import app
+from agent_handshake.cli.main import app
 
 runner = CliRunner()
 
@@ -17,7 +17,7 @@ class TestCliDiff:
 
     def test_diff_no_snapshots(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
-        config = tmp_path / "a2a-spec.yaml"
+        config = tmp_path / "handshake.yaml"
         config.write_text(f'project_name: test\nstorage:\n  path: "{tmp_path / "empty_snaps"}"')
         result = runner.invoke(app, ["diff", "--config", str(config)])
         assert result.exit_code == 0
@@ -74,7 +74,7 @@ def _isolate_git(monkeypatch) -> None:
 def _repo(tmp_path, monkeypatch):
     _isolate_git(monkeypatch)
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "a2a-spec.yaml").write_text(
+    (tmp_path / "handshake.yaml").write_text(
         "storage:\n  path: snapshots\nsemantic:\n  enabled: false\n"
     )
     _git(tmp_path, "init", "-q")
@@ -138,7 +138,7 @@ class TestCliDiffGitBaseline:
     def test_not_a_git_repo(self, tmp_path, monkeypatch) -> None:
         _isolate_git(monkeypatch)
         monkeypatch.chdir(tmp_path)
-        (tmp_path / "a2a-spec.yaml").write_text("storage:\n  path: snapshots\n")
+        (tmp_path / "handshake.yaml").write_text("storage:\n  path: snapshots\n")
         _write_snapshot(tmp_path, "billing", {"category": "billing"})
         monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
         result = runner.invoke(app, ["diff"])
@@ -149,7 +149,7 @@ class TestCliDiffGitBaseline:
         import sys
 
         repo = _repo(tmp_path, monkeypatch)
-        (repo / "a2a-spec.yaml").write_text("storage:\n  path: snapshots\n")
+        (repo / "handshake.yaml").write_text("storage:\n  path: snapshots\n")
         _write_snapshot(repo, "billing", {"category": "billing", "summary": "billing issue"})
         monkeypatch.setitem(sys.modules, "sentence_transformers", None)
         result = runner.invoke(app, ["diff"])

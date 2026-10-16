@@ -10,8 +10,8 @@ import typer.main
 import yaml
 from typer.testing import CliRunner
 
-from a2a_spec.cli.main import app
-from a2a_spec.cli.skill_cmd import skill_text
+from agent_handshake.cli.main import app
+from agent_handshake.cli.skill_cmd import skill_text
 
 pytest_plugins = ["pytester"]
 
@@ -42,29 +42,29 @@ def _cli_options() -> dict[str, set[str]]:
 
 
 def _skill_commands(text: str) -> list[tuple[str, list[str]]]:
-    """Each `a2aspec CMD ...` usage in the skill with the flags on that line."""
+    """Each `handshake CMD ...` usage in the skill with the flags on that line."""
     joined = text.replace("\\\n", " ")
     return [
         (m.group(1), FLAG.findall(m.group(2)))
-        for m in re.finditer(r"a2aspec ([a-z]+)([^`\n]*)", joined)
+        for m in re.finditer(r"(?<![\w-])handshake ([a-z]+)([^`\n]*)", joined)
     ]
 
 
 class TestSkillContent:
     def test_frontmatter(self) -> None:
         meta = _frontmatter(skill_text())
-        assert meta["name"] == "a2a-spec"
+        assert meta["name"] == "agent-handshake"
         assert re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", meta["name"])
         assert 0 < len(meta["description"]) <= 1024
 
     def test_commands_and_flags_exist(self) -> None:
         options = _cli_options()
         usages = _skill_commands(skill_text())
-        assert usages, "skill mentions no a2aspec commands"
+        assert usages, "skill mentions no handshake commands"
         for command, flags in usages:
-            assert command in options, f"skill uses unknown command 'a2aspec {command}'"
+            assert command in options, f"skill uses unknown command 'handshake {command}'"
             unknown = set(flags) - options[command]
-            assert not unknown, f"'a2aspec {command}' has no option(s) {sorted(unknown)}"
+            assert not unknown, f"'handshake {command}' has no option(s) {sorted(unknown)}"
 
     def test_every_flag_is_real(self, pytester: pytest.Pytester) -> None:
         known = set().union(*_cli_options().values())
@@ -83,10 +83,10 @@ class TestSkillCommand:
     def test_installs_into_dir(self, tmp_path: Path) -> None:
         result = runner.invoke(app, ["skill", "--dir", str(tmp_path)])
         assert result.exit_code == 0, result.output
-        assert (tmp_path / "a2a-spec" / "SKILL.md").read_text() == skill_text()
+        assert (tmp_path / "agent-handshake" / "SKILL.md").read_text() == skill_text()
 
     def test_refuses_overwrite_without_force(self, tmp_path: Path) -> None:
-        target = tmp_path / "a2a-spec" / "SKILL.md"
+        target = tmp_path / "agent-handshake" / "SKILL.md"
         target.parent.mkdir()
         target.write_text("custom")
         result = runner.invoke(app, ["skill", "--dir", str(tmp_path)])

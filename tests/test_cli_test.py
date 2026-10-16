@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typer.testing import CliRunner
 
-from a2a_spec.cli.main import app
+from agent_handshake.cli.main import app
 
 runner = CliRunner()
 
@@ -17,7 +17,7 @@ class TestCliTest:
 
     def test_test_no_specs_dir(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
-        config = tmp_path / "a2a-spec.yaml"
+        config = tmp_path / "handshake.yaml"
         config.write_text('project_name: test\nspecs_dir: "./nonexistent"')
         result = runner.invoke(app, ["test", "--config", str(config)])
         assert result.exit_code != 0
@@ -26,7 +26,7 @@ class TestCliTest:
         monkeypatch.chdir(tmp_path)
         specs = tmp_path / "specs"
         specs.mkdir()
-        config = tmp_path / "a2a-spec.yaml"
+        config = tmp_path / "handshake.yaml"
         config.write_text(f'project_name: test\nspecs_dir: "{specs}"')
         result = runner.invoke(app, ["test", "--config", str(config)])
         assert result.exit_code == 0
@@ -85,7 +85,7 @@ def _project(tmp_path, summary: str):
             }
         )
     )
-    config = tmp_path / "a2a-spec.yaml"
+    config = tmp_path / "handshake.yaml"
     config.write_text(
         f'project_name: test\nspecs_dir: "{specs}"\nstorage:\n  path: "{tmp_path / "snapshots"}"'
     )
@@ -93,8 +93,8 @@ def _project(tmp_path, summary: str):
 
 
 def _use_encoder(monkeypatch, encoder: object) -> None:
-    from a2a_spec.cli import test_cmd
-    from a2a_spec.semantic.engine import SemanticEngine
+    from agent_handshake.cli import test_cmd
+    from agent_handshake.semantic.engine import SemanticEngine
 
     monkeypatch.setattr(test_cmd, "SemanticEngine", lambda **_: SemanticEngine(model=encoder))
 
@@ -172,7 +172,7 @@ def _struct_project(tmp_path, outputs: dict[str, dict]):
                 }
             )
         )
-    config = tmp_path / "a2a-spec.yaml"
+    config = tmp_path / "handshake.yaml"
     config.write_text(
         f'project_name: demo\nspecs_dir: "{specs}"\nstorage:\n  path: "{tmp_path / "snapshots"}"\n'
     )
@@ -201,7 +201,7 @@ class TestCliTestFormats:
         config = _struct_project(tmp_path, OUTPUTS)
         result = runner.invoke(app, ["test", "--config", str(config), "--format", "markdown"])
         assert result.exit_code == 1
-        assert result.stdout.startswith("# a2a-spec Report: demo")
+        assert result.stdout.startswith("# agent-handshake Report: demo")
         assert "**1/2 passed** | 1 failed" in result.stdout
         assert "### triage-to-resolution / renamed" in result.stdout
         assert "Spec:" not in result.stdout
@@ -214,7 +214,7 @@ class TestCliTestFormats:
         assert len(lines) == 1
         spec_path = tmp_path / "specs" / "triage.yaml"
         assert lines[0].startswith(
-            f"::error file={spec_path},line=1,title=a2a-spec triage-to-resolution::"
+            f"::error file={spec_path},line=1,title=agent-handshake triage-to-resolution::"
         )
         assert "renamed: structural: [<root>] 'category' is a required property" in lines[0]
 
@@ -231,7 +231,7 @@ class TestCliTestFormats:
 
 
 LIVE_ADAPTERS = """
-from a2a_spec import FunctionAdapter
+from agent_handshake import FunctionAdapter
 
 async def triage(data):
     if "boom" in data["message"]:
@@ -244,19 +244,19 @@ ADAPTERS = {"triage-agent": FunctionAdapter(fn=triage, agent_id="triage-agent", 
 
 
 def _live_project(tmp_path, messages: dict[str, str], adapters: str = LIVE_ADAPTERS):
-    specs = tmp_path / "a2a_spec" / "specs"
+    specs = tmp_path / "handshake" / "specs"
     specs.mkdir(parents=True)
     (specs / "triage.yaml").write_text(STRUCT_SPEC)
-    pkg = tmp_path / "a2a_spec" / "adapters"
+    pkg = tmp_path / "handshake" / "adapters"
     pkg.mkdir()
     (pkg / "__init__.py").write_text(adapters)
-    scenarios = tmp_path / "a2a_spec" / "scenarios"
+    scenarios = tmp_path / "handshake" / "scenarios"
     scenarios.mkdir()
     body = "".join(
         f"  - name: {name}\n    input:\n      message: {msg}\n" for name, msg in messages.items()
     )
     (scenarios / "s.yaml").write_text("scenarios:\n" + body)
-    (tmp_path / "a2a-spec.yaml").write_text("project_name: demo\n")
+    (tmp_path / "handshake.yaml").write_text("project_name: demo\n")
 
 
 class TestCliTestLive:
@@ -268,7 +268,7 @@ class TestCliTestLive:
         assert "PASS triage-to-resolution / ok" in result.output
         assert "FAIL triage-to-resolution / renamed" in result.output
         assert "'category' is a required property" in result.output
-        assert not (tmp_path / "a2a_spec" / "snapshots").exists()
+        assert not (tmp_path / "handshake" / "snapshots").exists()
 
     def test_live_all_pass(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
@@ -294,7 +294,7 @@ class TestCliTestLive:
     def test_live_skips_scenarios_for_other_agents(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
         _live_project(tmp_path, {"ok": "charged twice", "renamed": "please rename"})
-        scen = tmp_path / "a2a_spec" / "scenarios" / "s.yaml"
+        scen = tmp_path / "handshake" / "scenarios" / "s.yaml"
         scen.write_text(scen.read_text() + "    agents: [resolution-agent]\n")
         result = runner.invoke(app, ["test", "--live"])
         assert result.exit_code == 0, result.output
@@ -320,7 +320,7 @@ class TestCliTestExpectations:
             "    expectations:\n"
             f"      triage-agent: {{category: {expected}}}\n"
         )
-        config = tmp_path / "a2a-spec.yaml"
+        config = tmp_path / "handshake.yaml"
         config.write_text(config.read_text() + f'scenarios_dir: "{d}"\n')
 
     def test_replay_expectation_mismatch_fails(self, tmp_path) -> None:
@@ -346,7 +346,7 @@ class TestCliTestExpectations:
     def test_live_expectations(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
         _live_project(tmp_path, {"ok": "charged twice"})
-        scen = tmp_path / "a2a_spec" / "scenarios" / "s.yaml"
+        scen = tmp_path / "handshake" / "scenarios" / "s.yaml"
         scen.write_text(
             scen.read_text() + "    expectations:\n      triage-agent: {category: shipping}\n"
         )
