@@ -14,6 +14,25 @@ To install the optional extra for TypeScript consumers:
 pip install -e ".[dev,typescript]"
 ```
 
+### With Nix
+
+`flake.nix` has two development shells:
+
+```bash
+nix develop        # tools from nixpkgs, the checkout installed in editable mode
+nix develop .#uv   # a .venv with the dev and typescript extras from PyPI, as in CI
+```
+
+The default shell needs no network after the first build. a2a-sdk 1.x is not
+in nixpkgs, so `tests/test_a2a_interop.py` is skipped there; use the `uv`
+shell to run it. ruff and mypy come from nixpkgs and can be newer or older
+than the versions CI installs.
+
+`nix build` and `nix flake check` build the `handshake` command with
+nixpkgs' default Python and run the test suite.
+`nix run github:padobrik/agent-handshake -- --version` runs it without
+installing.
+
 ## Running the checks
 
 ```bash
