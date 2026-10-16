@@ -50,6 +50,12 @@ Compare recorded snapshots against their committed version in git for
 structural drift. Reports scenarios added (`NEW`) or deleted (`GONE`) since
 the baseline. Exits 1 on high-severity drift or a deleted snapshot.
 
+When specs exist for the producer, each change is rated by what the consumers
+read. A removed field, or a field with a new type, that a spec names is `FAIL`
+and names the consumer; for a spec made by `handshake infer` it also names the
+file and line (from `read_at`). A change to a field that no spec names is
+`INFO`. Without a spec, a removed field is `FAIL` and an added one is `LOW`.
+
 ```bash
 handshake diff [--agent NAME] [--base REF] [--config PATH]
 ```
@@ -71,7 +77,7 @@ key in JavaScript gives `undefined`, so a key counts as read with `[]` only
 when the code uses it without a fallback: `ticket.customer.tier` makes
 `customer` strict, `ticket.customer?.tier` does not.
 
-The generated spec records its consumer in `inferred_from`. `--check`
+The generated spec records its consumer in `inferred_from` and the line numbers of each read in `read_at`. `--check`
 compares every such spec with the consumer's current code and exits 1 when
 the code reads a field the spec does not cover, or reads with `data["key"]`
 a field the spec makes optional. Nested reads such as
