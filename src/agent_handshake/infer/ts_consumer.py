@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 from agent_handshake.exceptions import ConfigError
 from agent_handshake.infer.consumer import ConsumerReads
 from agent_handshake.infer.shapes import Annotation, choose_param, no_matching_param
-from agent_handshake.infer.ts_reads import ReadVisitor
+from agent_handshake.infer.ts_reads import ReadVisitor, TsScope
 from agent_handshake.infer.ts_syntax import first_error, node_line, node_text, parameters
 from agent_handshake.infer.ts_types import TsModule
 
@@ -78,12 +78,16 @@ def analyze_ts_consumer(
         raise ConfigError(f"Function '{function}' in {path} takes no input parameter")
     module = TsModule(path, tree.root_node, parser)
     body = fn.child_by_field_name("body")
+    named: dict[str, list[Node]] = {}
+    for name, node in _functions(tree.root_node):
+        named.setdefault(name, []).append(node)
+    scope = TsScope(module, {n: nodes[0] for n, nodes in named.items() if len(nodes) == 1})
 
     def visit(pattern: Node, annotation: Annotation) -> ReadVisitor:
         if pattern.type == "identifier":
-            visitor = ReadVisitor(node_text(pattern), annotation)
+            visitor = ReadVisitor(node_text(pattern), annotation, scope)
         else:
-            visitor = ReadVisitor(None)
+            visitor = ReadVisitor(None, scope=scope)
             visitor.destructure(pattern, ((), ()))
         if body is not None:
             visitor.visit(body)

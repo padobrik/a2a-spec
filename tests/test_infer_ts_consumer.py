@@ -88,7 +88,7 @@ class TestReads:
         assert _reads(path) == [
             ("category", (True,)),
             ("tags", (True,)),
-            ("tags", (True,)),
+            ("tags[]", (True, False)),
             ("note", (False,)),
         ]
         assert analyze_consumer(path, "agent").warnings == []
