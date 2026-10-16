@@ -155,3 +155,12 @@ class TestCliDiffGitBaseline:
         assert result.exit_code == 0, result.output
         assert "LOW" in result.output
         assert "confidence" in result.output
+
+    def test_broken_snapshot_is_reported_without_traceback(self, tmp_path, monkeypatch) -> None:
+        repo = _repo(tmp_path, monkeypatch)
+        (repo / "snapshots" / "triage-agent" / "billing_abc123.json").write_text("{not json")
+        result = runner.invoke(app, ["diff"])
+        assert result.exit_code == 2, result.output
+        out = _flat(result.output)
+        assert "billing_abc123.json is not valid JSON" in out
+        assert "Traceback" not in result.output

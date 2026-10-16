@@ -15,7 +15,12 @@ import typer
 from rich.console import Console
 
 from agent_handshake.config.loader import load_config
-from agent_handshake.exceptions import ConfigError, HandshakeError, SnapshotNotFoundError
+from agent_handshake.exceptions import (
+    ConfigError,
+    HandshakeError,
+    SnapshotFormatError,
+    SnapshotNotFoundError,
+)
 from agent_handshake.project import Scenario, load_adapters, load_scenarios
 from agent_handshake.reporting.console import print_summary, print_validation_result
 from agent_handshake.reporting.github import format_github_annotation
@@ -138,77 +143,82 @@ def test_command(
     if not report_only:
         out.print(f"\n[bold]agent-handshake[/bold] running tests ({mode_label} mode)\n")
 
-    for spec_path, spec in spec_files:
-        if replay:
-            if not store.list_scenarios(spec.producer):
-                out.print(
-                    f"  [yellow]WARN: No snapshots for '{spec.producer}'. "
-                    f"Run 'handshake record' first.[/yellow]"
-                )
-                continue
-            cases = _replay_cases(spec, store, replay_engine, by_name)
-        else:
-            if spec.producer not in adapters:
-                out.print(
-                    f"  [yellow]WARN: No adapter for '{spec.producer}' in ADAPTERS; "
-                    f"skipping {spec.name}.[/yellow]"
-                )
-                continue
-            cases = _live_cases(spec, adapters[spec.producer], scenarios)
-
-        if not report_only:
-            out.print(f"  [bold]Spec: {spec.name}[/bold]")
-
-        start = time.monotonic()
-        for case in cases:
-            scenario = case.scenario
-            if case.output is None:
-                out.print(f"    [red]FAIL[/red] {spec.name} / {scenario}: {case.error}")
-                errors = [case.error or "no output"]
-                passed_one = False
-            else:
-                result = checker.check(spec, case.output, case.input, case.expected)
-                errors = result.failures()
-                passed_one = result.passed
-                if not report_only:
-                    print_validation_result(
-                        spec.name,
-                        scenario,
-                        result.structural,
-                        result.policy,
-                        expectation_errors=result.expectations,
+    # A snapshot file that is not valid stops the run: it is an input error.
+    try:
+        for spec_path, spec in spec_files:
+            if replay:
+                if not store.list_scenarios(spec.producer):
+                    out.print(
+                        f"  [yellow]WARN: No snapshots for '{spec.producer}'. "
+                        f"Run 'handshake record' first.[/yellow]"
                     )
+                    continue
+                cases = _replay_cases(spec, store, replay_engine, by_name)
+            else:
+                if spec.producer not in adapters:
+                    out.print(
+                        f"  [yellow]WARN: No adapter for '{spec.producer}' in ADAPTERS; "
+                        f"skipping {spec.name}.[/yellow]"
+                    )
+                    continue
+                cases = _live_cases(spec, adapters[spec.producer], scenarios)
 
-            if not passed_one:
-                failed += 1
-                if format == OutputFormat.GITHUB:
-                    for error in errors:
-                        typer.echo(
-                            format_github_annotation(
-                                file=_annotation_path(spec_path),
-                                line=1,
-                                level="error",
-                                message=f"{scenario}: {error}",
-                                title=f"agent-handshake {spec.name}",
-                            )
-                        )
-            records.append(
-                {
-                    "spec_name": spec.name,
-                    "scenario": scenario,
-                    "name": scenario,
-                    "passed": passed_one,
-                    "errors": errors,
-                    "duration_ms": (time.monotonic() - start) * 1000,
-                }
-            )
+            if not report_only:
+                out.print(f"  [bold]Spec: {spec.name}[/bold]")
+
             start = time.monotonic()
+            for case in cases:
+                scenario = case.scenario
+                if case.output is None:
+                    out.print(f"    [red]FAIL[/red] {spec.name} / {scenario}: {case.error}")
+                    errors = [case.error or "no output"]
+                    passed_one = False
+                else:
+                    result = checker.check(spec, case.output, case.input, case.expected)
+                    errors = result.failures()
+                    passed_one = result.passed
+                    if not report_only:
+                        print_validation_result(
+                            spec.name,
+                            scenario,
+                            result.structural,
+                            result.policy,
+                            expectation_errors=result.expectations,
+                        )
+
+                if not passed_one:
+                    failed += 1
+                    if format == OutputFormat.GITHUB:
+                        for error in errors:
+                            typer.echo(
+                                format_github_annotation(
+                                    file=_annotation_path(spec_path),
+                                    line=1,
+                                    level="error",
+                                    message=f"{scenario}: {error}",
+                                    title=f"agent-handshake {spec.name}",
+                                )
+                            )
+                records.append(
+                    {
+                        "spec_name": spec.name,
+                        "scenario": scenario,
+                        "name": scenario,
+                        "passed": passed_one,
+                        "errors": errors,
+                        "duration_ms": (time.monotonic() - start) * 1000,
+                    }
+                )
+                start = time.monotonic()
+
+                if fail_fast and failed > 0:
+                    break
 
             if fail_fast and failed > 0:
                 break
-
-        if fail_fast and failed > 0:
-            break
+    except SnapshotFormatError as e:
+        out.print(f"[red]{e}[/red]")
+        raise typer.Exit(2) from None
 
     if format == OutputFormat.MARKDOWN:
         typer.echo(generate_report(config.project_name, records))
