@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  collapse_walkthrough: true
+  poem: false
+  sequence_diagrams: false
+  # Review the shipped code and its tests; docs, examples and assets are skipped.
+  path_filters:
+    - "src/**"
+    - "tests/**"
+    - "action.yml"
+    - ".github/workflows/**"
+  auto_review:
+    enabled: true
+    drafts: false
+
+chat:
+  auto_reply: true
