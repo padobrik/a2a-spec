@@ -366,7 +366,7 @@ FAIL triage-agent-to-resolution-agent / double_charge
 |---|---|
 | Python `async` function | `FunctionAdapter(fn=..., agent_id=..., version=...)` |
 | HTTP endpoint (POST JSON, receive JSON) | `HTTPAdapter(url=..., agent_id=..., version=...)` |
-| LangChain runnable | `LangChainAdapter(runnable=..., agent_id=..., version=...)` (install `agent-handshake[langchain]`) |
+| LangChain, CrewAI or another framework | Call it from an `async` function and use `FunctionAdapter` ([example](docs/writing-adapters.md#frameworks)) |
 | Agent with the [A2A protocol](https://a2a-protocol.org) 1.0 | `A2AAdapter(url=..., agent_id=...)` |
 
 For an A2A agent, give the base URL of the agent. The adapter reads the Agent Card, finds the JSON-RPC interface and sends the scenario input. It records the agent version from the Agent Card in each snapshot.

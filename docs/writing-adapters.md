@@ -77,6 +77,27 @@ adapter = A2AAdapter(
 - Tasks that end in any state other than completed raise `AdapterError`.
 - Agents that only offer A2A 0.3 are rejected with a clear message.
 
+## Frameworks
+
+Agents built with LangChain, CrewAI or another framework need no special adapter.
+Call the agent from an `async` function and wrap it with `FunctionAdapter`:
+
+```python
+from agent_handshake import FunctionAdapter
+
+from agents.triage import chain  # a LangChain runnable
+
+
+async def triage(data: dict) -> dict:
+    return await chain.ainvoke(data)
+
+
+adapter = FunctionAdapter(fn=triage, agent_id="triage-agent", version="1.0.0")
+```
+
+The function must return a dict. If the framework returns a model object,
+convert it first, for example with `result.model_dump()`.
+
 ## Custom Adapters
 
 Subclass `AgentAdapter` for full control:

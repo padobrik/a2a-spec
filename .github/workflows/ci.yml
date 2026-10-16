@@ -46,7 +46,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install dependencies
-        run: pip install -e ".[dev,langchain,typescript]"
+        run: pip install -e ".[dev,typescript]"
 
       - name: Lint
         run: ruff check src/ tests/

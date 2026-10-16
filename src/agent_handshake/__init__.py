@@ -6,7 +6,6 @@ from agent_handshake.adapters.a2a_adapter import A2AAdapter
 from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
 from agent_handshake.adapters.function_adapter import FunctionAdapter
 from agent_handshake.adapters.http_adapter import HTTPAdapter
-from agent_handshake.adapters.langchain_adapter import LangChainAdapter
 from agent_handshake.config.loader import load_config
 from agent_handshake.config.settings import HandshakeConfig
 from agent_handshake.diff.engine import DiffEngine, DiffResult, DriftSeverity
@@ -57,7 +56,6 @@ __all__ = [
     "AgentMetadata",
     "FunctionAdapter",
     "HTTPAdapter",
-    "LangChainAdapter",
     # Config
     "HandshakeConfig",
     "load_config",
