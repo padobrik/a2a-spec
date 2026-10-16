@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from agent_handshake.infer.consumer import FieldRead
+from agent_handshake.infer.paths import ITEMS, dotted
 from agent_handshake.infer.shapes import Annotation, undeclared
 from agent_handshake.infer.ts_syntax import (
     is_optional,
     node_key,
     node_line,
     node_text,
+    parameters,
     string_value,
 )
 
 if TYPE_CHECKING:
     from tree_sitter import Node
+
+    from agent_handshake.infer.ts_types import TsModule
 
 Chain = tuple[tuple[str, ...], tuple[bool, ...]]
 
@@ -30,13 +35,34 @@ _ITEM_CALLBACKS = {
 }  # fmt: skip
 # Array methods that return items of the same array.
 _ITEM_COPIES = frozenset({"slice", "filter", "concat", "toSorted", "toReversed", "sort", "reverse"})
+# How many levels of helper functions are followed.
+_MAX_HELPER_DEPTH = 3
+
+
+@dataclass(frozen=True)
+class TsScope:
+    """Where helper functions are looked up: the functions and methods of the file."""
+
+    module: TsModule
+    helpers: dict[str, Node]
+    depth: int = 0
+    active: frozenset[str] = frozenset()
 
 
 class ReadVisitor:
     """Records key chains rooted at the input parameter or at a local alias of it."""
 
-    def __init__(self, param: str | None, annotation: Annotation | None = None) -> None:
+    def __init__(
+        self,
+        param: str | None,
+        annotation: Annotation | None = None,
+        scope: TsScope | None = None,
+        root: Chain = ((), ()),
+    ) -> None:
         self.param = param
+        # In a helper function, the parameter holds the part of the input at ``root``.
+        self.root = root
+        self.scope = scope
         annotation = annotation or Annotation()
         # A list parameter holds one output per item; a framework result holds
         # the output in one property (``runResult.finalOutput``).
@@ -48,19 +74,15 @@ class ReadVisitor:
         self.warnings: list[str] = []
         # An alias may hold a leaf value, so using it as a whole is only worth
         # a warning when the code also reads keys from it.
-        self._mapping_aliases: set[str] = set()
+        self._mapping_aliases: set[tuple[str, Chain]] = set()
         self._whole_alias_uses: list[tuple[str, Chain, int]] = []
-        # Names that hold list items of the input, which the analysis does not
-        # follow; reading keys from them, or passing them on, gets a warning.
-        self._untracked: dict[str, str] = {}
-        # Names that hold a copy of an input list (``data.items.slice(0, 3)``).
-        self._item_lists: dict[str, Chain] = {}
 
-    def finish(self) -> None:
+    def finish(self, check_shape: bool = True) -> None:
         for name, chain, line in self._whole_alias_uses:
-            if name in self._mapping_aliases:
+            if (name, chain) in self._mapping_aliases:
                 self._warn_at(line, chain, "is used as a whole")
-        self.warnings += undeclared(self.reads, self.shape)
+        if check_shape:
+            self.warnings += undeclared(self.reads, self.shape)
 
     def _is_param(self, node: Node) -> bool:
         node = _unwrap(node)
@@ -76,19 +98,23 @@ class ReadVisitor:
             name = node_text(node)
             if name == self.param:
                 # A list of outputs or a framework result is not the output itself.
-                return None if self.items or self.wrapper else ((), ())
+                return None if self.items or self.wrapper else self.root
             return self.aliases.get(name)
         if node.type in ("member_expression", "subscript_expression"):
             key = node_key(node)
             obj = node.child_by_field_name("object")
+            index = node.child_by_field_name("index")
+            by_number = index is not None and index.type == "number"
             if obj is not None and self._is_param(obj):
-                index = node.child_by_field_name("index")
-                if self.items and index is not None and index.type == "number":
-                    return (), ()  # an item of a list of outputs
+                if self.items and by_number:
+                    return self.root  # an item of a list of outputs
                 if self.wrapper and key == self.wrapper:
-                    return (), ()
-            if key is None or obj is None:
+                    return self.root
+            if obj is None:
                 return None
+            if key is None:
+                base = self._base(obj) if by_number else None
+                return self._extend(base, ITEMS, optional=False) if base and base[0] else None
             base = self._base(obj)
             if base is None:
                 return None
@@ -99,56 +125,40 @@ class ReadVisitor:
         """Resolve an expression that keys are read from, noting aliases used as mappings."""
         inner = _unwrap(node)
         if inner.type == "identifier" and node_text(inner) in self.aliases:
-            self._mapping_aliases.add(node_text(inner))
-        self._check_untracked(inner)
+            self._mapping_aliases.add((node_text(inner), self.aliases[node_text(inner)]))
         return self.chain(node)
 
-    def _list(self, node: Node) -> Chain | None:
-        """The input list an expression refers to, directly or as a copy of it.
+    def _items_of(self, node: Node) -> Chain | None:
+        """The chain of one item of the input list ``node`` refers to.
 
-        The parameter itself, when it is a list of outputs, is the empty chain.
+        The parameter itself, when it is a list of outputs, gives the root.
         """
         inner = _unwrap(node)
         if self.items and self._is_param(inner):
-            return (), ()
-        if inner.type == "identifier" and node_text(inner) in self._item_lists:
-            return self._item_lists[node_text(inner)]
-        chain = self.chain(inner)
-        return chain if chain is not None and chain[0] else None
+            return self.root
+        chain = self.chain(inner) or self._held(inner)
+        return ((*chain[0], ITEMS), (*chain[1], False)) if chain and chain[0] else None
 
-    def _check_untracked(self, node: Node) -> None:
-        """Warn once when list items of the input are read from or passed on."""
+    def _held(self, node: Node) -> Chain | None:
+        """The input part ``x ?? {}`` or ``x || []`` passes on; it may be missing."""
         node = _unwrap(node)
-        parent = node.parent
-        if parent is not None and parent.type == "member_expression":
-            if node_key(parent) == "length":
-                return  # the length of a string or list item is not a field
-        if node.type == "identifier" and node_text(node) in self._untracked:
-            how = self._untracked.pop(node_text(node))
-            self._warn_text(node_line(node), f"'{node_text(node)}' {how}")
-        elif node.type == "subscript_expression":
-            obj = node.child_by_field_name("object")
-            index = node.child_by_field_name("index")
-            listed = self._list(obj) if obj is not None else None
-            if listed is not None and index is not None and index.type == "number":
-                self._warn_text(node_line(node), f"an item of '{'.'.join(listed[0])}' is read")
+        if node.type != "binary_expression":
+            return None
+        operator = node.child_by_field_name("operator")
+        left = node.child_by_field_name("left")
+        if operator is None or left is None or node_text(operator) not in ("??", "||"):
+            return None
+        chain = self.chain(left)
+        return (chain[0], (*chain[1][:-1], False)) if chain and chain[0] else None
 
-    def _is_untracked(self, node: Node) -> bool:
-        return node.type == "identifier" and node_text(node) in self._untracked
-
-    def _bind_items(self, target: Node | None, listed: Chain | None) -> None:
-        """Note a name that takes the items of an input list."""
+    def _bind(self, target: Node | None, chain: Chain | None) -> None:
+        """Bind a name to a part of the input, or unbind it."""
         if target is None or target.type != "identifier":
             return
-        name = node_text(target)
-        self.aliases.pop(name, None)
-        if listed is not None and not listed[0]:
-            self.aliases[name] = listed  # each item is one output
-            self._untracked.pop(name, None)
-        elif listed is not None:
-            self._untracked[name] = f"is an item of '{'.'.join(listed[0])}'"
+        if chain is None:
+            self.aliases.pop(node_text(target), None)
         else:
-            self._untracked.pop(name, None)
+            self.aliases[node_text(target)] = chain
 
     @staticmethod
     def _extend(base: Chain, key: str, optional: bool) -> Chain:
@@ -187,7 +197,8 @@ class ReadVisitor:
         base = self._base(obj)
         if base is not None and base[0] and node_key(node) == "length":
             # .length of a string or array is not a field of the input.
-            self._record(self._used(base, is_optional(node)), node)
+            if base[0][-1] != ITEMS:
+                self._record(self._used(base, is_optional(node)), node)
             return
         chain = self.chain(node)
         if chain is not None:
@@ -217,59 +228,106 @@ class ReadVisitor:
     def _visit_call_expression(self, node: Node) -> None:
         callee = node.child_by_field_name("function")
         args = node.child_by_field_name("arguments")
-        if args is not None:
-            for arg in args.named_children:
-                self._check_untracked(arg)
+        followed = self._follow(callee, args)
+        if followed is not None:
+            for arg in args.named_children if args is not None else []:
+                if arg.id not in followed:
+                    self.visit(arg)
+            return
+        for arg in args.named_children if args is not None else []:
+            chain = self.chain(arg) if _unwrap(arg).type == "identifier" else None
+            if chain is not None and chain[0] and chain[0][-1] == ITEMS:
+                # A list item given to a function that is not followed.
+                self.warnings.append(
+                    f"line {node_line(arg)}: '{node_text(_unwrap(arg))}' is an item of "
+                    f"'{dotted(chain[0][:-1])}' and goes to a function that is not followed; "
+                    "the inferred contract may be incomplete"
+                )
         found = self._callback_item(callee, args)
         if found is None:
             self._visit_call(node, callee, args)
             return
-        item, listed = found
+        item, chain = found
         # The callback's item name is local to the callback.
         name = node_text(item)
-        alias, untracked = self.aliases.get(name), self._untracked.get(name)
-        self._bind_items(item, listed)
+        before = self.aliases.get(name)
+        self._bind(item, chain)
         try:
             self._visit_call(node, callee, args)
         finally:
             self.aliases.pop(name, None)
-            self._untracked.pop(name, None)
-            if alias is not None:
-                self.aliases[name] = alias
-            if untracked is not None:
-                self._untracked[name] = untracked
+            if before is not None:
+                self.aliases[name] = before
 
     def _callback_item(self, callee: Node | None, args: Node | None) -> tuple[Node, Chain] | None:
         """The item parameter of an array callback over an input list (``xs.map(x => ...)``)."""
         if callee is None or callee.type != "member_expression" or args is None:
             return None
         obj = callee.child_by_field_name("object")
-        listed = self._list(obj) if obj is not None else None
-        if listed is None or node_key(callee) not in _ITEM_CALLBACKS:
+        chain = self._items_of(obj) if obj is not None else None
+        if chain is None or node_key(callee) not in _ITEM_CALLBACKS:
             return None
         callbacks = [a for a in args.named_children if a.type in _FUNCTIONS]
         if not callbacks:
             return None
-        params = _parameters(callbacks[0])
+        params = [p for p, _ in parameters(callbacks[0])]
         position = _ITEM_CALLBACKS[node_key(callee) or ""]
         item = params[position] if len(params) > position else None
-        return (item, listed) if item is not None and item.type == "identifier" else None
+        return (item, chain) if item is not None and item.type == "identifier" else None
+
+    def _follow(self, callee: Node | None, args: Node | None) -> set[int] | None:
+        """Read a helper in the same file that gets a part of the input.
+
+        Returns the ids of the arguments whose reads were followed, or None.
+        """
+        scope = self.scope
+        if scope is None or callee is None or args is None or scope.depth >= _MAX_HELPER_DEPTH:
+            return None
+        if callee.type == "identifier":
+            name = node_text(callee)
+        elif (
+            callee.type == "member_expression"
+            and node_text(callee.child_by_field_name("object") or callee) == "this"
+        ):
+            name = node_key(callee) or ""
+        else:
+            return None
+        helper = scope.helpers.get(name)
+        if helper is None or name in scope.active:
+            return None
+        inner = replace(scope, depth=scope.depth + 1, active=scope.active | {name})
+        body = helper.child_by_field_name("body")
+        followed: set[int] = set()
+        for arg, (pattern, type_node) in zip(args.named_children, parameters(helper), strict=False):
+            chain = self.chain(arg)
+            if chain is None:
+                continue
+            annotation = scope.module.annotation(type_node)
+            if pattern.type == "identifier":
+                child = ReadVisitor(node_text(pattern), annotation, inner, root=chain)
+            else:
+                child = ReadVisitor(None, scope=inner, root=chain)
+                child.destructure(pattern, chain)
+            if body is not None:
+                child.visit(body)
+            child.finish(check_shape=False)
+            inner_arg = _unwrap(arg)
+            if not (inner_arg.type == "identifier" and node_text(inner_arg) in self.aliases):
+                self._record(self._used(chain), arg)  # an alias was recorded when bound
+            self.reads += child.reads
+            self.warnings += [w for w in child.warnings if w not in self.warnings]
+            followed.add(arg.id)
+        return followed if followed else None
 
     def _visit_call(self, node: Node, callee: Node | None, args: Node | None) -> None:
         if callee is not None and callee.type == "member_expression":
             obj = callee.child_by_field_name("object")
             method = node_key(callee)
-            inner = _unwrap(obj) if obj is not None else None
-            if inner is not None and self._is_untracked(inner):
-                # A method of a list item (a string or an object): not a key read.
-                if args is not None:
-                    self.visit(args)
-                return
             base = self._base(obj) if obj is not None else None
             if base is not None:
                 if not base[0]:
                     self._warn(node, f"calls .{method}()", base)
-                else:
+                elif base[0][-1] != ITEMS:
                     # A method of a string or array value, not a field of the input.
                     self._record(self._used(base, is_optional(callee)), node)
                 if args is not None:
@@ -305,15 +363,8 @@ class ReadVisitor:
         chain = self.chain(value)
         if name.type == "identifier":
             self.visit(value)
-            self._untracked.pop(node_text(name), None)
-            self._item_lists.pop(node_text(name), None)
-            if chain is not None and chain[0]:
-                self.aliases[node_text(name)] = chain
-            else:
-                self.aliases.pop(node_text(name), None)
-                copied = self._copied_list(value)
-                if copied is not None:
-                    self._item_lists[node_text(name)] = copied
+            held = chain if chain is not None else self._held(value) or self._copied_list(value)
+            self._bind(name, held if held is not None and held[0] else None)
         elif name.type == "object_pattern" and chain is not None:
             self.destructure(name, chain)
         else:
@@ -330,7 +381,8 @@ class ReadVisitor:
         obj = callee.child_by_field_name("object")
         if node_key(callee) not in _ITEM_COPIES or obj is None:
             return None
-        return self._list(obj)
+        chain = self.chain(obj)
+        return chain if chain is not None and chain[0] else None
 
     def _visit_for_in_statement(self, node: Node) -> None:
         left = node.child_by_field_name("left")
@@ -339,7 +391,7 @@ class ReadVisitor:
         if right is not None:
             self.visit(right)
         if operator is not None and node_text(operator) == "of" and right is not None:
-            self._bind_items(left, self._list(right))
+            self._bind(left, self._items_of(right))
         body = node.child_by_field_name("body")
         if body is not None:
             self.visit(body)
@@ -370,9 +422,15 @@ class ReadVisitor:
     def _visit_formal_parameters(self, node: Node) -> None:
         """Parameters of a nested function declare names; they do not read the input."""
 
+    def _visit_arrow_function(self, node: Node) -> None:
+        """``x => ...`` declares ``x``; only the body can read the input."""
+        body = node.child_by_field_name("body")
+        if body is not None:
+            self.visit(body)
+
     def _whole_use(self, node: Node, name: str) -> None:
         if name == self.param:
-            self._warn(node, "is used as a whole", ((), ()))
+            self._warn(node, "is used as a whole", self.root)
         elif name in self.aliases:
             self._whole_alias_uses.append((name, self.aliases[name], node_line(node)))
 
@@ -431,16 +489,8 @@ class ReadVisitor:
     def _warn(self, node: Node, what: str, chain: Chain | None = None) -> None:
         self._warn_at(node_line(node), chain, what)
 
-    def _warn_text(self, line: int, what: str) -> None:
-        warning = (
-            f"line {line}: {what}, and its keys are not followed; "
-            "the inferred contract may be incomplete"
-        )
-        if warning not in self.warnings:
-            self.warnings.append(warning)
-
     def _warn_at(self, line: int, chain: Chain | None, what: str) -> None:
-        label = f"'{'.'.join(chain[0])}'" if chain and chain[0] else f"'{self.param or 'input'}'"
+        label = f"'{dotted(chain[0])}'" if chain and chain[0] else f"'{self.param or 'input'}'"
         self.warnings.append(
             f"line {line}: {label} {what}; the inferred contract may be incomplete"
         )
@@ -453,18 +503,3 @@ def _unwrap(node: Node) -> Node:
     while node.type in _TRANSPARENT and node.named_children:
         node = node.named_children[0]
     return node
-
-
-def _parameters(function: Node) -> list[Node]:
-    """The names a callback declares, in order (``x => ...`` or ``(x, i) => ...``)."""
-    single = function.child_by_field_name("parameter")
-    if single is not None:
-        return [single]
-    params = function.child_by_field_name("parameters")
-    if params is None:
-        return []
-    names = []
-    for param in params.named_children:
-        pattern = param.child_by_field_name("pattern") or param
-        names.append(pattern)
-    return names
