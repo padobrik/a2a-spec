@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+import pytest
+from typer.testing import CliRunner
+
+from agent_handshake.cli.main import app
+from agent_handshake.diff.consumers import rate_for_consumers
+from agent_handshake.diff.engine import DiffEngine, DriftSeverity
 from agent_handshake.infer.consumer import analyze_consumer
+from agent_handshake.spec.loader import load_spec
+
+runner = CliRunner()
 
 
 def _analyze(tmp_path: Path, code: str, function: str = "run", suffix: str = ".py"):
@@ -110,3 +120,85 @@ class TestPythonItemsAndFallbacks:
     def test_loop_over_a_fallback(self, tmp_path: Path) -> None:
         code = "def run(d):\n    return [s['name'] for s in (d.get('sections') or [])]\n"
         assert _names(_analyze(tmp_path, code)) == ["sections", "sections[].name"]
+
+
+class TestTypeScriptHelpers:
+    @pytest.fixture(autouse=True)
+    def _needs_typescript(self) -> None:
+        pytest.importorskip("tree_sitter_typescript", reason="needs the typescript extra")
+
+    def test_function_and_method_helpers(self, tmp_path: Path) -> None:
+        code = (
+            "function layout(s) { return s.title + s.intro; }\n"
+            "class M {\n"
+            "  run(state) { return layout(state) + this.review(state.draft); }\n"
+            "  review(draft) { return draft.notes; }\n"
+            "}\n"
+        )
+        result = _analyze(tmp_path, code, suffix=".ts")
+        assert _names(result) == ["draft", "draft.notes", "intro", "title"]
+
+    def test_items_given_to_a_method(self, tmp_path: Path) -> None:
+        code = (
+            "class M {\n"
+            "  run(plan) {\n"
+            "    const searches = plan.searches.slice(0, 3);\n"
+            "    return searches.map(async (item) => this.search(item));\n"
+            "  }\n"
+            "  search(item) { return `${item.query} ${item.reason}`; }\n"
+            "}\n"
+        )
+        result = _analyze(tmp_path, code, suffix=".ts")
+        assert _names(result) == ["searches", "searches[].query", "searches[].reason"]
+        assert result.warnings == []
+
+    def test_nullish_fallback(self, tmp_path: Path) -> None:
+        code = "function run(d) {\n  const h = d.headers ?? {};\n  return h.title;\n}\n"
+        assert _names(_analyze(tmp_path, code, suffix=".ts")) == ["headers", "headers.title"]
+
+
+SNAPSHOT = {
+    "schema_version": 1,
+    "agent_id": "planner",
+    "scenario": "s",
+    "input": {},
+    "output": {"searches": [{"query": "q1", "reason": "r1"}, {"query": "q2", "reason": "r2"}]},
+}
+
+
+def test_items_end_to_end(tmp_path: Path) -> None:
+    snaps = tmp_path / "snapshots" / "planner"
+    snaps.mkdir(parents=True)
+    (snaps / "s_1.json").write_text(json.dumps(SNAPSHOT))
+    (tmp_path / "consumer.py").write_text(
+        "def run(plan):\n    return [item['query'] for item in plan['searches']]\n"
+    )
+    config = tmp_path / "handshake.yaml"
+    config.write_text(
+        f'project_name: t\nspecs_dir: "{(tmp_path / "specs").as_posix()}"\n'
+        f'storage:\n  path: "{(tmp_path / "snapshots").as_posix()}"\n'
+    )
+    base = ["--config", str(config)]
+    infer = ["infer", *base, "--producer", "planner", "--consumer", "search"]
+    result = runner.invoke(app, [*infer, "--source", f"{tmp_path / 'consumer.py'}:run"])
+    assert result.exit_code == 0, result.output
+
+    spec = load_spec(tmp_path / "specs" / "planner-to-search.yaml")
+    searches = spec.structural.properties["searches"]
+    assert searches["type"] == "array"
+    assert searches["items"]["required"] == ["query"]
+    assert spec.read_at["searches[].query"] == [2]
+    assert runner.invoke(app, ["infer", "--check", *base]).exit_code == 0
+    assert runner.invoke(app, ["test", *base]).exit_code == 0
+
+    # The producer drops query from one item: the spec catches it.
+    broken = {**SNAPSHOT, "output": {"searches": [{"reason": "r1"}]}}
+    (snaps / "s_1.json").write_text(json.dumps(broken))
+    assert runner.invoke(app, ["test", *base]).exit_code == 1
+
+    # diff names the reader of a field inside the items.
+    results = DiffEngine().diff(SNAPSHOT["output"], {"other": 1})
+    rated = rate_for_consumers(results, [spec])
+    removed = next(r for r in rated if r.field == "searches")
+    assert removed.severity == DriftSeverity.HIGH
+    assert removed.explanation.endswith("search reads it at " + f"{tmp_path / 'consumer.py'}:2")
