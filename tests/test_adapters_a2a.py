@@ -235,6 +235,10 @@ class TestReply:
         with pytest.raises(AdapterError, match="A2A error -32009: Version not supported"):
             await _call(server)
 
+    async def test_jsonrpc_error_that_is_not_an_object(self) -> None:
+        with pytest.raises(AdapterError, match="A2A error: 'busy'"):
+            await _call(Server(error="busy"))
+
     async def test_empty_result(self) -> None:
         with pytest.raises(AdapterError, match="neither 'task' nor 'message'"):
             await _call(Server(result={}))

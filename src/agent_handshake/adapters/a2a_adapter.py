@@ -126,6 +126,8 @@ class A2AAdapter(AgentAdapter):
     def _result(self, reply: dict[str, Any]) -> dict[str, Any]:
         if "error" in reply:
             err = reply["error"] or {}
+            if not isinstance(err, dict):
+                raise AdapterError(self._agent_id, f"A2A error: {err!r}")
             raise AdapterError(
                 self._agent_id, f"A2A error {err.get('code')}: {err.get('message', '')}"
             )
@@ -152,6 +154,8 @@ class A2AAdapter(AgentAdapter):
                 resp.raise_for_status()
                 async for reply in self._events(resp):
                     result = self._result(reply)
+                    if any(not isinstance(value, dict) for value in result.values()):
+                        raise AdapterError(self._agent_id, "A2A stream event is not an object")
                     if "message" in result:
                         message = result["message"]
                     elif "task" in result:
