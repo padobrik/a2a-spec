@@ -36,7 +36,7 @@ customer_support/
 The spec `triage-to-resolution.yaml` defines what the resolution agent expects from the triage agent:
 
 - **Structural**: Must return `category`, `summary`, and `confidence` fields
-- **Policy**: Output must not contain PII
+- **Policy**: Output must not contain internal ticket IDs such as `INT-123456`
 
 ### Step 2: Create adapters
 
