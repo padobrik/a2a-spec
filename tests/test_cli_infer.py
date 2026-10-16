@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from agent_handshake.cli.main import app
@@ -207,3 +208,40 @@ class TestCliInferNested:
         assert (
             "WARN: the spec covers 'customer.tier', which resolution_agent no longer reads" in out
         )
+
+
+TS_CONSUMER = """
+export async function resolutionAgent(ticket: Triage): Promise<Reply> {
+  const tier = ticket.customer?.tier ?? "free";
+  return { tier, urgent: ticket.priority === "high" };
+}
+"""
+
+
+class TestCliInferTypeScript:
+    def test_spec_and_check_from_typescript(self, tmp_path: Path) -> None:
+        pytest.importorskip("tree_sitter_typescript", reason="needs the typescript extra")
+        config = _project(tmp_path)
+        snapshot = tmp_path / "snapshots" / "triage-agent" / "billing_abc123.json"
+        data = json.loads(snapshot.read_text())
+        data["output"]["customer"] = {"tier": "pro"}
+        snapshot.write_text(json.dumps(data))
+        consumer = tmp_path / "resolution.ts"
+        consumer.write_text(TS_CONSUMER)
+        args = _args(tmp_path, config)
+        args[args.index("--source") + 1] = f"{consumer}:resolutionAgent"
+
+        result = runner.invoke(app, args)
+        assert result.exit_code == 0, result.output
+        spec = load_spec(tmp_path / "specs" / "triage-agent-to-resolution-agent.yaml")
+        assert spec.inferred_from == f"{consumer}:resolutionAgent"
+        assert spec.structural.required == ["customer", "priority"]
+        assert spec.structural.properties["customer"]["required"] == ["tier"]
+
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert result.exit_code == 0, result.output
+
+        consumer.write_text(TS_CONSUMER.replace("ticket.priority", "ticket.urgency"))
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert result.exit_code == 1
+        assert "reads 'urgency' (line 4), which the spec does not cover" in _flat(result.output)
