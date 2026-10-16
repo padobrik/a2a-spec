@@ -1,4 +1,4 @@
-"""a2aspec init — scaffold a new a2a-spec project."""
+"""handshake init — scaffold a new agent-handshake project."""
 
 from __future__ import annotations
 
@@ -9,12 +9,12 @@ from rich.console import Console
 
 console = Console()
 
-CONFIG_TEMPLATE = """# a2a-spec configuration
+CONFIG_TEMPLATE = """# agent-handshake configuration
 project_name: "{project_name}"
 version: "1.0"
 
-specs_dir: "./a2a_spec/specs"
-scenarios_dir: "./a2a_spec/scenarios"
+specs_dir: "./handshake/specs"
+scenarios_dir: "./handshake/scenarios"
 
 semantic:
   provider: sentence-transformers
@@ -23,7 +23,7 @@ semantic:
 
 storage:
   backend: local
-  path: ./a2a_spec/snapshots
+  path: ./handshake/snapshots
 
 ci:
   fail_on_semantic_drift: true
@@ -74,11 +74,11 @@ spec:
         - '\\b\\d{3}-\\d{2}-\\d{4}\\b'  # US SSN
 """
 
-ADAPTERS_TEMPLATE = '''"""Agent adapters for a2a-spec.
+ADAPTERS_TEMPLATE = '''"""Agent adapters for agent-handshake.
 
 Map each agent id used in your specs and scenarios to an adapter, for example:
 
-    from a2a_spec import FunctionAdapter
+    from agent_handshake import FunctionAdapter
     from agents.triage import triage_agent
 
     ADAPTERS = {
@@ -113,7 +113,7 @@ def init_command(
         None, "--name", "-n", help="Project name. Defaults to directory name."
     ),
 ) -> None:
-    """Initialize a new a2a-spec project.
+    """Initialize a new agent-handshake project.
 
     Creates the directory structure, config file, and example specs.
     """
@@ -122,7 +122,7 @@ def init_command(
     if project_name is None:
         project_name = root.name
 
-    a2a_dir = root / "a2a_spec"
+    a2a_dir = root / "handshake"
 
     # Create directories
     dirs = [
@@ -138,27 +138,27 @@ def init_command(
         console.print(f"  [dim]Created[/dim] {d.relative_to(root)}/")
 
     # Write config
-    config_path = root / "a2a-spec.yaml"
+    config_path = root / "handshake.yaml"
     if not config_path.exists():
         config_path.write_text(
             CONFIG_TEMPLATE.format(project_name=project_name),
             encoding="utf-8",
         )
-        console.print("  [green]Created[/green] a2a-spec.yaml")
+        console.print("  [green]Created[/green] handshake.yaml")
     else:
-        console.print("  [yellow]Exists[/yellow]  a2a-spec.yaml")
+        console.print("  [yellow]Exists[/yellow]  handshake.yaml")
 
     # Write example spec
     example_spec_path = a2a_dir / "specs" / "example-spec.yaml"
     if not example_spec_path.exists():
         example_spec_path.write_text(EXAMPLE_SPEC, encoding="utf-8")
-        console.print("  [green]Created[/green] a2a_spec/specs/example-spec.yaml")
+        console.print("  [green]Created[/green] handshake/specs/example-spec.yaml")
 
     # Write example scenario
     example_scenario_path = a2a_dir / "scenarios" / "example-scenarios.yaml"
     if not example_scenario_path.exists():
         example_scenario_path.write_text(EXAMPLE_SCENARIO, encoding="utf-8")
-        console.print("  [green]Created[/green] a2a_spec/scenarios/example-scenarios.yaml")
+        console.print("  [green]Created[/green] handshake/scenarios/example-scenarios.yaml")
 
     # Write adapters __init__.py
     adapters_init = a2a_dir / "adapters" / "__init__.py"
@@ -166,11 +166,11 @@ def init_command(
         adapters_init.write_text(ADAPTERS_TEMPLATE, encoding="utf-8")
 
     console.print()
-    console.print("[green bold]a2a-spec project initialized.[/green bold]")
+    console.print("[green bold]agent-handshake project initialized.[/green bold]")
     console.print()
     console.print("Next steps:")
-    console.print("  1. Add your agents to ADAPTERS in [bold]a2a_spec/adapters/__init__.py[/bold]")
-    console.print("  2. Add inputs to [bold]a2a_spec/scenarios/[/bold]")
-    console.print("  3. Run [bold]a2aspec record[/bold] to save snapshots")
-    console.print("  4. Run [bold]a2aspec infer[/bold] or edit [bold]a2a_spec/specs/[/bold]")
-    console.print("  5. Run [bold]a2aspec test[/bold] (or [bold]pytest --a2a[/bold])")
+    console.print("  1. Add your agents to ADAPTERS in [bold]handshake/adapters/__init__.py[/bold]")
+    console.print("  2. Add inputs to [bold]handshake/scenarios/[/bold]")
+    console.print("  3. Run [bold]handshake record[/bold] to save snapshots")
+    console.print("  4. Run [bold]handshake infer[/bold] or edit [bold]handshake/specs/[/bold]")
+    console.print("  5. Run [bold]handshake test[/bold] (or [bold]pytest --handshake[/bold])")

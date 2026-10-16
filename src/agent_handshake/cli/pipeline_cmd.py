@@ -1,4 +1,4 @@
-"""a2aspec pipeline — pipeline testing commands."""
+"""handshake pipeline — pipeline testing commands."""
 
 from __future__ import annotations
 
@@ -11,18 +11,18 @@ import typer
 import yaml
 from rich.console import Console
 
-from a2a_spec.config.loader import load_config
-from a2a_spec.exceptions import A2ASpecError, PipelineExecutionError
-from a2a_spec.pipeline.dag import build_dag
-from a2a_spec.pipeline.executor import PipelineExecutor
-from a2a_spec.project import load_adapters
-from a2a_spec.reporting.console import print_pipeline_trace, print_summary
-from a2a_spec.semantic.embeddings import EmbeddingModel
-from a2a_spec.semantic.engine import SemanticEngine
-from a2a_spec.snapshot.replay import ReplayEngine
-from a2a_spec.snapshot.store import SnapshotStore
-from a2a_spec.spec.checker import SpecChecker
-from a2a_spec.spec.registry import SpecRegistry
+from agent_handshake.config.loader import load_config
+from agent_handshake.exceptions import HandshakeError, PipelineExecutionError
+from agent_handshake.pipeline.dag import build_dag
+from agent_handshake.pipeline.executor import PipelineExecutor
+from agent_handshake.project import load_adapters
+from agent_handshake.reporting.console import print_pipeline_trace, print_summary
+from agent_handshake.semantic.embeddings import EmbeddingModel
+from agent_handshake.semantic.engine import SemanticEngine
+from agent_handshake.snapshot.replay import ReplayEngine
+from agent_handshake.snapshot.store import SnapshotStore
+from agent_handshake.spec.checker import SpecChecker
+from agent_handshake.spec.registry import SpecRegistry
 
 console = Console()
 
@@ -80,7 +80,7 @@ def pipeline_test(
     """
     try:
         config = load_config(config_path)
-    except A2ASpecError as e:
+    except HandshakeError as e:
         console.print(f"[red]Config error: {e}[/red]")
         raise typer.Exit(1) from None
 
@@ -94,7 +94,7 @@ def pipeline_test(
 
     try:
         dag = build_dag(pipeline_spec)
-    except A2ASpecError as e:
+    except HandshakeError as e:
         console.print(f"[red]Invalid pipeline: {e}[/red]")
         raise typer.Exit(1) from None
 
@@ -104,7 +104,7 @@ def pipeline_test(
     spec_registry: SpecRegistry | None = None
     try:
         spec_registry = SpecRegistry.from_directory(config.specs_dir)
-    except A2ASpecError:
+    except HandshakeError:
         console.print("[yellow]Could not load specs directory, skipping spec validation.[/yellow]")
 
     adapters: dict[str, Any] = {}

@@ -1,4 +1,4 @@
-"""a2aspec infer — generate a consumer-driven spec."""
+"""handshake infer — generate a consumer-driven spec."""
 
 from __future__ import annotations
 
@@ -7,13 +7,13 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from a2a_spec.config.loader import load_config
-from a2a_spec.exceptions import A2ASpecError
-from a2a_spec.infer.builder import infer_spec
-from a2a_spec.infer.check import check_inferred_spec
-from a2a_spec.infer.consumer import analyze_consumer, parse_source_ref
-from a2a_spec.snapshot.store import SnapshotStore
-from a2a_spec.spec.loader import load_spec_files
+from agent_handshake.config.loader import load_config
+from agent_handshake.exceptions import HandshakeError
+from agent_handshake.infer.builder import infer_spec
+from agent_handshake.infer.check import check_inferred_spec
+from agent_handshake.infer.consumer import analyze_consumer, parse_source_ref
+from agent_handshake.snapshot.store import SnapshotStore
+from agent_handshake.spec.loader import load_spec_files
 
 console = Console(stderr=True)
 
@@ -65,12 +65,12 @@ def infer_command(
         path, function = parse_source_ref(source)
         reads = analyze_consumer(path, function)
         snapshots = SnapshotStore(config.storage.path).load_all(producer)
-    except (A2ASpecError, ValueError) as e:
+    except (HandshakeError, ValueError) as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1) from None
 
     if not snapshots:
-        console.print(f"[red]No snapshots for '{producer}'. Run 'a2aspec record' first.[/red]")
+        console.print(f"[red]No snapshots for '{producer}'. Run 'handshake record' first.[/red]")
         raise typer.Exit(1)
     if not reads.reads:
         console.print(f"[red]{source} reads no fields from its input.[/red]")
@@ -103,14 +103,14 @@ def _check(config_path: str | None) -> None:
     try:
         config = load_config(config_path)
         spec_files = load_spec_files(config.specs_dir)
-    except A2ASpecError as e:
+    except HandshakeError as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1) from None
 
     inferred = [(path, spec) for path, spec in spec_files if spec.inferred_from]
     if not inferred:
         console.print(
-            "[yellow]No inferred specs to check. Specs made by 'a2aspec infer' "
+            "[yellow]No inferred specs to check. Specs made by 'handshake infer' "
             "record their consumer in 'inferred_from'.[/yellow]"
         )
         return
@@ -119,7 +119,7 @@ def _check(config_path: str | None) -> None:
     for path, spec in inferred:
         try:
             result = check_inferred_spec(spec)
-        except A2ASpecError as e:
+        except HandshakeError as e:
             console.print(f"[red]FAIL[/red] {spec.name}: {e}")
             stale += 1
             continue
@@ -132,7 +132,7 @@ def _check(config_path: str | None) -> None:
         if not result.passed:
             stale += 1
             console.print(
-                f"    Regenerate: a2aspec infer --producer {spec.producer} "
+                f"    Regenerate: handshake infer --producer {spec.producer} "
                 f"--consumer {spec.consumer} --source {spec.inferred_from} "
                 f"--out {path} --force"
             )
