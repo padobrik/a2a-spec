@@ -43,20 +43,23 @@ class TestCliInit:
         assert not (tmp_path / "handshake.yaml").exists()
 
     def test_init_creates_gitignore(self, tmp_path: Path) -> None:
-        runner.invoke(app, ["init", str(tmp_path)])
+        result = runner.invoke(app, ["init", str(tmp_path)])
+        assert result.exit_code == 0
         assert (tmp_path / ".gitignore").read_text() == "__pycache__/\n"
 
     def test_init_appends_to_gitignore(self, tmp_path: Path) -> None:
         gitignore = tmp_path / ".gitignore"
         gitignore.write_text("# mine\nnode_modules/")
         result = runner.invoke(app, ["init", str(tmp_path)])
+        assert result.exit_code == 0
         assert gitignore.read_text() == "# mine\nnode_modules/\n__pycache__/\n"
         assert "Updated .gitignore" in result.output
 
     def test_init_keeps_gitignore_that_has_the_lines(self, tmp_path: Path) -> None:
         gitignore = tmp_path / ".gitignore"
         gitignore.write_text("__pycache__\n")
-        runner.invoke(app, ["init", str(tmp_path)])
+        result = runner.invoke(app, ["init", str(tmp_path)])
+        assert result.exit_code == 0
         assert gitignore.read_text() == "__pycache__\n"
 
     def test_init_default_project_name(self, tmp_path: Path) -> None:
