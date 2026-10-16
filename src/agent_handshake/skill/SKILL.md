@@ -16,7 +16,6 @@ A failing contract is a finding, not an obstacle. Never make it pass by:
 
 - re-recording snapshots without showing the user `handshake diff` output first;
 - deleting snapshots or specs, or removing fields from `required`;
-- lowering a semantic `threshold` or adding `--no-semantic` / `--handshake-no-semantic`;
 - editing a snapshot JSON by hand.
 
 If the contract change is intended, say so, change the consumer first, then
@@ -101,9 +100,5 @@ async def test_triage(handshake_check):
   sending `X`, or renamed it. The consumer would get a missing value.
 - `structural: [X] ...` — `X` has the wrong type or value.
 - `policy RULE: Pattern matched in field 'X'` — forbidden content such as PII.
-- `semantic RULE: similarity S < threshold T` — the text no longer means what
-  it should. Compare the snapshot input and output before touching anything.
 - `handshake diff` exits 2 — high-severity drift or a deleted snapshot; read the
   report before re-recording anything.
-- `sentence-transformers is required` — install `agent-handshake[semantic]`; do not
-  disable semantic checks instead.

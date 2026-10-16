@@ -38,7 +38,7 @@ def _cli_options() -> dict[str, set[str]]:
                 flags.update(o for o in param.opts + param.secondary_opts if o.startswith("--"))
         options[name] = flags
     assert "test" in options
-    assert "--no-semantic" in options["test"]
+    assert "--live" in options["test"]
     return options
 
 

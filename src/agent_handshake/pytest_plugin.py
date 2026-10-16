@@ -20,8 +20,6 @@ from agent_handshake.config.settings import HandshakeConfig
 from agent_handshake.exceptions import ConfigError
 from agent_handshake.infer.check import check_inferred_spec
 from agent_handshake.project import load_scenarios
-from agent_handshake.semantic.embeddings import EmbeddingModel
-from agent_handshake.semantic.engine import SemanticEngine
 from agent_handshake.snapshot.store import SnapshotStore
 from agent_handshake.spec.checker import SpecCheck, SpecChecker
 from agent_handshake.spec.loader import load_all_specs, load_spec
@@ -31,7 +29,7 @@ _STATE = pytest.StashKey["_A2AState | None"]()
 
 
 class _A2AState:
-    def __init__(self, root: Path, config_path: Path | None, semantic: bool) -> None:
+    def __init__(self, root: Path, config_path: Path | None) -> None:
         self.root = root
         self.config: HandshakeConfig = load_config(config_path)
         self.specs_dir = self._resolve(self.config.specs_dir)
@@ -43,10 +41,7 @@ class _A2AState:
             self.scenarios = {sc.name: sc for sc in load_scenarios(scenarios_config)}
         except ConfigError:
             self.scenarios = {}
-        engine = None
-        if semantic and self.config.semantic.enabled:
-            engine = SemanticEngine(model=EmbeddingModel(self.config.semantic.model))
-        self.checker = SpecChecker(semantic_engine=engine)
+        self.checker = SpecChecker()
 
     def _resolve(self, path: str) -> Path:
         p = Path(path)
@@ -59,9 +54,6 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--handshake", action="store_true", help="Run agent-handshake contracts as tests."
     )
     group.addoption("--handshake-config", help="Path to handshake.yaml (implies --handshake).")
-    group.addoption(
-        "--handshake-no-semantic", action="store_true", help="Skip semantic rules in contracts."
-    )
     parser.addini("handshake_config", "Path to handshake.yaml; setting it enables the plugin.")
 
 
@@ -82,8 +74,7 @@ def pytest_configure(config: pytest.Config) -> None:
     if resolved is None:
         default = root / "handshake.yaml"
         resolved = default if default.exists() else None
-    semantic = not config.getoption("--handshake-no-semantic")
-    config.stash[_STATE] = _A2AState(root, resolved, semantic)
+    config.stash[_STATE] = _A2AState(root, resolved)
 
 
 def pytest_collect_file(file_path: Path, parent: pytest.Collector) -> pytest.Collector | None:

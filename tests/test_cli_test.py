@@ -309,7 +309,7 @@ class TestCliTestCustomPolicy:
                     }
                 )
             )
-        result = runner.invoke(app, ["test", "--no-semantic"])
+        result = runner.invoke(app, ["test"])
         out = " ".join(result.output.split())
         assert result.exit_code == 1, result.output
         assert "PASS reply-policy / calm" in out
