@@ -76,7 +76,14 @@ Assumptions made where the request or the code was ambiguous.
 
 - Supports A2A 1.0 over JSON-RPC only (the protocol version current in
   a2a-sdk 1.2.2). 0.3 agents are rejected with an explicit message rather
-  than half-supported; gRPC, HTTP+JSON and streaming are out of scope.
+  than half-supported; gRPC and HTTP+JSON are out of scope.
+- Streaming is opt-in (`streaming=True`) and needs `capabilities.streaming`
+  in the card, so an agent is never sent a method it did not declare.
+  Events are folded the way a2a-sdk folds them: a new artifact with an
+  existing id replaces it, `append` extends its parts (text chunks stay
+  separate parts and are joined with newlines like any other text parts),
+  and `append` to an unknown artifact is an error. The result is checked
+  only after the stream ends, so the snapshot does not depend on streaming.
 - Input goes out as one `data` part by default because contracts are about
   structured fields; `text_field` covers text-only agents.
 - `json_text` is opt-in so the adapter never reinterprets an agent's text

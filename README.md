@@ -397,7 +397,7 @@ This command writes `path/to/skills/agent-handshake/SKILL.md`. Export the skill 
 - If the consumer gives its input to another function, `handshake infer` cannot follow it. The command then shows a `WARN` line. Add the missing fields to the spec by hand.
 - `handshake infer --check` checks only specs that contain `inferred_from`. Specs from agent-handshake 0.3 and earlier do not have it. Run `handshake infer` with `--force` again to add it.
 - `handshake diff` compares with the snapshots in git. Commit the snapshots before you use it.
-- `A2AAdapter` supports A2A 1.0 with JSON-RPC. It does not support streaming.
+- `A2AAdapter` supports A2A 1.0 with JSON-RPC, with or without streaming. It does not support gRPC or HTTP+JSON.
 - Semantic rules use a local embedding model. The `semantic` extra installs PyTorch.
 
 ## Commands

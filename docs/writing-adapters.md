@@ -56,6 +56,7 @@ adapter = A2AAdapter(
     json_text=False,     # parse a text-only JSON object reply as the output
     headers={"Authorization": "Bearer token"},
     timeout=60.0,
+    streaming=False,     # True: use SendStreamingMessage (server-sent events)
 )
 ```
 
@@ -63,7 +64,11 @@ adapter = A2AAdapter(
   given) once per adapter; the first `JSONRPC` interface with protocol
   version `1.x` is used, including its `tenant`.
 - Requests use `SendMessage` with `A2A-Version: 1.0` and block until the task
-  finishes. Streaming is not used.
+  finishes. With `streaming=True` they use `SendStreamingMessage`: the adapter
+  reads the server-sent events, applies status and artifact updates to the
+  task in order (an `append` update adds parts to its artifact), and checks
+  the task when the stream ends. The Agent Card must declare
+  `capabilities.streaming`. The snapshot is the same as without streaming.
 - Output: object `data` parts are merged (conflicting keys are an error),
   other `data` values go under `"data"`, text under `"text"`, file parts
   under `"files"`. A file sent by URL keeps `url`; a file sent as bytes
