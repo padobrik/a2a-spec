@@ -47,15 +47,25 @@ class TestConfigLoader:
         config = load_config(config_file)
         assert isinstance(config, HandshakeConfig)
 
-    def test_defaults_semantic_config(self) -> None:
-        config = HandshakeConfig()
-        assert config.semantic.enabled is True
-        assert config.semantic.model == "all-MiniLM-L6-v2"
-
     def test_defaults_ci_config(self) -> None:
-        config = HandshakeConfig()
-        assert config.ci.fail_on_semantic_drift is True
-        assert config.ci.drift_threshold == 0.15
+        assert HandshakeConfig().ci.replay_mode == "exact"
+
+    def test_semantic_setting_removed(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "handshake.yaml"
+        config_file.write_text("semantic:\n  enabled: false\n")
+        with pytest.raises(ConfigError) as info:
+            load_config(config_file)
+        assert str(info.value) == (
+            f"{config_file}: Setting 'semantic' was removed in 0.9 with semantic rules. "
+            "Delete it. See CHANGELOG.md."
+        )
+
+    @pytest.mark.parametrize("key", ["fail_on_semantic_drift", "drift_threshold"])
+    def test_ci_drift_setting_removed(self, tmp_path: Path, key: str) -> None:
+        config_file = tmp_path / "handshake.yaml"
+        config_file.write_text(f"ci:\n  {key}: true\n")
+        with pytest.raises(ConfigError, match=rf"Setting 'ci\.{key}' was removed in 0\.9"):
+            load_config(config_file)
 
     def test_custom_storage_path(self, tmp_path: Path) -> None:
         config_file = tmp_path / "handshake.yaml"

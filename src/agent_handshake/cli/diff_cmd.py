@@ -106,5 +106,5 @@ def diff_command(
     else:
         console.print(f"{total_diffs} differences | [red]{high_severity} high/critical[/red]")
 
-    if high_severity > 0 and config.ci.fail_on_semantic_drift:
+    if high_severity > 0:
         raise typer.Exit(2)
