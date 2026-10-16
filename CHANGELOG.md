@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-16
+
 ### Fixed
 - A `custom` policy rule now loads its `validator` from the dotted path in
   the spec, including modules in the project directory. Before, the CLI and
@@ -190,6 +192,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.8.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.8.0
 [0.7.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.7.0
 [0.6.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.6.0
 [0.5.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.5.0
