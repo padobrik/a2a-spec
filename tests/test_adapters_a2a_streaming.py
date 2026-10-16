@@ -141,6 +141,20 @@ class TestStreaming:
         with pytest.raises(AdapterError, match="stream event is not an object"):
             await _call(Server(_sse({"statusUpdate": "done"})))
 
+    async def test_status_that_is_not_an_object(self) -> None:
+        bad = {"statusUpdate": {"taskId": "t1", "status": "done"}}
+        with pytest.raises(AdapterError, match="task status is not an object"):
+            await _call(Server(_sse(bad)))
+
+    async def test_artifact_that_is_not_an_object(self) -> None:
+        bad = {"artifactUpdate": {"taskId": "t1", "artifact": "x"}}
+        with pytest.raises(AdapterError, match="artifact is not an object"):
+            await _call(Server(_sse(bad, _status("TASK_STATE_COMPLETED"))))
+
+    async def test_part_that_is_not_an_object(self) -> None:
+        with pytest.raises(AdapterError, match="part is not an object"):
+            await _call(Server(_sse({"message": {"parts": ["text"]}})))
+
     async def test_plain_json_error_response(self) -> None:
         error = {"jsonrpc": "2.0", "id": "1", "error": {"code": -32600, "message": "bad"}}
         server = Server(json.dumps(error), content_type="application/json")
