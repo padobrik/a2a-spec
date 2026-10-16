@@ -78,10 +78,7 @@ def analyze_ts_consumer(
         raise ConfigError(f"Function '{function}' in {path} takes no input parameter")
     module = TsModule(path, tree.root_node, parser)
     body = fn.child_by_field_name("body")
-    named: dict[str, list[Node]] = {}
-    for name, node in _functions(tree.root_node):
-        named.setdefault(name, []).append(node)
-    scope = TsScope(module, {n: nodes[0] for n, nodes in named.items() if len(nodes) == 1})
+    scope = TsScope(module, _helpers(tree.root_node, fn))
 
     def visit(pattern: Node, annotation: Annotation) -> ReadVisitor:
         if pattern.type == "identifier":
@@ -133,3 +130,20 @@ def _functions(root: Node) -> list[tuple[str, Node]]:
             found.append((node_text(name), target))
         stack.extend(reversed(node.named_children))
     return sorted(found, key=lambda item: item[1].start_byte)
+
+
+def _helpers(root: Node, fn: Node) -> dict[str, Node]:
+    """Functions of the file by name, and the methods of the consumer's class as ``this.name``."""
+    named: dict[str, list[Node]] = {}
+    for name, node in _functions(root):
+        if node.type != "method_definition":
+            named.setdefault(name, []).append(node)
+    helpers = {name: nodes[0] for name, nodes in named.items() if len(nodes) == 1}
+    owner = fn.parent
+    while owner is not None and owner.type != "class_body":
+        owner = owner.parent
+    for item in owner.named_children if owner is not None else []:
+        method = item.child_by_field_name("name")
+        if item.type == "method_definition" and method is not None:
+            helpers[f"this.{node_text(method)}"] = item
+    return helpers
