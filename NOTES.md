@@ -81,7 +81,9 @@ Assumptions made where the request or the code was ambiguous.
   structured fields; `text_field` covers text-only agents.
 - `json_text` is opt-in so the adapter never reinterprets an agent's text
   reply unless asked.
-- File parts raise instead of being dropped, so no output silently goes
-  missing from a snapshot.
+- File parts go under `"files"`. Raw bytes are replaced by `size` and
+  `sha256`: a contract checks the shape of the reply, and base64 content
+  would make snapshots large and diffs unreadable. Parts with no known
+  content key raise instead of being dropped.
 - `agent_id` is required: it must match the producer/consumer ids in specs,
   which the agent's card name does not guarantee.
