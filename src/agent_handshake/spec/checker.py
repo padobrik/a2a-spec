@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from agent_handshake.output import AgentOutput
 from agent_handshake.policy.engine import PolicyEngine, PolicyResult
 from agent_handshake.spec.schema import Spec
 from agent_handshake.spec.validator import ValidationResult, validate_output
@@ -43,7 +44,7 @@ class SpecChecker:
     def check(
         self,
         spec: Spec,
-        output: dict[str, Any],
+        output: AgentOutput,
         input_data: dict[str, Any],
         expected: dict[str, Any] | None = None,
     ) -> SpecCheck:
@@ -59,8 +60,10 @@ class SpecChecker:
         )
 
 
-def check_expectations(output: dict[str, Any], expected: dict[str, Any]) -> list[str]:
+def check_expectations(output: AgentOutput, expected: dict[str, Any]) -> list[str]:
     """Compare output fields with the exact values a scenario expects."""
+    if isinstance(output, str):
+        return [f"expected '{k}' = {v!r}, but the output is text" for k, v in expected.items()]
     problems: list[str] = []
     for key, value in expected.items():
         if key not in output:

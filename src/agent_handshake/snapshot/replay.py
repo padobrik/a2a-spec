@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
-
+from agent_handshake.output import AgentOutput
 from agent_handshake.snapshot.store import Snapshot, SnapshotStore
 
 
@@ -17,7 +16,7 @@ class ReplayEngine:
     def __init__(self, store: SnapshotStore) -> None:
         self.store = store
 
-    def replay(self, agent_id: str, scenario: str) -> dict[str, Any]:
+    def replay(self, agent_id: str, scenario: str) -> AgentOutput:
         """Get the recorded output for an agent + scenario.
 
         Args:
@@ -25,7 +24,7 @@ class ReplayEngine:
             scenario: The scenario name.
 
         Returns:
-            The recorded output dict.
+            The recorded output: a dict, or text.
 
         Raises:
             SnapshotNotFoundError: If no snapshot exists.

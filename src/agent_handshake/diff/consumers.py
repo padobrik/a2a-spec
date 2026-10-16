@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from agent_handshake.diff.engine import DiffResult, DriftSeverity
+from agent_handshake.diff.engine import OUTPUT_FIELD, DiffResult, DriftSeverity
 from agent_handshake.spec.fields import field_paths, spec_schema
 from agent_handshake.spec.schema import Spec
 
@@ -29,7 +29,9 @@ def rate_for_consumers(results: list[DiffResult], specs: list[Spec]) -> list[Dif
     unknown = sorted({spec.consumer for spec in specs if spec.reads_unknown_keys})
     rated: list[DiffResult] = []
     for result in results:
-        readers = [spec for spec, paths in named if _names(paths, result.field)]
+        # Every consumer reads the whole output.
+        whole = result.field == OUTPUT_FIELD
+        readers = [spec for spec, paths in named if whole or _names(paths, result.field)]
         change = result.structural.change_type if result.structural else ""
         if not readers and unknown:
             rated.append(

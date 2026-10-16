@@ -7,6 +7,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- Agents that return plain text. `FunctionAdapter` accepts a `str`, and a
+  snapshot's `output` can be a string. A spec that expects an object fails on
+  such a snapshot with "the output is text, but the spec expects an object",
+  instead of one text snapshot stopping the whole `handshake test` run.
+  `regex` rules check the text, and `diff` reports a changed text, or a change
+  between text and an object, as a change to `(output)`.
+
 ### Fixed
 - A spec made with `handshake infer --allow-missing x` for a consumer that
   reads `data["x"]` failed `infer --check` at once, and the "Regenerate"

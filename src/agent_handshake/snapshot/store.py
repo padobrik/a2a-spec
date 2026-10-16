@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from agent_handshake.exceptions import SnapshotFormatError, SnapshotNotFoundError
+from agent_handshake.output import AgentOutput
 from agent_handshake.snapshot.fingerprint import Fingerprint
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class Snapshot:
         fingerprint: Fingerprint,
         scenario: str,
         input_data: dict[str, Any],
-        output_data: dict[str, Any],
+        output_data: AgentOutput,
         timestamp: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
@@ -82,12 +83,13 @@ class Snapshot:
                 f"version {SCHEMA_VERSION}",
                 fix="Upgrade agent-handshake.",
             )
-        for key, kind, name in (
+        kinds: tuple[tuple[str, type | tuple[type, ...], str], ...] = (
             ("agent_id", str, "a string"),
             ("scenario", str, "a string"),
             ("input", dict, "an object"),
-            ("output", dict, "an object"),
-        ):
+            ("output", (dict, str), "an object or a string"),
+        )
+        for key, kind, name in kinds:
             if key not in data:
                 raise SnapshotFormatError(source, f"has no '{key}' field")
             if not isinstance(data[key], kind):

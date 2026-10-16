@@ -66,7 +66,7 @@ BROKEN = [
     ("[1, 2]", "must be a JSON object"),
     (json.dumps({k: v for k, v in GOOD.items() if k != "input"}), "has no 'input' field"),
     (json.dumps({k: v for k, v in GOOD.items() if k != "output"}), "has no 'output' field"),
-    (json.dumps({**GOOD, "output": "text"}), "has a 'output' field that is not an object"),
+    (json.dumps({**GOOD, "output": 42}), "has a 'output' field that is not an object or a string"),
     (json.dumps({**GOOD, "schema_version": "1"}), "has a schema_version that is not an integer"),
     (json.dumps({**GOOD, "schema_version": None}), "has a schema_version that is not an integer"),
     (json.dumps({**GOOD, "schema_version": 0}), "has schema_version 0; versions start at 1"),

@@ -5,11 +5,14 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
 
 from agent_handshake.diff.structural import FieldDiff, structural_diff
+from agent_handshake.output import AgentOutput
 
 logger = logging.getLogger(__name__)
+
+# The field name of a change to the whole output, such as a different text.
+OUTPUT_FIELD = "(output)"
 
 
 class DriftSeverity(StrEnum):
@@ -42,9 +45,15 @@ class DiffEngine:
             print(f"{r.field}: {r.severity} — {r.explanation}")
     """
 
-    def diff(self, old_output: dict[str, Any], new_output: dict[str, Any]) -> list[DiffResult]:
-        """One DiffResult per field that was added, removed or changed."""
-        field_diffs = structural_diff(old_output, new_output)
+    def diff(self, old_output: AgentOutput, new_output: AgentOutput) -> list[DiffResult]:
+        """One DiffResult per field that was added, removed or changed.
+
+        Text output is compared as a whole, under the field ``OUTPUT_FIELD``.
+        """
+        if isinstance(old_output, dict) and isinstance(new_output, dict):
+            field_diffs = structural_diff(old_output, new_output)
+        else:
+            field_diffs = _whole_output_diff(old_output, new_output)
         logger.info("Diff found %d structural difference(s)", len(field_diffs))
         return [
             DiffResult(
@@ -70,3 +79,15 @@ class DiffEngine:
         if fd.change_type == "type_changed":
             return DriftSeverity.CRITICAL
         return DriftSeverity.MEDIUM
+
+
+def _whole_output_diff(old: AgentOutput, new: AgentOutput) -> list[FieldDiff]:
+    """The change when one side is text: it changed, or it changed between text and object."""
+    if old == new:
+        return []
+    kinds = {True: "text", False: "an object"}
+    old_text, new_text = isinstance(old, str), isinstance(new, str)
+    if old_text != new_text:
+        detail = f"The output changed from {kinds[old_text]} to {kinds[new_text]}"
+        return [FieldDiff(OUTPUT_FIELD, "type_changed", old, new, detail)]
+    return [FieldDiff(OUTPUT_FIELD, "changed", old, new, "The text output changed")]
