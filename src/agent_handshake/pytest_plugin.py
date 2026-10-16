@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from agent_handshake.config.loader import DEFAULT_CONFIG_NAMES, LEGACY_CONFIG_NAMES, load_config
+from agent_handshake.config.loader import load_config
 from agent_handshake.config.settings import HandshakeConfig
 from agent_handshake.exceptions import ConfigError
 from agent_handshake.infer.check import check_inferred_spec
@@ -55,21 +55,14 @@ class _A2AState:
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     group = parser.getgroup("agent-handshake")
-    # The --a2a* names and a2a_config are from before the rename to agent-handshake.
     group.addoption(
-        "--handshake", "--a2a", action="store_true", help="Run agent-handshake contracts as tests."
+        "--handshake", action="store_true", help="Run agent-handshake contracts as tests."
     )
+    group.addoption("--handshake-config", help="Path to handshake.yaml (implies --handshake).")
     group.addoption(
-        "--handshake-config", "--a2a-config", help="Path to handshake.yaml (implies --handshake)."
-    )
-    group.addoption(
-        "--handshake-no-semantic",
-        "--a2a-no-semantic",
-        action="store_true",
-        help="Skip semantic rules in contracts.",
+        "--handshake-no-semantic", action="store_true", help="Skip semantic rules in contracts."
     )
     parser.addini("handshake_config", "Path to handshake.yaml; setting it enables the plugin.")
-    parser.addini("a2a_config", "Old name of handshake_config.")
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -77,9 +70,8 @@ def pytest_configure(config: pytest.Config) -> None:
     # directory), except an ini setting, which is relative to its ini file.
     root = config.invocation_params.dir
     config_path = config.getoption("--handshake-config")
-    ini_path = config.getini("handshake_config") or config.getini("a2a_config")
-    if config_path is None and ini_path:
-        config_path = ini_path
+    if config_path is None and config.getini("handshake_config"):
+        config_path = config.getini("handshake_config")
         if config.inipath is not None:
             root = config.inipath.parent
     enabled = config.getoption("--handshake") or config_path is not None
@@ -88,8 +80,8 @@ def pytest_configure(config: pytest.Config) -> None:
         return
     resolved = (root / config_path) if config_path else None
     if resolved is None:
-        defaults = [root / name for name in DEFAULT_CONFIG_NAMES + LEGACY_CONFIG_NAMES]
-        resolved = next((p for p in defaults if p.exists()), None)
+        default = root / "handshake.yaml"
+        resolved = default if default.exists() else None
     semantic = not config.getoption("--handshake-no-semantic")
     config.stash[_STATE] = _A2AState(root, resolved, semantic)
 
@@ -225,9 +217,3 @@ def handshake_check(request: pytest.FixtureRequest) -> Callable[..., SpecCheck]:
         return result
 
     return check
-
-
-@pytest.fixture
-def a2a_check(handshake_check: Callable[..., SpecCheck]) -> Callable[..., SpecCheck]:
-    """Old name of ``handshake_check``."""
-    return handshake_check

@@ -60,8 +60,6 @@ all = [
 
 [project.scripts]
 handshake = "agent_handshake.cli.main:main"
-# Name before the rename to agent-handshake; kept so existing scripts keep working.
-a2aspec = "agent_handshake.cli.main:main"
 
 [project.entry-points.pytest11]
 agent_handshake = "agent_handshake.pytest_plugin"

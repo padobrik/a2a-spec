@@ -22,10 +22,8 @@ spec:
 """
 
 
-def _snapshot(
-    pytester: pytest.Pytester, scenario: str, output: dict[str, object], base: str = "handshake"
-) -> None:
-    snaps = pytester.path / base / "snapshots" / "triage-agent"
+def _snapshot(pytester: pytest.Pytester, scenario: str, output: dict[str, object]) -> None:
+    snaps = pytester.path / "handshake" / "snapshots" / "triage-agent"
     snaps.mkdir(parents=True, exist_ok=True)
     (snaps / f"{scenario}_abc123.json").write_text(
         json.dumps(
@@ -179,33 +177,3 @@ class TestPytestPlugin:
         result.stdout.fnmatch_lines(
             ["*expectation: expected 'category' = 'shipping', got 'billing'*"]
         )
-
-
-class TestNamesBeforeRename:
-    def test_old_flag(self, project: pytest.Pytester) -> None:
-        result = project.runpytest("--a2a", "handshake/specs")
-        result.assert_outcomes(passed=1)
-
-    def test_old_ini_option(self, project: pytest.Pytester) -> None:
-        project.makeini("[pytest]\na2a_config = handshake.yaml\n")
-        result = project.runpytest("handshake/specs")
-        result.assert_outcomes(passed=1)
-
-    def test_old_fixture(self, project: pytest.Pytester) -> None:
-        project.makepyfile(
-            """
-            def test_good(a2a_check):
-                assert a2a_check("triage-to-resolution", {"category": "billing"}).passed
-            """
-        )
-        result = project.runpytest("--handshake", "-p", "no:cacheprovider", "test_old_fixture.py")
-        result.assert_outcomes(passed=1)
-
-    def test_old_project_layout(self, pytester: pytest.Pytester) -> None:
-        specs = pytester.path / "a2a_spec" / "specs"
-        specs.mkdir(parents=True)
-        (specs / "triage.yaml").write_text(SPEC)
-        (pytester.path / "a2a-spec.yaml").write_text("project_name: old\n")
-        _snapshot(pytester, "billing", {"category": "billing"}, base="a2a_spec")
-        result = pytester.runpytest("--handshake", "a2a_spec/specs")
-        result.assert_outcomes(passed=1)

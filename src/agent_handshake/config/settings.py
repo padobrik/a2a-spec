@@ -39,7 +39,3 @@ class HandshakeConfig(BaseModel):
     semantic: SemanticConfig = Field(default_factory=SemanticConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
     ci: CIConfig = Field(default_factory=CIConfig)
-
-
-# Name before the rename to agent-handshake.
-A2ASpecConfig = HandshakeConfig
