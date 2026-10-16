@@ -52,10 +52,36 @@ def project(pytester: pytest.Pytester) -> pytest.Pytester:
 
 
 class TestPytestPlugin:
-    def test_inert_without_opt_in(self, project: pytest.Pytester) -> None:
+    def test_inert_without_handshake_yaml(self, project: pytest.Pytester) -> None:
+        (project.path / "handshake.yaml").unlink()
         result = project.runpytest("handshake/specs")
         result.assert_outcomes()
         assert result.ret == pytest.ExitCode.NO_TESTS_COLLECTED
+
+    def test_enabled_by_handshake_yaml_in_rootdir(self, project: pytest.Pytester) -> None:
+        result = project.runpytest("handshake/specs")
+        result.assert_outcomes(passed=1)
+
+    def test_disabled_with_p_no_handshake(self, project: pytest.Pytester) -> None:
+        result = project.runpytest("-p", "no:handshake", "handshake/specs")
+        assert result.ret == pytest.ExitCode.NO_TESTS_COLLECTED
+
+    def test_disabled_by_ini_option(self, project: pytest.Pytester) -> None:
+        project.makeini("[pytest]\nhandshake_enabled = false\n")
+        result = project.runpytest("handshake/specs")
+        assert result.ret == pytest.ExitCode.NO_TESTS_COLLECTED
+
+    def test_specs_collected_next_to_testpaths(self, project: pytest.Pytester) -> None:
+        project.makeini("[pytest]\ntestpaths = tests\n")
+        project.mkdir("tests").joinpath("test_ok.py").write_text("def test_ok():\n    pass\n")
+        result = project.runpytest("-v")
+        result.assert_outcomes(passed=2)
+        result.stdout.fnmatch_lines(["*triage.yaml::billing PASSED*"])
+
+    def test_named_paths_are_left_alone(self, project: pytest.Pytester) -> None:
+        project.mkdir("tests").joinpath("test_ok.py").write_text("def test_ok():\n    pass\n")
+        result = project.runpytest("tests/test_ok.py")
+        result.assert_outcomes(passed=1)
 
     def test_snapshots_become_tests(self, project: pytest.Pytester) -> None:
         _snapshot(project, "shipping", {"category": "shipping"})
@@ -86,12 +112,12 @@ class TestPytestPlugin:
         result = project.runpytest("--handshake", "handshake/specs", "-k", "shipping")
         result.assert_outcomes(passed=1, deselected=1)
 
-    def test_missing_snapshots_skip_visibly(self, project: pytest.Pytester) -> None:
+    def test_missing_snapshots_fail(self, project: pytest.Pytester) -> None:
         other = SPEC.replace("triage-agent", "ghost-agent").replace("triage-to", "ghost-to")
         (project.path / "handshake" / "specs" / "ghost.yaml").write_text(other)
-        result = project.runpytest("--handshake", "handshake/specs", "-rs")
-        result.assert_outcomes(passed=1, skipped=1)
-        result.stdout.fnmatch_lines(["*no snapshots for 'ghost-agent'*"])
+        result = project.runpytest("--handshake", "handshake/specs")
+        result.assert_outcomes(passed=1, failed=1)
+        result.stdout.fnmatch_lines(["*No snapshots for 'ghost-agent', the producer of spec*"])
 
     def test_yaml_outside_specs_dir_ignored(self, project: pytest.Pytester) -> None:
         (project.path / "other.yaml").write_text("not: a spec\n")
@@ -121,6 +147,7 @@ class TestPytestPlugin:
         )
 
     def test_handshake_check_without_plugin_fails_clearly(self, project: pytest.Pytester) -> None:
+        project.makeini("[pytest]\nhandshake_enabled = false\n")
         project.makepyfile(test_live="def test_x(handshake_check):\n    pass\n")
         result = project.runpytest("test_live.py")
         result.assert_outcomes(errors=1)
