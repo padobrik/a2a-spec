@@ -44,6 +44,10 @@ class Spec(BaseModel):
     # Consumer function the spec was inferred from, as path/to/file.py:function.
     # Set by `handshake infer`; `handshake infer --check` compares the spec with it.
     inferred_from: str | None = None
+    # Lines where the consumer reads each field, by dotted path, for example
+    # {"customer.tier": [3]}. Set by `handshake infer`; `handshake diff` uses it
+    # to say where a removed field is read.
+    read_at: dict[str, list[int]] = Field(default_factory=dict)
 
     structural: StructuralSpec
     policy: list[PolicyRule] = Field(default_factory=list)
