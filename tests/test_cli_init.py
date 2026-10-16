@@ -89,3 +89,28 @@ class TestInitTemplatesWork:
         result = runner.invoke(app, ["record"])
         assert result.exit_code == 1
         assert "No adapters found" in result.output
+
+
+class TestCliInitOldProject:
+    def test_refuses_project_with_old_config(self, tmp_path: Path) -> None:
+        (tmp_path / "a2a-spec.yaml").write_text("project_name: old\n")
+        result = runner.invoke(app, ["init", str(tmp_path)])
+        assert result.exit_code == 1
+        assert "already has an a2a-spec project (a2a-spec.yaml)" in " ".join(result.output.split())
+        assert "#rename-from-a2a-spec" in result.output
+        assert not (tmp_path / "handshake.yaml").exists()
+        assert not (tmp_path / "handshake").exists()
+
+    def test_refuses_project_with_old_folder(self, tmp_path: Path) -> None:
+        (tmp_path / "a2a_spec" / "specs").mkdir(parents=True)
+        result = runner.invoke(app, ["init", str(tmp_path)])
+        assert result.exit_code == 1
+        assert "(a2a_spec/)" in result.output
+        assert not (tmp_path / "handshake").exists()
+
+    def test_moved_project_is_not_blocked(self, tmp_path: Path) -> None:
+        (tmp_path / "a2a_spec").mkdir()
+        (tmp_path / "handshake.yaml").write_text("project_name: moved\n")
+        result = runner.invoke(app, ["init", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+        assert "project_name: moved" in (tmp_path / "handshake.yaml").read_text()
