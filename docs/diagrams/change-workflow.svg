@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="880" height="340" viewBox="0 0 880 340" role="img" aria-labelledby="t d">
   <title id="t">When you change an agent</title>
-  <desc id="d">Change the producer, run a2aspec record, a2aspec diff and a2aspec test. If the tests pass, commit. If they fail and the change was not intended, fix the producer and record again. If the change was intended, update the consumer, run a2aspec infer --force, then commit. Do not record again only to make a failed test pass.</desc>
+  <desc id="d">Change the producer, run handshake record, handshake diff and handshake test. If the tests pass, commit. If they fail and the change was not intended, fix the producer and record again. If the change was intended, update the consumer, run handshake infer --force, then commit. Do not record again only to make a failed test pass.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#8b949e"/>
@@ -22,15 +22,15 @@
   <path d="M202 58 H236" class="line" marker-end="url(#arrow)"/>
 
   <rect x="240" y="30" width="180" height="56" rx="12" fill="#1f2937" stroke="#8b949e" stroke-width="1.5"/>
-  <text x="330" y="63" text-anchor="middle" class="mono cmd">a2aspec record</text>
+  <text x="330" y="63" text-anchor="middle" class="mono cmd">handshake record</text>
   <path d="M422 58 H456" class="line" marker-end="url(#arrow)"/>
 
   <rect x="460" y="30" width="180" height="56" rx="12" fill="#1f2937" stroke="#8b949e" stroke-width="1.5"/>
-  <text x="550" y="63" text-anchor="middle" class="mono cmd">a2aspec diff</text>
+  <text x="550" y="63" text-anchor="middle" class="mono cmd">handshake diff</text>
   <path d="M642 58 H676" class="line" marker-end="url(#arrow)"/>
 
   <rect x="680" y="30" width="180" height="56" rx="12" fill="#1f2937" stroke="#8b949e" stroke-width="1.5"/>
-  <text x="770" y="63" text-anchor="middle" class="mono cmd">a2aspec test</text>
+  <text x="770" y="63" text-anchor="middle" class="mono cmd">handshake test</text>
 
   <!-- pass branch -->
   <path d="M820 88 V226" class="line" marker-end="url(#arrow)"/>
@@ -58,7 +58,7 @@
   <text x="472" y="214" class="sans note">yes</text>
   <rect x="340" y="230" width="240" height="56" rx="12" fill="#0d9488"/>
   <text x="460" y="254" text-anchor="middle" class="sans label">Update the consumer</text>
-  <text x="460" y="275" text-anchor="middle" class="mono small">a2aspec infer --force</text>
+  <text x="460" y="275" text-anchor="middle" class="mono small">handshake infer --force</text>
   <path d="M582 258 H736" class="line" marker-end="url(#arrow)"/>
 
   <!-- commit -->

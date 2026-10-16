@@ -1,10 +1,10 @@
-# Contributing to a2a-spec
+# Contributing to agent-handshake
 
 ## Development setup
 
 ```bash
-git clone https://github.com/padobrik/a2a-spec.git
-cd a2a-spec
+git clone https://github.com/padobrik/agent-handshake.git
+cd agent-handshake
 pip install -e ".[dev]"
 ```
 

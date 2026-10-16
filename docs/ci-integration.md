@@ -9,13 +9,13 @@ in CI.
 ```yaml
 steps:
   - uses: actions/checkout@v6
-  - uses: padobrik/a2a-spec@v0.6.0
+  - uses: padobrik/agent-handshake@v0.6.0
     with:
-      package: a2a-spec[semantic]          # pip requirement to install
-      working-directory: services/agents   # where a2a-spec.yaml is
-      config: a2a-spec.yaml                # optional
-      check-inferred: "true"               # run a2aspec infer --check
-      args: --fail-fast                    # extra flags for a2aspec test
+      package: agent-handshake[semantic]          # pip requirement to install
+      working-directory: services/agents   # where handshake.yaml is
+      config: handshake.yaml                # optional
+      check-inferred: "true"               # run handshake infer --check
+      args: --fail-fast                    # extra flags for handshake test
 ```
 
 All inputs are optional. Annotations point at the spec files relative to the
@@ -35,8 +35,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install a2a-spec
-      - run: a2aspec test --format github
+      - run: pip install agent-handshake
+      - run: handshake test --format github
 ```
 
 `--format github` prints the usual output and one annotation for each
@@ -47,7 +47,7 @@ failure, so the pull request shows the failure on the spec file.
 To give the results to a test report tool, write JUnit XML:
 
 ```bash
-a2aspec test --format junit > results.xml
+handshake test --format junit > results.xml
 ```
 
 `pytest --junitxml=results.xml` gives the same result when you use the
@@ -69,6 +69,6 @@ to a file.
 
 | Command | Code | Meaning |
 |---------|------|---------|
-| `a2aspec test` | 0 | All tests passed |
-| `a2aspec test` | 1 | One or more tests failed, or the configuration is not valid |
-| `a2aspec diff` | 2 | High-severity drift or a deleted snapshot (with `ci.fail_on_semantic_drift`) |
+| `handshake test` | 0 | All tests passed |
+| `handshake test` | 1 | One or more tests failed, or the configuration is not valid |
+| `handshake diff` | 2 | High-severity drift or a deleted snapshot (with `ci.fail_on_semantic_drift`) |

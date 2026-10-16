@@ -7,6 +7,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+- The project is renamed from a2a-spec to agent-handshake. The A2A protocol is
+  only one of the agent types it tests, and the old name read as an A2A-only
+  tool. New names: package `agent-handshake`, module `agent_handshake`,
+  command `handshake`, config file `handshake.yaml`, project folder
+  `handshake/`, pytest options `--handshake`, `--handshake-config`,
+  `--handshake-no-semantic`, ini option `handshake_config`, fixture
+  `handshake_check`, and the GitHub Action `padobrik/agent-handshake`.
+  `HandshakeError` and `HandshakeConfig` replace `A2ASpecError` and
+  `A2ASpecConfig`.
+- The old names still work: the `a2aspec` command, `a2a-spec.yaml`, the
+  `a2a_spec/` folder (when there is no `handshake/` folder), `--a2a`,
+  `--a2a-config`, `--a2a-no-semantic`, `a2a_config`, `a2a_check`,
+  `A2ASpecError` and `A2ASpecConfig`.
+
 ### Added
 - `A2AAdapter` reads file parts. They go under `"files"` in the output: a URL
   file keeps its `url`, a raw file is stored as `size` and `sha256`, and

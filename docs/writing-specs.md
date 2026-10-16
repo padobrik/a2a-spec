@@ -54,9 +54,9 @@ Uses JSON Schema (Draft 7) to validate output structure. Supports:
 | `entailment` | Not implemented yet — a rule using it fails |
 | `language_detection` | Not implemented yet — a rule using it fails |
 
-`a2aspec test` evaluates semantic rules against each snapshot's recorded input
-and output. It requires `pip install a2a-spec[semantic]`; pass `--no-semantic`
-(or set `semantic.enabled: false` in `a2a-spec.yaml`) to skip them.
+`handshake test` evaluates semantic rules against each snapshot's recorded input
+and output. It requires `pip install agent-handshake[semantic]`; pass `--no-semantic`
+(or set `semantic.enabled: false` in `handshake.yaml`) to skip them.
 
 Calibrate thresholds on real outputs. With the default `all-MiniLM-L6-v2`
 model, faithful summaries of a short message typically score 0.6–0.8 and

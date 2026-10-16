@@ -1,13 +1,13 @@
 # Writing Adapters
 
-Adapters wrap your agents so a2a-spec can call them during recording and testing.
+Adapters wrap your agents so agent-handshake can call them during recording and testing.
 
 ## FunctionAdapter
 
 For plain async Python functions:
 
 ```python
-from a2a_spec import FunctionAdapter
+from agent_handshake import FunctionAdapter
 
 async def my_agent(input_data: dict) -> dict:
     return {"category": "billing", "summary": "Customer reports billing issue"}
@@ -29,7 +29,7 @@ Requirements:
 For HTTP/REST agent endpoints:
 
 ```python
-from a2a_spec import HTTPAdapter
+from agent_handshake import HTTPAdapter
 
 adapter = HTTPAdapter(
     url="http://localhost:8000/agent",
@@ -47,7 +47,7 @@ The endpoint must accept POST with JSON body and return JSON.
 For agents that implement the [A2A protocol](https://a2a-protocol.org) 1.0:
 
 ```python
-from a2a_spec import A2AAdapter
+from agent_handshake import A2AAdapter
 
 adapter = A2AAdapter(
     url="https://triage.example.com",  # base URL or agent card URL
@@ -77,7 +77,7 @@ adapter = A2AAdapter(
 Subclass `AgentAdapter` for full control:
 
 ```python
-from a2a_spec import AgentAdapter, AgentMetadata, AgentResponse
+from agent_handshake import AgentAdapter, AgentMetadata, AgentResponse
 
 class MyAdapter(AgentAdapter):
     def get_metadata(self) -> AgentMetadata:
@@ -90,8 +90,8 @@ class MyAdapter(AgentAdapter):
 
 ## Registering Adapters
 
-Create `a2a_spec/adapters/__init__.py` in your project (or point
-`adapters_dir` in `a2a-spec.yaml` at another package). `a2aspec record` runs
+Create `handshake/adapters/__init__.py` in your project (or point
+`adapters_dir` in `handshake.yaml` at another package). `handshake record` runs
 from the project root, so adapters can import your agent modules directly
 (`from agents.triage import triage_agent`) or each other relatively
 (`from .triage_adapter import triage_adapter`):
