@@ -1,0 +1,25 @@
+{
+  "fingerprint": "718c01c6fc26",
+  "agent_id": "triage-agent",
+  "scenario": "opening_hours",
+  "timestamp": "2026-10-16T07:56:31.961330+00:00",
+  "input": {
+    "message": "Hi! Do you ship to Canada, and how long does it usually take?"
+  },
+  "output": {
+    "category": "shipping",
+    "priority": "low",
+    "summary": "The customer asks whether the shop ships to Canada and how long delivery usually takes.",
+    "customer": {
+      "sentiment": "calm",
+      "wants_refund": false
+    }
+  },
+  "metadata": {
+    "agent_version": "claude-haiku-5-5",
+    "model": null,
+    "prompt_hash": null,
+    "latency_ms": 1810.6500420017255,
+    "token_usage": null
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "fingerprint": "6dba6cb78d49",
+  "agent_id": "triage-agent",
+  "scenario": "broken_kettle",
+  "timestamp": "2026-10-16T07:56:28.293472+00:00",
+  "input": {
+    "message": "The kettle I bought stopped heating after two days. This is ridiculous."
+  },
+  "output": {
+    "category": "product",
+    "priority": "low",
+    "summary": "The customer's kettle stopped heating after two days of use.",
+    "customer": {
+      "sentiment": "angry",
+      "wants_refund": false
+    }
+  },
+  "metadata": {
+    "agent_version": "claude-haiku-5-5",
+    "model": null,
+    "prompt_hash": null,
+    "latency_ms": 1648.7442500001634,
+    "token_usage": null
+  }
+}
