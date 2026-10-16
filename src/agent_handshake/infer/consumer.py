@@ -168,6 +168,12 @@ def _bound_names(fn: Function) -> frozenset[str]:
     for node in ast.walk(fn):
         if isinstance(node, ast.arg):
             names.add(node.arg)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            names.add(node.name)  # except Error as name
+        elif isinstance(node, ast.MatchAs | ast.MatchStar) and node.name:
+            names.add(node.name)  # case [*rest] / case x
+        elif isinstance(node, ast.MatchMapping) and node.rest:
+            names.add(node.rest)  # case {**rest}
         elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
             names.add(node.id)
         elif node is not fn and isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):

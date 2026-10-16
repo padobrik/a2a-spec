@@ -69,6 +69,10 @@ def bound_names(fn: Node) -> frozenset[str]:
             target = node.child_by_field_name("name")
         elif node.type == "arrow_function":
             target = node.child_by_field_name("parameter")
+        elif node.type == "catch_clause":
+            target = node.child_by_field_name("parameter")  # catch (name)
+        elif node.type == "for_in_statement":
+            target = node.child_by_field_name("left")  # for (const name of ...)
         elif node.type == "formal_parameters":
             names.update(node_text(c) for c in node.named_children if c.type == "identifier")
         if target is not None:
