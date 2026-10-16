@@ -225,6 +225,8 @@ class A2AAdapter(AgentAdapter):
     def _apply_artifact(self, task: dict[str, Any], update: dict[str, Any]) -> None:
         """Add or replace an artifact, or append parts to it, as a2a-sdk does."""
         artifact = copy.deepcopy(update.get("artifact") or {})
+        if not isinstance(artifact, dict):
+            raise AdapterError(self._agent_id, "A2A artifact is not an object")
         artifacts: list[dict[str, Any]] = task.setdefault("artifacts", [])
         index = next(
             (
@@ -313,6 +315,8 @@ class A2AAdapter(AgentAdapter):
 
     def _task_parts(self, task: dict[str, Any]) -> list[dict[str, Any]]:
         status = task.get("status") or {}
+        if not isinstance(status, dict):
+            raise AdapterError(self._agent_id, "A2A task status is not an object")
         state = status.get("state")
         status_parts = (status.get("message") or {}).get("parts") or []
         if state != "TASK_STATE_COMPLETED":
@@ -329,6 +333,8 @@ class A2AAdapter(AgentAdapter):
         loose: list[Any] = []
         files: list[dict[str, Any]] = []
         for part in parts:
+            if not isinstance(part, dict):
+                raise AdapterError(self._agent_id, "A2A part is not an object")
             if "text" in part:
                 texts.append(part["text"])
             elif "data" in part:
