@@ -75,8 +75,10 @@ def infer_command(
     try:
         config = load_config(config_path)
         path, function = parse_source_ref(source)
-        reads = analyze_consumer(path, function)
         snapshots = SnapshotStore(config.storage.path).load_all(producer)
+        # The producer's keys pick the parameter whose type matches its output.
+        keys = {k for s in snapshots if isinstance(s.output_data, dict) for k in s.output_data}
+        reads = analyze_consumer(path, function, keys)
     except (HandshakeError, ValueError) as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(EXIT_INPUT) from None

@@ -183,6 +183,21 @@ class TestCliInferCheck:
         result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
         assert _flat(result.output).endswith("--force --allow-missing 'issue type'")
 
+    def test_typed_consumer_infer_and_check(self, tmp_path: Path) -> None:
+        config = _project(tmp_path)
+        (tmp_path / "resolution.py").write_text(
+            "from pydantic import BaseModel\n\n\n"
+            "class Ticket(BaseModel):\n    category: str\n    priority: str\n\n\n"
+            "def resolution_agent(query: str, ticket: Ticket):\n"
+            "    return ticket.category, getattr(ticket, 'priority', 'low')\n"
+        )
+        result = runner.invoke(app, _args(tmp_path, config))
+        assert result.exit_code == 0, result.output
+        spec = load_spec(tmp_path / "specs" / "triage-agent-to-resolution-agent.yaml")
+        assert set(spec.structural.properties) == {"category", "priority"}
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert result.exit_code == 0, result.output
+
     def test_check_without_inferred_specs(self, tmp_path: Path) -> None:
         config = _project(tmp_path)
         (tmp_path / "specs").mkdir()
