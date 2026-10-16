@@ -291,6 +291,16 @@ class TestCliTestLive:
         assert result.exit_code == 0
         assert "No adapter for 'triage-agent'" in " ".join(result.output.split())
 
+    def test_live_skips_scenarios_for_other_agents(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        _live_project(tmp_path, {"ok": "charged twice", "renamed": "please rename"})
+        scen = tmp_path / "a2a_spec" / "scenarios" / "s.yaml"
+        scen.write_text(scen.read_text() + "    agents: [resolution-agent]\n")
+        result = runner.invoke(app, ["test", "--live"])
+        assert result.exit_code == 0, result.output
+        assert "PASS triage-to-resolution / ok" in result.output
+        assert "renamed" not in result.output
+
     def test_live_junit(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
         _live_project(tmp_path, {"ok": "charged twice", "renamed": "please rename"})

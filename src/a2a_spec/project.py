@@ -21,6 +21,12 @@ class Scenario:
     input: dict[str, Any] = field(default_factory=dict)
     # Exact output values per agent id, e.g. {"triage-agent": {"category": "billing"}}.
     expectations: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Agent ids that take this input; empty means every agent.
+    agents: list[str] = field(default_factory=list)
+
+    def applies_to(self, agent_id: str) -> bool:
+        """Whether ``agent_id`` should be called with this scenario's input."""
+        return not self.agents or agent_id in self.agents
 
 
 def load_scenarios(config: A2ASpecConfig, suite: str | None = None) -> list[Scenario]:
@@ -47,12 +53,18 @@ def load_scenarios(config: A2ASpecConfig, suite: str | None = None) -> list[Scen
             raise ConfigError(f"Invalid YAML in {path}: {e}") from e
         suite_name = (raw.get("test_suite") or {}).get("name", path.stem)
         for item in raw.get("scenarios") or []:
+            agents = item.get("agents") or []
+            if not isinstance(agents, list) or not all(isinstance(a, str) for a in agents):
+                raise ConfigError(
+                    f"Scenario '{item['name']}' in {path}: 'agents' must be a list of agent ids"
+                )
             scenarios.append(
                 Scenario(
                     suite_name,
                     item["name"],
                     item.get("input") or {},
                     item.get("expectations") or {},
+                    agents,
                 )
             )
     return scenarios

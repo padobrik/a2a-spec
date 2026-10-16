@@ -141,3 +141,62 @@ class TestCliRecordAdapters:
         result = runner.invoke(app, ["record", "--config", str(config), "--suite", "nope.yaml"])
         assert result.exit_code == 1
         assert "Scenario suite not found: nope.yaml" in _flat(result.output)
+
+
+TWO_ADAPTERS = (
+    "from a2a_spec import FunctionAdapter\n"
+    "from .triage_adapter import adapter\n"
+    "async def resolve(ticket):\n    return {'escalate': ticket['category'] == 'billing'}\n"
+    "ADAPTERS = {\n"
+    "    'triage-agent': adapter,\n"
+    "    'resolution-agent': FunctionAdapter(\n"
+    "        fn=resolve, agent_id='resolution-agent', version='1'\n"
+    "    ),\n"
+    "}\n"
+)
+
+
+class TestCliRecordAgentFilter:
+    def test_every_agent_by_default(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        config = _project(tmp_path, TWO_ADAPTERS)
+        result = runner.invoke(app, ["record", "--config", str(config)])
+        assert result.exit_code == 1
+        assert "FAIL resolution-agent / billing" in _flat(result.output)
+
+    def test_agent_option(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        config = _project(tmp_path, TWO_ADAPTERS)
+        result = runner.invoke(app, ["record", "--config", str(config), "--agent", "triage-agent"])
+        assert result.exit_code == 0, result.output
+        out = _flat(result.output)
+        assert "triage-agent / billing recorded" in out
+        assert "resolution-agent" not in out
+
+    def test_unknown_agent(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        config = _project(tmp_path, TWO_ADAPTERS)
+        result = runner.invoke(app, ["record", "--config", str(config), "-a", "billing-agent"])
+        assert result.exit_code == 1
+        out = _flat(result.output)
+        assert "No adapter for billing-agent in ADAPTERS" in out
+        assert "Available: triage-agent, resolution-agent" in out
+
+    def test_scenario_agents_list(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        config = _project(tmp_path, TWO_ADAPTERS)
+        suite = tmp_path / "a2a_spec" / "scenarios" / "support.yaml"
+        suite.write_text(SCENARIOS + "    agents: [triage-agent]\n")
+        result = runner.invoke(app, ["record", "--config", str(config)])
+        assert result.exit_code == 0, result.output
+        assert "resolution-agent" not in result.output
+        assert "[done] 1 snapshots saved" in _flat(result.output)
+
+    def test_scenario_agents_must_be_a_list(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        config = _project(tmp_path, TWO_ADAPTERS)
+        suite = tmp_path / "a2a_spec" / "scenarios" / "support.yaml"
+        suite.write_text(SCENARIOS + "    agents: triage-agent\n")
+        result = runner.invoke(app, ["record", "--config", str(config)])
+        assert result.exit_code == 1
+        assert "'agents' must be a list of agent ids" in _flat(result.output)

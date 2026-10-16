@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -28,6 +29,14 @@ def record_command(
         "--scenario",
         help="Record only a specific scenario.",
     ),
+    agent: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--agent",
+            "-a",
+            help="Record only this agent id from ADAPTERS. Repeat for several agents.",
+        ),
+    ] = None,
     config_path: str | None = typer.Option(
         None,
         "--config",
@@ -39,7 +48,8 @@ def record_command(
 
     Calls actual agents through their adapters and saves the outputs
     as snapshot files. These snapshots are committed to git and used
-    for deterministic replay in CI.
+    for deterministic replay in CI. A scenario with an ``agents`` list is
+    recorded only for those agents.
     """
     try:
         config = load_config(config_path)
@@ -72,6 +82,16 @@ def record_command(
         )
         raise typer.Exit(1)
 
+    unknown = sorted(set(agent or []) - set(adapters))
+    if unknown:
+        console.print(
+            f"[red]No adapter for {', '.join(unknown)} in ADAPTERS. "
+            f"Available: {', '.join(adapters)}[/red]"
+        )
+        raise typer.Exit(1)
+    if agent:
+        adapters = {k: v for k, v in adapters.items() if k in agent}
+
     store = SnapshotStore(config.storage.path)
     recorder = Recorder(store)
 
@@ -87,6 +107,8 @@ def record_command(
             console.print(f"  [bold]Suite: {sc.suite}[/bold]")
 
         for agent_id, adapter in adapters.items():
+            if not sc.applies_to(agent_id):
+                continue
             try:
                 asyncio.run(recorder.record(adapter, sc.name, sc.input))
                 console.print(f"    [green]PASS[/green] {agent_id} / {sc.name} recorded")
