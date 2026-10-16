@@ -34,7 +34,7 @@ class TestCliTest:
     def test_version_flag(self) -> None:
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
-        assert "0.8.0" in result.output
+        assert "0.9.0" in result.output
 
 
 STRUCT_SPEC = """
