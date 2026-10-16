@@ -33,6 +33,7 @@ import pytest
 import yaml
 
 PROJECTS = Path(__file__).parent / "projects"
+STEP_TIMEOUT = 180  # seconds; a hung command fails the scenario instead of blocking CI
 SCENARIOS = sorted(p.parent for p in PROJECTS.glob("*/scenario.yaml"))
 
 
@@ -62,7 +63,13 @@ def _command(line: str) -> list[str]:
 
 
 def _environment(workdir: Path) -> dict[str, str]:
-    env = {k: v for k, v in os.environ.items() if not k.endswith("_API_KEY")}
+    # No API keys, and no GIT_* variables: GIT_DIR or GIT_WORK_TREE from a
+    # git hook would point the scenario's git commands at another repository.
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.endswith("_API_KEY") and not k.startswith("GIT_")
+    }
     env.pop("GITHUB_WORKSPACE", None)  # annotation paths stay absolute
     env.update(
         {
@@ -96,17 +103,21 @@ def test_scenario(project: Path, tmp_path: Path) -> None:
             for source, target in step["copy"].items():
                 shutil.copyfile(workdir / source, workdir / target)
             continue
-        proc = subprocess.run(
-            _command(step["run"]),
-            cwd=workdir,
-            env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            check=False,
-        )
-        output = proc.stdout + proc.stderr
         where = f"step {number} `{step['run']}`"
+        try:
+            proc = subprocess.run(
+                _command(step["run"]),
+                cwd=workdir,
+                env=env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+                timeout=STEP_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            pytest.fail(f"{where} did not finish in {STEP_TIMEOUT}s")
+        output = proc.stdout + proc.stderr
         expected_exit = step.get("exit", 0)
         assert proc.returncode == expected_exit, (
             f"{where} exited {proc.returncode}, expected {expected_exit}:\n{output}"
