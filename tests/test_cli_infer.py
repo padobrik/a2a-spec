@@ -167,3 +167,43 @@ class TestCliInferCheck:
         result = runner.invoke(app, ["infer", "--config", str(config)])
         assert result.exit_code == 2
         assert "--producer, --consumer and --source are required" in _flat(result.output)
+
+
+NESTED_CONSUMER = """
+def resolution_agent(data: dict) -> dict:
+    customer = data["customer"]
+    return {"tier": customer.get("tier"), "urgent": data["priority"] == "high"}
+"""
+
+
+class TestCliInferNested:
+    def test_nested_spec_and_check(self, tmp_path: Path) -> None:
+        config = _project(tmp_path)
+        snapshot = tmp_path / "snapshots" / "triage-agent" / "billing_abc123.json"
+        data = json.loads(snapshot.read_text())
+        data["output"]["customer"] = {"tier": "pro", "region": "eu"}
+        snapshot.write_text(json.dumps(data))
+        consumer = tmp_path / "resolution.py"
+        consumer.write_text(NESTED_CONSUMER)
+
+        result = runner.invoke(app, _args(tmp_path, config))
+        assert result.exit_code == 0, result.output
+        spec = load_spec(tmp_path / "specs" / "triage-agent-to-resolution-agent.yaml")
+        assert spec.structural.required == ["customer", "priority"]
+        assert spec.structural.properties["customer"] == {
+            "type": "object",
+            "required": ["tier"],
+            "properties": {"tier": {"type": "string"}},
+        }
+
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert result.exit_code == 0, result.output
+
+        consumer.write_text(NESTED_CONSUMER.replace('customer.get("tier")', 'customer["region"]'))
+        result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
+        assert result.exit_code == 1
+        out = _flat(result.output)
+        assert "reads 'customer.region' (line 4), which the spec does not cover" in out
+        assert (
+            "WARN: the spec covers 'customer.tier', which resolution_agent no longer reads" in out
+        )
