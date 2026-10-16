@@ -20,8 +20,16 @@ _REMOVED_VALIDATORS = {
 }
 
 
+_REMOVED_SECTIONS = {
+    "statistical": "It was never checked; delete the section.",
+}
+
+
 def removed_content(spec_data: dict[str, Any]) -> str | None:
     """The migration message for the first removed item in a raw spec, or None."""
+    for section, advice in _REMOVED_SECTIONS.items():
+        if section in spec_data:
+            return f"Section '{section}' was removed in {REMOVED_IN}. {advice} See CHANGELOG.md."
     for rule in spec_data.get("policy") or []:
         validator = rule.get("validator") if isinstance(rule, dict) else None
         if validator in _REMOVED_VALIDATORS:

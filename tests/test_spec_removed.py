@@ -49,6 +49,14 @@ def test_builtin_validator_removed(tmp_path: Path, validator: str, advice: str) 
     assert message.endswith("See CHANGELOG.md.")
 
 
+def test_statistical_section_removed(tmp_path: Path) -> None:
+    path = _spec(tmp_path, "  statistical:\n    - rule: drift\n      method: ks_test\n")
+    with pytest.raises(
+        ConfigError, match=r"spec\.yaml: Section 'statistical' was removed in 0\.9\."
+    ):
+        load_spec(path)
+
+
 def test_own_custom_validator_still_loads(tmp_path: Path) -> None:
     path = _spec(
         tmp_path, "  policy:\n    - rule: r\n      method: custom\n      validator: checks.mine\n"
