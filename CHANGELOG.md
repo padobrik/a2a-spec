@@ -7,6 +7,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- `handshake infer` reads contracts from types. The parameter with the
+  producer's output is chosen by its annotation (Pydantic, `TypedDict`,
+  dataclass; TypeScript `interface`, `type`, Zod), in the same file or
+  imported from the project; with several, by the producer's snapshot keys.
+  Attribute reads and `getattr(obj, "field", default)` on such a parameter
+  are field reads; a read of an undeclared field warns. A list of outputs is
+  read per item, and an OpenAI Agents SDK `RunResult.final_output` is the
+  output. When no parameter fits the producer, `infer` exits 2 instead of
+  writing a spec with another agent's fields.
+
 ## [0.9.1] - 2026-10-17
 
 ### Added
