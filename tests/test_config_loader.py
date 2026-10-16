@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from a2a_spec.config.loader import load_config
-from a2a_spec.config.settings import A2ASpecConfig
-from a2a_spec.exceptions import ConfigError
+from agent_handshake.config.loader import load_config
+from agent_handshake.config.settings import HandshakeConfig
+from agent_handshake.exceptions import ConfigError
 
 
 class TestConfigLoader:
     def test_load_valid_config(self, tmp_path: Path) -> None:
-        config_file = tmp_path / "a2a-spec.yaml"
+        config_file = tmp_path / "handshake.yaml"
         config_file.write_text('project_name: my-proj\nversion: "2.0"')
         config = load_config(config_file)
         assert config.project_name == "my-proj"
@@ -22,7 +22,7 @@ class TestConfigLoader:
     def test_load_returns_defaults_when_no_file(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
         config = load_config()
-        assert isinstance(config, A2ASpecConfig)
+        assert isinstance(config, HandshakeConfig)
         assert config.project_name == "my-project"
 
     def test_load_missing_explicit_path(self) -> None:
@@ -45,20 +45,71 @@ class TestConfigLoader:
         config_file = tmp_path / "empty.yaml"
         config_file.write_text("")
         config = load_config(config_file)
-        assert isinstance(config, A2ASpecConfig)
+        assert isinstance(config, HandshakeConfig)
 
     def test_defaults_semantic_config(self) -> None:
-        config = A2ASpecConfig()
+        config = HandshakeConfig()
         assert config.semantic.enabled is True
         assert config.semantic.model == "all-MiniLM-L6-v2"
 
     def test_defaults_ci_config(self) -> None:
-        config = A2ASpecConfig()
+        config = HandshakeConfig()
         assert config.ci.fail_on_semantic_drift is True
         assert config.ci.drift_threshold == 0.15
 
     def test_custom_storage_path(self, tmp_path: Path) -> None:
-        config_file = tmp_path / "a2a-spec.yaml"
+        config_file = tmp_path / "handshake.yaml"
         config_file.write_text('storage:\n  path: "/custom/path"')
         config = load_config(config_file)
         assert config.storage.path == "/custom/path"
+
+
+class TestNamesBeforeRename:
+    """Projects made with a2a-spec keep working after the rename to agent-handshake."""
+
+    def test_old_config_name_found(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "a2a-spec.yaml").write_text("project_name: old\n")
+        assert load_config().project_name == "old"
+
+    def test_new_config_name_preferred(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "a2a-spec.yaml").write_text("project_name: old\n")
+        (tmp_path / "handshake.yaml").write_text("project_name: new\n")
+        assert load_config().project_name == "new"
+
+    def test_old_project_dir_used_for_default_paths(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "a2a_spec").mkdir()
+        (tmp_path / "a2a-spec.yaml").write_text("specs_dir: ./custom/specs\n")
+        config = load_config()
+        assert config.specs_dir == "./custom/specs"
+        assert config.scenarios_dir == "./a2a_spec/scenarios"
+        assert config.adapters_dir == "./a2a_spec/adapters"
+        assert config.storage.path == "./a2a_spec/snapshots"
+
+    def test_old_project_dir_without_config_file(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "a2a_spec").mkdir()
+        assert load_config().specs_dir == "./a2a_spec/specs"
+
+    def test_new_project_dir_wins(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "a2a_spec").mkdir()
+        (tmp_path / "handshake").mkdir()
+        config = load_config()
+        assert config.specs_dir == "./handshake/specs"
+        assert config.storage.path == "./handshake/snapshots"
+
+    def test_old_class_names(self) -> None:
+        from agent_handshake.config.settings import A2ASpecConfig
+        from agent_handshake.exceptions import A2ASpecError, HandshakeError
+
+        assert A2ASpecConfig is HandshakeConfig
+        assert A2ASpecError is HandshakeError
+
+    def test_old_cli_name_installed(self) -> None:
+        from importlib.metadata import entry_points
+
+        scripts = {ep.name: ep.value for ep in entry_points(group="console_scripts")}
+        assert scripts["a2aspec"] == scripts["handshake"] == "agent_handshake.cli.main:main"
