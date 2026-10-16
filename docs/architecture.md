@@ -13,7 +13,6 @@ src/agent_handshake/
 ├── semantic/     # Embedding model interface
 ├── reporting/    # Console, Markdown, JUnit output
 ├── config/       # Project configuration
-├── _internal/    # Private utilities
 └── exceptions.py # Error hierarchy
 ```
 
