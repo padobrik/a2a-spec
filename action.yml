@@ -22,7 +22,7 @@ inputs:
     description: Run handshake infer --check before the tests ("true" or "false").
     default: "true"
   args:
-    description: Extra arguments for handshake test, for example "--no-semantic".
+    description: Extra arguments for handshake test, for example "--fail-fast".
     default: ""
 
 outputs:

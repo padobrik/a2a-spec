@@ -5,7 +5,7 @@ Each directory in ``projects/`` is a small project with a ``scenario.yaml``:
     description: what the scenario shows
     requires: [tree_sitter_typescript]   # optional: modules that must import
     steps:
-      - run: handshake test --no-semantic
+      - run: handshake test
         exit: 1
         output: ["'priority' is a required property"]   # all must appear
         not_output: ["Traceback"]                        # none may appear

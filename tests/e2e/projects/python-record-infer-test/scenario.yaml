@@ -5,7 +5,7 @@ steps:
   - run: handshake infer --producer triage-agent --consumer resolution-agent --source agents/resolution.py:resolve
     files:
       handshake/specs/triage-agent-to-resolution-agent.yaml: ["- category", "- priority", "inferred_from: agents/resolution.py:resolve"]
-  - run: handshake test --no-semantic
+  - run: handshake test
     output: ["PASS triage-agent-to-resolution-agent / double_charge", "2 passed"]
     not_output: ["FAIL"]
   - run: handshake infer --check
