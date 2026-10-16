@@ -1,9 +1,9 @@
-# a2a-spec configuration for customer support example
+# agent-handshake configuration for customer support example
 project_name: "customer-support"
 version: "1.0"
 
-specs_dir: "./a2a_spec/specs"
-scenarios_dir: "./a2a_spec/scenarios"
+specs_dir: "./handshake/specs"
+scenarios_dir: "./handshake/scenarios"
 
 semantic:
   provider: sentence-transformers
@@ -12,7 +12,7 @@ semantic:
 
 storage:
   backend: local
-  path: ./a2a_spec/snapshots
+  path: ./handshake/snapshots
 
 ci:
   fail_on_semantic_drift: true

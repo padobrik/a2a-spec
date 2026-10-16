@@ -1,8 +1,8 @@
-"""Resolution agent adapter for a2a-spec."""
+"""Resolution agent adapter for agent-handshake."""
 
 from __future__ import annotations
 
-from a2a_spec.adapters.function_adapter import FunctionAdapter
+from agent_handshake.adapters.function_adapter import FunctionAdapter
 
 from agents.resolution import resolution_agent
 

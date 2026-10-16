@@ -13,7 +13,7 @@ test:
 	pytest tests/ -v --tb=short
 
 test-cov:
-	pytest tests/ -v --cov=a2a_spec --cov-report=term-missing
+	pytest tests/ -v --cov=agent_handshake --cov-report=term-missing
 
 typecheck:
 	mypy src/

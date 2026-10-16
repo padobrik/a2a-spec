@@ -1,19 +1,19 @@
-"""Example pytest integration for a2a-spec.
+"""Example pytest integration for agent-handshake.
 
-This demonstrates how to use a2a-spec in your existing pytest suite.
+This demonstrates how to use agent-handshake in your existing pytest suite.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from a2a_spec.spec.loader import load_spec
-from a2a_spec.spec.validator import validate_output
-from a2a_spec.snapshot.store import SnapshotStore
-from a2a_spec.snapshot.replay import ReplayEngine
-from a2a_spec.policy.engine import PolicyEngine
+from agent_handshake.spec.loader import load_spec
+from agent_handshake.spec.validator import validate_output
+from agent_handshake.snapshot.store import SnapshotStore
+from agent_handshake.snapshot.replay import ReplayEngine
+from agent_handshake.policy.engine import PolicyEngine
 
-EXAMPLE_DIR = Path(__file__).parent.parent / "a2a_spec"
+EXAMPLE_DIR = Path(__file__).parent.parent / "handshake"
 SPEC_PATH = EXAMPLE_DIR / "specs" / "triage-to-resolution.yaml"
 SNAPSHOTS_DIR = EXAMPLE_DIR / "snapshots"
 

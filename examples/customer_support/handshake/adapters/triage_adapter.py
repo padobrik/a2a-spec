@@ -1,8 +1,8 @@
-"""Triage agent adapter for a2a-spec."""
+"""Triage agent adapter for agent-handshake."""
 
 from __future__ import annotations
 
-from a2a_spec.adapters.function_adapter import FunctionAdapter
+from agent_handshake.adapters.function_adapter import FunctionAdapter
 
 from agents.triage import triage_agent
 
