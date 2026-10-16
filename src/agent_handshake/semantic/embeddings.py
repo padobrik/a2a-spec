@@ -22,7 +22,7 @@ class EmbeddingModel:
         except ImportError as e:
             raise ImportError(
                 "sentence-transformers is required for semantic features. "
-                "Install with: pip install a2a-spec[semantic]"
+                "Install with: pip install agent-handshake[semantic]"
             ) from e
         self._model = SentenceTransformer(self._model_name)
 

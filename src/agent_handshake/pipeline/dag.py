@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from a2a_spec.exceptions import ConfigError
+from agent_handshake.exceptions import ConfigError
 
 
 @dataclass

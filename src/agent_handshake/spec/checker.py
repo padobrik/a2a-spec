@@ -5,10 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from a2a_spec.policy.engine import PolicyEngine, PolicyResult
-from a2a_spec.semantic.engine import SemanticEngine, SemanticResult
-from a2a_spec.spec.schema import Spec
-from a2a_spec.spec.validator import ValidationResult, validate_output
+from agent_handshake.policy.engine import PolicyEngine, PolicyResult
+from agent_handshake.semantic.engine import SemanticEngine, SemanticResult
+from agent_handshake.spec.schema import Spec
+from agent_handshake.spec.validator import ValidationResult, validate_output
 
 
 @dataclass(frozen=True)

@@ -34,7 +34,7 @@ class AgentAdapter(ABC):
     """Abstract base class for agent adapters.
 
     Implement this to wrap your agent (LangChain, CrewAI, plain function,
-    HTTP service, etc.) so a2a-spec can call it during recording and testing.
+    HTTP service, etc.) so agent-handshake can call it during recording and testing.
     """
 
     @abstractmethod
@@ -43,7 +43,7 @@ class AgentAdapter(ABC):
 
         This is called to identify the agent in snapshots and reports.
         The prompt_hash field is particularly important — it allows
-        a2a-spec to detect when a prompt has changed and invalidate
+        agent-handshake to detect when a prompt has changed and invalidate
         stale snapshots.
         """
         ...

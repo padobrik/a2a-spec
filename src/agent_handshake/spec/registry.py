@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from a2a_spec.spec.loader import load_all_specs
-from a2a_spec.spec.schema import Spec
+from agent_handshake.spec.loader import load_all_specs
+from agent_handshake.spec.schema import Spec
 
 
 class SpecRegistry:

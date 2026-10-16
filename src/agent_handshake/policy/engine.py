@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from a2a_spec.spec.schema import PolicyRule
+from agent_handshake.spec.schema import PolicyRule
 
 logger = logging.getLogger(__name__)
 

@@ -7,8 +7,8 @@ from typing import Any
 
 import httpx
 
-from a2a_spec.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
-from a2a_spec.exceptions import AdapterError
+from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
+from agent_handshake.exceptions import AdapterError
 
 
 class HTTPAdapter(AgentAdapter):

@@ -17,7 +17,7 @@ class StorageConfig(BaseModel):
     """Configuration for snapshot storage."""
 
     backend: str = "local"
-    path: str = "./a2a_spec/snapshots"
+    path: str = "./handshake/snapshots"
 
 
 class CIConfig(BaseModel):
@@ -28,14 +28,18 @@ class CIConfig(BaseModel):
     replay_mode: str = "exact"
 
 
-class A2ASpecConfig(BaseModel):
+class HandshakeConfig(BaseModel):
     """Top-level project configuration."""
 
     project_name: str = "my-project"
     version: str = "1.0"
-    specs_dir: str = "./a2a_spec/specs"
-    scenarios_dir: str = "./a2a_spec/scenarios"
-    adapters_dir: str = "./a2a_spec/adapters"
+    specs_dir: str = "./handshake/specs"
+    scenarios_dir: str = "./handshake/scenarios"
+    adapters_dir: str = "./handshake/adapters"
     semantic: SemanticConfig = Field(default_factory=SemanticConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
     ci: CIConfig = Field(default_factory=CIConfig)
+
+
+# Name before the rename to agent-handshake.
+A2ASpecConfig = HandshakeConfig

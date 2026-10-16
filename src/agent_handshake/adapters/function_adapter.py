@@ -7,8 +7,8 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from a2a_spec.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
-from a2a_spec.exceptions import AdapterError
+from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
+from agent_handshake.exceptions import AdapterError
 
 
 class FunctionAdapter(AgentAdapter):

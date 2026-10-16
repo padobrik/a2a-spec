@@ -13,8 +13,8 @@ from urllib.parse import urljoin
 
 import httpx
 
-from a2a_spec.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
-from a2a_spec.exceptions import AdapterError
+from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
+from agent_handshake.exceptions import AdapterError
 
 AGENT_CARD_PATH = "/.well-known/agent-card.json"
 PROTOCOL_VERSION = "1.0"

@@ -5,8 +5,8 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from a2a_spec.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
-from a2a_spec.exceptions import AdapterError
+from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
+from agent_handshake.exceptions import AdapterError
 
 
 class LangChainAdapter(AgentAdapter):
@@ -38,7 +38,7 @@ class LangChainAdapter(AgentAdapter):
         except ImportError as e:
             raise ImportError(
                 "langchain-core is required for LangChainAdapter. "
-                "Install with: pip install a2a-spec[langchain]"
+                "Install with: pip install agent-handshake[langchain]"
             ) from e
 
         self._runnable = runnable

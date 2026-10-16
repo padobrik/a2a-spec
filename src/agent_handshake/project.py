@@ -8,8 +8,8 @@ from typing import Any
 
 import yaml
 
-from a2a_spec.config.settings import A2ASpecConfig
-from a2a_spec.exceptions import ConfigError
+from agent_handshake.config.settings import HandshakeConfig
+from agent_handshake.exceptions import ConfigError
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class Scenario:
         return not self.agents or agent_id in self.agents
 
 
-def load_scenarios(config: A2ASpecConfig, suite: str | None = None) -> list[Scenario]:
+def load_scenarios(config: HandshakeConfig, suite: str | None = None) -> list[Scenario]:
     """Load scenarios from ``scenarios_dir``, or from one ``suite`` file.
 
     Raises:
@@ -70,11 +70,11 @@ def load_scenarios(config: A2ASpecConfig, suite: str | None = None) -> list[Scen
     return scenarios
 
 
-def load_adapters(config: A2ASpecConfig) -> dict[str, Any]:
+def load_adapters(config: HandshakeConfig) -> dict[str, Any]:
     """Load the ADAPTERS mapping from the project's adapters package.
 
     The package is loaded from its file path under a private module name:
-    importing it as ``a2a_spec.adapters`` would resolve to this library's
+    importing it as ``agent_handshake.adapters`` would resolve to this library's
     own subpackage, because the project directory shares the library's name.
 
     Raises:
@@ -95,7 +95,10 @@ def load_adapters(config: A2ASpecConfig) -> dict[str, Any]:
     if "" not in sys.path and str(Path.cwd()) not in sys.path:
         sys.path.insert(0, str(Path.cwd()))
 
-    name = "_a2a_spec_project_adapters_" + hashlib.sha1(str(package_dir).encode()).hexdigest()[:8]
+    name = (
+        "_agent_handshake_project_adapters_"
+        + hashlib.sha1(str(package_dir).encode()).hexdigest()[:8]
+    )
     spec = importlib.util.spec_from_file_location(
         name, init_file, submodule_search_locations=[str(package_dir)]
     )

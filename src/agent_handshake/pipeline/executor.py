@@ -5,14 +5,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from a2a_spec._internal.safe_eval import safe_evaluate
-from a2a_spec.adapters.base import AgentAdapter
-from a2a_spec.exceptions import PipelineExecutionError
-from a2a_spec.pipeline.dag import PipelineDAG
-from a2a_spec.pipeline.trace import AgentTraceStep, PipelineTrace
-from a2a_spec.snapshot.replay import ReplayEngine
-from a2a_spec.spec.checker import SpecChecker
-from a2a_spec.spec.registry import SpecRegistry
+from agent_handshake._internal.safe_eval import safe_evaluate
+from agent_handshake.adapters.base import AgentAdapter
+from agent_handshake.exceptions import PipelineExecutionError
+from agent_handshake.pipeline.dag import PipelineDAG
+from agent_handshake.pipeline.trace import AgentTraceStep, PipelineTrace
+from agent_handshake.snapshot.replay import ReplayEngine
+from agent_handshake.spec.checker import SpecChecker
+from agent_handshake.spec.registry import SpecRegistry
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-"""Pydantic models representing a2a-spec YAML files."""
+"""Pydantic models representing agent-handshake YAML files."""
 
 from __future__ import annotations
 
@@ -78,7 +78,7 @@ class Spec(BaseModel):
     consumer: str
     description: str = ""
     # Consumer function the spec was inferred from, as path/to/file.py:function.
-    # Set by `a2aspec infer`; `a2aspec infer --check` compares the spec with it.
+    # Set by `handshake infer`; `handshake infer --check` compares the spec with it.
     inferred_from: str | None = None
 
     structural: StructuralSpec

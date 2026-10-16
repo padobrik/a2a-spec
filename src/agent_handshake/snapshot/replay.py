@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from a2a_spec.snapshot.store import Snapshot, SnapshotStore
+from agent_handshake.snapshot.store import Snapshot, SnapshotStore
 
 
 class ReplayEngine:

@@ -1,19 +1,19 @@
-"""a2a-spec: The open specification for agent-to-agent interactions."""
+"""agent-handshake: The open specification for agent-to-agent interactions."""
 
 __version__ = "0.6.0"
 
-from a2a_spec.adapters.a2a_adapter import A2AAdapter
-from a2a_spec.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
-from a2a_spec.adapters.function_adapter import FunctionAdapter
-from a2a_spec.adapters.http_adapter import HTTPAdapter
-from a2a_spec.adapters.langchain_adapter import LangChainAdapter
-from a2a_spec.config.loader import load_config
-from a2a_spec.config.settings import A2ASpecConfig
-from a2a_spec.diff.engine import DiffEngine, DiffResult, DriftSeverity
-from a2a_spec.exceptions import (
-    A2ASpecError,
+from agent_handshake.adapters.a2a_adapter import A2AAdapter
+from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
+from agent_handshake.adapters.function_adapter import FunctionAdapter
+from agent_handshake.adapters.http_adapter import HTTPAdapter
+from agent_handshake.adapters.langchain_adapter import LangChainAdapter
+from agent_handshake.config.loader import load_config
+from agent_handshake.config.settings import HandshakeConfig
+from agent_handshake.diff.engine import DiffEngine, DiffResult, DriftSeverity
+from agent_handshake.exceptions import (
     AdapterError,
     ConfigError,
+    HandshakeError,
     PipelineExecutionError,
     PolicyViolationError,
     SemanticDriftError,
@@ -21,14 +21,14 @@ from a2a_spec.exceptions import (
     SnapshotNotFoundError,
     SpecValidationError,
 )
-from a2a_spec.pipeline.executor import PipelineExecutor
-from a2a_spec.pipeline.trace import PipelineTrace
-from a2a_spec.snapshot.recorder import Recorder
-from a2a_spec.snapshot.replay import ReplayEngine
-from a2a_spec.snapshot.store import SnapshotStore
-from a2a_spec.spec.loader import load_spec
-from a2a_spec.spec.schema import PolicyRule, SemanticRule, Spec, StructuralSpec
-from a2a_spec.spec.validator import validate_output
+from agent_handshake.pipeline.executor import PipelineExecutor
+from agent_handshake.pipeline.trace import PipelineTrace
+from agent_handshake.snapshot.recorder import Recorder
+from agent_handshake.snapshot.replay import ReplayEngine
+from agent_handshake.snapshot.store import SnapshotStore
+from agent_handshake.spec.loader import load_spec
+from agent_handshake.spec.schema import PolicyRule, SemanticRule, Spec, StructuralSpec
+from agent_handshake.spec.validator import validate_output
 
 __all__ = [
     "__version__",
@@ -59,10 +59,10 @@ __all__ = [
     "HTTPAdapter",
     "LangChainAdapter",
     # Config
-    "A2ASpecConfig",
+    "HandshakeConfig",
     "load_config",
     # Exceptions
-    "A2ASpecError",
+    "HandshakeError",
     "SpecValidationError",
     "SnapshotNotFoundError",
     "SnapshotMismatchError",

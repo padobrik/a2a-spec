@@ -53,7 +53,7 @@ def _embedding_similarity(text_a: str, text_b: str, model: object) -> SemanticCo
     except ImportError as e:
         raise ImportError(
             "numpy is required for semantic comparison. "
-            "Install with: pip install a2a-spec[semantic]"
+            "Install with: pip install agent-handshake[semantic]"
         ) from e
 
     embeddings = model.encode([text_a, text_b])  # type: ignore[attr-defined]

@@ -7,7 +7,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from a2a_spec.exceptions import ConfigError
+from agent_handshake.exceptions import ConfigError
 
 logger = logging.getLogger(__name__)
 

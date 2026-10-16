@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from a2a_spec.infer.consumer import analyze_consumer, parse_source_ref
-from a2a_spec.spec.schema import Spec
+from agent_handshake.infer.consumer import analyze_consumer, parse_source_ref
+from agent_handshake.spec.schema import Spec
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,7 @@ class FreshnessResult:
 
 
 def check_inferred_spec(spec: Spec) -> FreshnessResult:
-    """Compare a spec made by ``a2aspec infer`` with its consumer's current code.
+    """Compare a spec made by ``handshake infer`` with its consumer's current code.
 
     Raises:
         ValueError: If the spec has no ``inferred_from``.
