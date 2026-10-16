@@ -30,9 +30,9 @@ class TestAnalyzeConsumer:
         reads = analyze_consumer(path, "agent")
         assert reads.param == "data"
         assert [(r.name, r.line, r.strict) for r in reads.reads] == [
-            ("category", 2, True),
-            ("priority", 3, False),
-            ("notes", 4, False),
+            ("category", 2, (True,)),
+            ("priority", 3, (False,)),
+            ("notes", 4, (False,)),
         ]
         assert reads.warnings == []
 
