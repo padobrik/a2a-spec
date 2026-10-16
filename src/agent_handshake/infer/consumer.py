@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from agent_handshake.exceptions import ConfigError
+from agent_handshake.infer.py_types import PyModule
+from agent_handshake.infer.shapes import Annotation, choose_param, no_matching_param, undeclared
 
 logger = logging.getLogger(__name__)
 
@@ -64,12 +66,18 @@ def analyze_consumer(
 ) -> ConsumerReads:
     """Find the input fields a consumer function reads.
 
-    The function's first parameter (after ``self``/``cls``) is treated as
-    the producer's output. Literal string keys are tracked through nested
-    reads (``data["a"]["b"]``, ``data.get("a", {}).get("b")``) and through
-    local names bound to a nested value (``a = data["a"]``). Any other use
-    of the input is reported as a warning because the contract may then be
-    incomplete.
+    The parameter that holds the producer's output is chosen by its
+    annotation: a Pydantic model, TypedDict or dataclass, and with several
+    such parameters the one whose fields share the most names with ``keys``
+    (the producer's output keys). Without one, the first parameter (after
+    ``self``/``cls``) that is not a plain ``str``, ``int`` and the like.
+
+    Literal string keys are tracked through nested reads (``data["a"]["b"]``,
+    ``data.get("a", {}).get("b")``) and through local names bound to a nested
+    value (``a = data["a"]``). On an annotated object, attribute reads
+    (``report.summary``, ``getattr(report, "summary", "")``) are tracked too.
+    Any other use of the input is reported as a warning because the contract
+    may then be incomplete.
 
     Raises:
         ConfigError: If the file or function cannot be found or parsed.
@@ -98,21 +106,32 @@ def analyze_consumer(
         raise ConfigError(f"Function '{function}' is defined more than once in {path} ({lines})")
     fn = matches[0]
 
-    params = [a.arg for a in fn.args.posonlyargs + fn.args.args]
-    if params and params[0] in ("self", "cls"):
-        params = params[1:]
-    if not params:
+    args = [*fn.args.posonlyargs, *fn.args.args, *fn.args.kwonlyargs]
+    if args and args[0].arg in ("self", "cls"):
+        args = args[1:]
+    if not args:
         raise ConfigError(f"Function '{function}' in {path} takes no input parameter")
 
-    visitor = _ReadVisitor(params[0])
-    for stmt in fn.body:
-        visitor.visit(stmt)
-    visitor.finish()
+    module = PyModule(path, tree)
+
+    def visit(param: str, annotation: Annotation) -> _ReadVisitor:
+        visitor = _ReadVisitor(param, annotation)
+        for stmt in fn.body:
+            visitor.visit(stmt)
+        visitor.finish()
+        return visitor
+
+    described = [(a.arg, module.annotation(a.annotation)) for a in args]
+    chosen = choose_param(described, keys, lambda p, a: {r.path[0] for r in visit(p, a).reads})
+    if chosen is None:
+        raise ConfigError(no_matching_param(function, path, [p for p, _ in described], keys))
+    param, annotation = chosen
+    visitor = visit(param, annotation)
     logger.debug("Consumer %s:%s reads %d field(s)", path, function, len(visitor.reads))
     return ConsumerReads(
         # POSIX separators, so a spec inferred on Windows checks on Linux and back.
         source=f"{path.as_posix()}:{function}",
-        param=params[0],
+        param=param,
         reads=visitor.reads,
         warnings=visitor.warnings,
     )
@@ -128,8 +147,15 @@ _MAPPING_METHODS = frozenset(
 class _ReadVisitor(ast.NodeVisitor):
     """Records key chains rooted at the input parameter or at a local alias of it."""
 
-    def __init__(self, param: str) -> None:
+    def __init__(self, param: str, annotation: Annotation | None = None) -> None:
         self.param = param
+        annotation = annotation or Annotation()
+        # An annotated parameter that is not a dict is an object: its
+        # attributes are its fields. A list parameter holds one output per item.
+        self.object_mode = annotation.present and not annotation.mapping
+        self.items = annotation.items
+        self.wrapper = annotation.wrapper
+        self.shape = annotation.shape
         self.aliases: dict[str, Chain] = {}
         self.reads: list[FieldRead] = []
         self.warnings: list[str] = []
@@ -150,6 +176,7 @@ class _ReadVisitor(ast.NodeVisitor):
                     f"line {line}: {self._label(chain)} is used as a whole; "
                     "the inferred contract may be incomplete"
                 )
+        self.warnings += undeclared(self.reads, self.shape)
 
     # -- resolving expressions to key chains ---------------------------------
 
@@ -157,8 +184,35 @@ class _ReadVisitor(ast.NodeVisitor):
         """The key chain an expression reads, or None if it is not rooted in the input."""
         if isinstance(node, ast.Name):
             if node.id == self.param:
-                return (), ()
+                # A list of outputs or a framework result is not the output itself.
+                return None if self.items or self.wrapper else ((), ())
             return self.aliases.get(node.id)
+        if self._is_param(node, self.items) and _is_index(node):
+            return (), ()  # an item of a list of outputs
+        if isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
+            if self.wrapper and node.attr == self.wrapper and self._is_param(node.value):
+                return (), ()
+            if self.object_mode:
+                base = self._base(node.value)
+                if base is not None:
+                    return base[0] + (node.attr,), base[1] + (True,)
+            return None
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and self.wrapper:
+            if node.func.attr == f"{self.wrapper}_as" and self._is_param(node.func.value):
+                return (), ()  # result.final_output_as(Model)
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "getattr"
+            and len(node.args) in (2, 3)
+            and isinstance(node.args[1], ast.Constant)
+            and isinstance(node.args[1].value, str)
+        ):
+            base = self._base(node.args[0])
+            if base is not None:
+                # getattr without a default raises like an attribute read.
+                return base[0] + (node.args[1].value,), base[1] + (len(node.args) == 2,)
+            return None
         if isinstance(node, ast.Subscript) and isinstance(node.ctx, ast.Load):
             base = self._base(node.value)
             key = node.slice
@@ -175,6 +229,12 @@ class _ReadVisitor(ast.NodeVisitor):
             if base is not None and isinstance(key, ast.Constant) and isinstance(key.value, str):
                 return base[0] + (key.value,), base[1] + (False,)
         return None
+
+    def _is_param(self, node: ast.AST, subscript: bool = False) -> bool:
+        """``node`` is the parameter itself (or, with ``subscript``, an index into it)."""
+        if subscript:
+            return isinstance(node, ast.Subscript) and self._is_param(node.value)
+        return isinstance(node, ast.Name) and node.id == self.param
 
     def _base(self, node: ast.AST) -> Chain | None:
         """Resolve an expression that keys are read from, noting aliases used as mappings."""
@@ -222,6 +282,10 @@ class _ReadVisitor(ast.NodeVisitor):
     def _bind_items(self, target: ast.AST, iterable: ast.AST) -> None:
         """Note a loop or comprehension name that takes the items of an input list."""
         if not isinstance(target, ast.Name):
+            return
+        if self.items and self._is_param(iterable):
+            self.aliases[target.id] = ((), ())  # each item is one output
+            self._untracked.pop(target.id, None)
             return
         chain = self._chain(iterable)
         self.aliases.pop(target.id, None)
@@ -326,8 +390,12 @@ class _ReadVisitor(ast.NodeVisitor):
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
         if isinstance(node.ctx, ast.Load):
+            chain = self._chain(node)
+            if chain is not None:
+                self._record_use(node, chain, node.lineno)
+                return
             self._check_untracked(node.value)
-            if self._chain(node.value) == ((), ()):
+            if not self.object_mode and self._chain(node.value) == ((), ()):
                 # The input is an object here (a dataclass, a model), not a dict.
                 self._warn(node, f"reads the attribute .{node.attr}, which is not followed yet")
                 return
@@ -416,3 +484,11 @@ class _ReadVisitor(ast.NodeVisitor):
         self.warnings.append(
             f"line {line}: {label} {what}; the inferred contract may be incomplete"
         )
+
+
+def _is_index(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Subscript)
+        and isinstance(node.slice, ast.Constant)
+        and isinstance(node.slice.value, int)
+    )

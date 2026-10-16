@@ -38,8 +38,9 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
         raise ValueError(f"Spec '{spec.name}' was not inferred from code")
 
     path, function = parse_source_ref(spec.inferred_from)
-    reads = analyze_consumer(path, function)
     root = spec_schema(spec)
+    # The spec's own fields pick the same parameter that infer chose.
+    reads = analyze_consumer(path, function, {p[0] for p in field_paths(root)})
 
     failures: list[str] = []
     reported: set[tuple[str, ...]] = set()
