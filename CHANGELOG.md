@@ -12,7 +12,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   field that a spec names is `FAIL` and says who reads it and where
   (`resolution-agent reads it at agents/resolution.py:2`); a change to a field
   no spec names is `INFO` and does not fail.
-- Specs made by `handshake infer` store the read lines per field in `read_at`.
+- Specs made by `handshake infer` store the read lines per field in `read_at`,
+  and `reads_unknown_keys: true` when the consumer also reads keys the
+  analysis cannot name (`data[key]`, input passed to another function). `diff`
+  then keeps the rating of changes to fields the spec does not name, and
+  `infer --check` fails if the consumer reads such keys but the spec does not
+  say so.
 - A core Python API: `load_snapshots(source)` and `check(spec, snapshots)`
   return a `CheckResult` with one result per snapshot (see docs/api.md).
   `handshake test` and the pytest plugin use it.

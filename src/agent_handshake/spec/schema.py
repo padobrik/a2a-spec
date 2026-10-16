@@ -48,6 +48,10 @@ class Spec(BaseModel):
     # {"customer.tier": [3]}. Set by `handshake infer`; `handshake diff` uses it
     # to say where a removed field is read.
     read_at: dict[str, list[int]] = Field(default_factory=dict)
+    # True when the consumer also reads keys `handshake infer` cannot name, for
+    # example data[key]. Set by `handshake infer`; `handshake diff` then keeps
+    # the rating of a changed field the spec does not name.
+    reads_unknown_keys: bool = False
 
     structural: StructuralSpec
     policy: list[PolicyRule] = Field(default_factory=list)

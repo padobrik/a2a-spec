@@ -398,7 +398,7 @@ When a run has both, the code is `2`: the run was not complete, so its passes ca
 
 - `handshake infer` reads Python consumers. It finds `data["key"]`, `data.get("key")` and `"key" in data`, also in nested objects (`data["customer"]["tier"]`, `data.get("customer", {}).get("tier")`) and through a local name (`customer = data["customer"]`). It does not follow list items.
 - `handshake infer` also reads TypeScript and JavaScript consumers (`.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`) after `pip install "agent-handshake[typescript]"`. It finds `data.key`, `data["key"]`, `data?.key`, `"key" in data` and destructuring (`const { key } = data`). The code is parsed, not run, so Node.js is not needed.
-- If the consumer gives its input to another function, `handshake infer` cannot follow it. The command then shows a `WARN` line. Add the missing fields to the spec by hand.
+- If the consumer gives its input to another function, `handshake infer` cannot follow it. The command then shows a `WARN` line and sets `reads_unknown_keys: true` in the spec, so `handshake diff` does not treat other fields as unread. Add the missing fields to the spec by hand.
 - `handshake infer --check` checks only specs that contain `inferred_from`. Specs from agent-handshake 0.3 and earlier do not have it. Run `handshake infer` with `--force` again to add it.
 - `handshake diff` compares with the snapshots in git. Commit the snapshots before you use it.
 - `A2AAdapter` supports A2A 1.0 with JSON-RPC, with or without streaming. It does not support gRPC or HTTP+JSON.

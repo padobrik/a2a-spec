@@ -73,5 +73,10 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
         for p in field_paths(root)
         if p not in read_paths
     ]
+    if reads.warnings and not spec.reads_unknown_keys:
+        failures.append(
+            f"{function} reads keys handshake infer cannot name, "
+            "but the spec does not set reads_unknown_keys"
+        )
     warnings += reads.warnings
     return FreshnessResult(spec=spec, failures=failures, warnings=warnings)
