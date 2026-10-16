@@ -1,9 +1,11 @@
 """pytest plugin: run agent-handshake contracts as ordinary pytest tests.
 
-Enable it with ``--handshake`` or by setting ``handshake_config`` in the pytest ini
-options. Every spec YAML under the configured ``specs_dir`` then becomes a
-test file with one test per recorded producer snapshot, and the
-``handshake_check`` fixture validates live outputs inside your own tests.
+It turns on by itself when handshake.yaml is in the working directory or a
+parent up to the rootdir. Enable it elsewhere with ``--handshake`` or by
+setting ``handshake_config`` in the pytest ini options. Every spec YAML under
+the configured ``specs_dir`` then becomes a test file with one test per
+recorded producer snapshot, and the ``handshake_check`` fixture validates live
+outputs inside your own tests.
 """
 
 from __future__ import annotations
@@ -75,7 +77,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addini("handshake_config", "Path to handshake.yaml; setting it enables the plugin.")
     parser.addini(
         "handshake_enabled",
-        "Set to false to keep the plugin off even when handshake.yaml is in the rootdir.",
+        "Set to false to keep the plugin off even when handshake.yaml is found.",
         type="bool",
         default=True,
     )
@@ -91,13 +93,14 @@ def pytest_configure(config: pytest.Config) -> None:
         if config.inipath is not None:
             root = config.inipath.parent
     explicit = config.getoption("--handshake") or config_path is not None
-    # A handshake.yaml in the rootdir turns the plugin on without any flag.
-    auto = (config.rootpath / "handshake.yaml").exists() and config.getini("handshake_enabled")
-    if not explicit and not auto:
+    # A handshake.yaml between the working directory and the rootdir turns the
+    # plugin on without any flag.
+    found = _nearest_project(config) if config.getini("handshake_enabled") else None
+    if not explicit and found is None:
         config.stash[_STATE] = None
         return
-    if not explicit:
-        root = config.rootpath
+    if not explicit and found is not None:
+        root = found
     resolved = (root / config_path) if config_path else None
     if resolved is None:
         default = root / "handshake.yaml"
@@ -105,6 +108,23 @@ def pytest_configure(config: pytest.Config) -> None:
     state = _A2AState(root, resolved)
     config.stash[_STATE] = state
     _collect_specs_dir(config, state.specs_dir)
+
+
+def _nearest_project(config: pytest.Config) -> Path | None:
+    """The nearest directory with handshake.yaml, from the working directory up to the rootdir.
+
+    In a monorepo each project keeps its own handshake.yaml; running pytest in
+    a project directory uses that project's file.
+    """
+    rootpath = config.rootpath
+    start = config.invocation_params.dir
+    candidates = [start, *start.parents] if start.is_relative_to(rootpath) else [rootpath]
+    for directory in candidates:
+        if (directory / "handshake.yaml").exists():
+            return directory
+        if directory == rootpath:
+            break
+    return None
 
 
 def _collect_specs_dir(config: pytest.Config, specs_dir: Path) -> None:
@@ -287,7 +307,8 @@ def handshake_check(request: pytest.FixtureRequest) -> Callable[..., SpecCheck]:
     if state is None:
         pytest.fail(
             "handshake_check needs the agent-handshake plugin enabled: put handshake.yaml "
-            "in the rootdir, or pass --handshake or --handshake-config"
+            "in the working directory or above it up to the rootdir, or pass --handshake "
+            "or --handshake-config"
         )
     specs = {s.name: s for s in load_all_specs(state.specs_dir)}
     checker = SpecChecker()
