@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "agent_id": "writer",
+  "scenario": "apple_drivers",
+  "input": {
+    "prompt": "json from FinancialResearchManager._report_input"
+  },
+  "output": {
+    "short_summary": "Services drive long-term growth; regulation is the main risk.",
+    "markdown_report": "# Apple\n\nServices revenue grew ([10-K](https://investor.apple.com/sec-filings/)).",
+    "follow_up_questions": [
+      "How large is App Store revenue?"
+    ]
+  }
+}

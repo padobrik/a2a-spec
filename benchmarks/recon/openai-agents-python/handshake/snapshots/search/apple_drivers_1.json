@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "agent_id": "search",
+  "scenario": "apple_drivers",
+  "input": {
+    "prompt": "Search term: Apple services revenue growth 10-K\nReason: Services revenue is a long-term growth driver."
+  },
+  "output": {
+    "summary": "Apple's 10-K reports services as a growing share of net sales."
+  }
+}

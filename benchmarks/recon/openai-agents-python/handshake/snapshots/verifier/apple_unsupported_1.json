@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "agent_id": "verifier",
+  "scenario": "apple_unsupported",
+  "input": {
+    "prompt": "json from FinancialResearchManager._verification_input"
+  },
+  "output": {
+    "verified": false,
+    "issues": [
+      {
+        "claim": "Services revenue grew 20%.",
+        "category": "unsupported",
+        "explanation": "No supplied source gives this number.",
+        "source_urls": []
+      }
+    ]
+  }
+}
