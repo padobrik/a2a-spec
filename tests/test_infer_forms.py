@@ -38,6 +38,8 @@ TS_FORMS = [
     ("destructuring default", "const { a = 1 } = d; return a;", [("a", (False,))]),
     ("nested destructuring", "const { a: { b } } = d; return b;", [("a.b", (True, False))]),
     ("alias", "const a = d.a; return a.b;", [("a", (False,)), ("a.b", (True, False))]),
+    ("length of a list item", "return d.tags.map(t => t.length);", [("tags", (True,))]),
+    ("method of a list item", "return d.tags.map(t => t.trim());", [("tags", (True,))]),
 ]
 
 PY_WARNINGS = [
@@ -64,6 +66,11 @@ TS_WARNINGS = [
     ("computed key", "const { [key]: v } = d; return v;", "'d' destructures a non-literal key"),
     ("reassignment", "d = {}; return d;", "'d' is reassigned"),
     ("alias whole use", "const a = d.a; a.b; return helper(a);", "'a' is used as a whole"),
+    ("for-of item", "for (const r of d.rs) { r.x; } return 1;", "'r' is an item of 'rs'"),
+    ("map callback item", "return d.rs.map(r => r.x);", "'r' is an item of 'rs'"),
+    ("item of a copy", "const s = d.rs.slice(0, 2); return s.map(r => f(r));", "item of 'rs'"),
+    ("reduce item", "return d.rs.reduce((a, r) => a + r.v, 0);", "'r' is an item of 'rs'"),
+    ("item read by index", "return d.rs[0].x;", "an item of 'rs' is read"),
 ]
 
 

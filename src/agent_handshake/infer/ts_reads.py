@@ -22,6 +22,13 @@ Chain = tuple[tuple[str, ...], tuple[bool, ...]]
 _TRANSPARENT = frozenset(
     {"parenthesized_expression", "non_null_expression", "as_expression", "satisfies_expression"}
 )
+# Array methods whose callback gets each item; reduce passes the item second.
+_ITEM_CALLBACKS = {
+    "map": 0, "forEach": 0, "filter": 0, "find": 0, "findLast": 0, "findIndex": 0,
+    "some": 0, "every": 0, "flatMap": 0, "reduce": 1, "reduceRight": 1,
+}  # fmt: skip
+# Array methods that return items of the same array.
+_ITEM_COPIES = frozenset({"slice", "filter", "concat", "toSorted", "toReversed", "sort", "reverse"})
 
 
 class ReadVisitor:
@@ -36,6 +43,11 @@ class ReadVisitor:
         # a warning when the code also reads keys from it.
         self._mapping_aliases: set[str] = set()
         self._whole_alias_uses: list[tuple[str, Chain, int]] = []
+        # Names that hold list items of the input, which the analysis does not
+        # follow; reading keys from them, or passing them on, gets a warning.
+        self._untracked: dict[str, str] = {}
+        # Names that hold a copy of an input list (``data.items.slice(0, 3)``).
+        self._item_lists: dict[str, Chain] = {}
 
     def finish(self) -> None:
         for name, chain, line in self._whole_alias_uses:
@@ -66,12 +78,50 @@ class ReadVisitor:
 
     def _base(self, node: Node) -> Chain | None:
         """Resolve an expression that keys are read from, noting aliases used as mappings."""
-        inner = node
-        while inner.type in _TRANSPARENT and inner.named_children:
-            inner = inner.named_children[0]
+        inner = _unwrap(node)
         if inner.type == "identifier" and node_text(inner) in self.aliases:
             self._mapping_aliases.add(node_text(inner))
+        self._check_untracked(inner)
         return self.chain(node)
+
+    def _list(self, node: Node) -> Chain | None:
+        """The input list an expression refers to, directly or as a copy of it."""
+        inner = _unwrap(node)
+        if inner.type == "identifier" and node_text(inner) in self._item_lists:
+            return self._item_lists[node_text(inner)]
+        chain = self.chain(inner)
+        return chain if chain is not None and chain[0] else None
+
+    def _check_untracked(self, node: Node) -> None:
+        """Warn once when list items of the input are read from or passed on."""
+        node = _unwrap(node)
+        parent = node.parent
+        if parent is not None and parent.type == "member_expression":
+            if node_key(parent) == "length":
+                return  # the length of a string or list item is not a field
+        if node.type == "identifier" and node_text(node) in self._untracked:
+            how = self._untracked.pop(node_text(node))
+            self._warn_text(node_line(node), f"'{node_text(node)}' {how}")
+        elif node.type == "subscript_expression":
+            obj = node.child_by_field_name("object")
+            index = node.child_by_field_name("index")
+            listed = self._list(obj) if obj is not None else None
+            if listed is not None and index is not None and index.type == "number":
+                self._warn_text(node_line(node), f"an item of '{'.'.join(listed[0])}' is read")
+
+    def _is_untracked(self, node: Node) -> bool:
+        return node.type == "identifier" and node_text(node) in self._untracked
+
+    def _bind_items(self, target: Node | None, listed: Chain | None) -> None:
+        """Note a name that takes the items of an input list."""
+        if target is None or target.type != "identifier":
+            return
+        name = node_text(target)
+        self.aliases.pop(name, None)
+        if listed is not None:
+            self._untracked[name] = f"is an item of '{'.'.join(listed[0])}'"
+        else:
+            self._untracked.pop(name, None)
 
     @staticmethod
     def _extend(base: Chain, key: str, optional: bool) -> Chain:
@@ -140,11 +190,28 @@ class ReadVisitor:
     def _visit_call_expression(self, node: Node) -> None:
         callee = node.child_by_field_name("function")
         args = node.child_by_field_name("arguments")
+        if args is not None:
+            for arg in args.named_children:
+                self._check_untracked(arg)
         if callee is not None and callee.type == "member_expression":
             obj = callee.child_by_field_name("object")
+            method = node_key(callee)
+            listed = self._list(obj) if obj is not None else None
+            if listed is not None and method in _ITEM_CALLBACKS and args is not None:
+                callbacks = [a for a in args.named_children if a.type in _FUNCTIONS]
+                if callbacks:
+                    params = _parameters(callbacks[0])
+                    position = _ITEM_CALLBACKS[method]
+                    item = params[position] if len(params) > position else None
+                    self._bind_items(item, listed)
+            inner = _unwrap(obj) if obj is not None else None
+            if inner is not None and self._is_untracked(inner):
+                # A method of a list item (a string or an object): not a key read.
+                if args is not None:
+                    self.visit(args)
+                return
             base = self._base(obj) if obj is not None else None
             if base is not None:
-                method = node_key(callee)
                 if not base[0]:
                     self._warn(node, f"calls .{method}()", base)
                 else:
@@ -183,14 +250,44 @@ class ReadVisitor:
         chain = self.chain(value)
         if name.type == "identifier":
             self.visit(value)
+            self._untracked.pop(node_text(name), None)
+            self._item_lists.pop(node_text(name), None)
             if chain is not None and chain[0]:
                 self.aliases[node_text(name)] = chain
             else:
                 self.aliases.pop(node_text(name), None)
+                copied = self._copied_list(value)
+                if copied is not None:
+                    self._item_lists[node_text(name)] = copied
         elif name.type == "object_pattern" and chain is not None:
             self.destructure(name, chain)
         else:
             self.visit(value)
+
+    def _copied_list(self, value: Node) -> Chain | None:
+        """The input list that ``value`` copies, as in ``data.items.slice(0, 3)``."""
+        value = _unwrap(value)
+        if value.type != "call_expression":
+            return None
+        callee = value.child_by_field_name("function")
+        if callee is None or callee.type != "member_expression":
+            return None
+        obj = callee.child_by_field_name("object")
+        if node_key(callee) not in _ITEM_COPIES or obj is None:
+            return None
+        return self._list(obj)
+
+    def _visit_for_in_statement(self, node: Node) -> None:
+        left = node.child_by_field_name("left")
+        right = node.child_by_field_name("right")
+        operator = node.child_by_field_name("operator")
+        if right is not None:
+            self.visit(right)
+        if operator is not None and node_text(operator) == "of" and right is not None:
+            self._bind_items(left, self._list(right))
+        body = node.child_by_field_name("body")
+        if body is not None:
+            self.visit(body)
 
     def _visit_assignment_expression(self, node: Node) -> None:
         left = node.child_by_field_name("left")
@@ -279,8 +376,40 @@ class ReadVisitor:
     def _warn(self, node: Node, what: str, chain: Chain | None = None) -> None:
         self._warn_at(node_line(node), chain, what)
 
+    def _warn_text(self, line: int, what: str) -> None:
+        warning = (
+            f"line {line}: {what}, and its keys are not followed; "
+            "the inferred contract may be incomplete"
+        )
+        if warning not in self.warnings:
+            self.warnings.append(warning)
+
     def _warn_at(self, line: int, chain: Chain | None, what: str) -> None:
         label = f"'{'.'.join(chain[0])}'" if chain and chain[0] else f"'{self.param or 'input'}'"
         self.warnings.append(
             f"line {line}: {label} {what}; the inferred contract may be incomplete"
         )
+
+
+_FUNCTIONS = frozenset({"arrow_function", "function_expression", "function"})
+
+
+def _unwrap(node: Node) -> Node:
+    while node.type in _TRANSPARENT and node.named_children:
+        node = node.named_children[0]
+    return node
+
+
+def _parameters(function: Node) -> list[Node]:
+    """The names a callback declares, in order (``x => ...`` or ``(x, i) => ...``)."""
+    single = function.child_by_field_name("parameter")
+    if single is not None:
+        return [single]
+    params = function.child_by_field_name("parameters")
+    if params is None:
+        return []
+    names = []
+    for param in params.named_children:
+        pattern = param.child_by_field_name("pattern") or param
+        names.append(pattern)
+    return names
