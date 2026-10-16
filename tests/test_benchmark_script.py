@@ -41,6 +41,12 @@ class TestScoreCase:
         assert score.false == {"extra"}
         assert score.error is None
 
+    def test_parent_of_an_expected_field_is_not_false(self, tmp_path: Path) -> None:
+        repo = _repo(tmp_path, "def run(state):\n    return state['a']['b']\n")
+        score = benchmark.score_case(_case(expected=[{"path": "a.b"}]), repo)
+        assert score.hits == {"a.b"}
+        assert score.false == frozenset()
+
     def test_case_without_source_finds_nothing(self, tmp_path: Path) -> None:
         score = benchmark.score_case(_case(source=None, expected=[{"path": "x"}]), tmp_path)
         assert score.missed == {"x"}
