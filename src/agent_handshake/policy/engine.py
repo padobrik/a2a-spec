@@ -40,7 +40,9 @@ class PolicyEngine:
         """Register a custom policy validator function.
 
         The function signature must be:
-            def validator(output: dict, input_data: dict) -> tuple[bool, str]
+            def validator(output: dict | str, input_data: dict) -> tuple[bool, str]
+
+        ``output`` is a str for an agent that returns plain text.
 
         Args:
             name: Dotted name matching the spec's validator field.

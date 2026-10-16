@@ -56,7 +56,8 @@ policy:
     validator: checks.no_refund_promise   # checks.py: def no_refund_promise(output, input_data)
 ```
 
-The function returns `(passed, detail)`.
+The function returns `(passed, detail)`. `output` is a dict, or a str for an
+agent that returns plain text.
 
 ## Best Practices
 
