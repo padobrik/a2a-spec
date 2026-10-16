@@ -49,6 +49,23 @@ def test_builtin_validator_removed(tmp_path: Path, validator: str, advice: str) 
     assert message.endswith("See CHANGELOG.md.")
 
 
+@pytest.mark.parametrize("method", ["embedding_similarity", "entailment", "language_detection"])
+def test_semantic_rule_removed(tmp_path: Path, method: str) -> None:
+    path = _spec(tmp_path, f"  semantic:\n    - rule: faithful\n      method: {method}\n")
+    with pytest.raises(ConfigError) as info:
+        load_spec(path)
+    assert str(info.value) == (
+        f"{path}: Rule '{method}' was removed in 0.9. "
+        "Use a custom validator instead. See CHANGELOG.md."
+    )
+
+
+def test_empty_semantic_section_removed(tmp_path: Path) -> None:
+    path = _spec(tmp_path, "  semantic: []\n")
+    with pytest.raises(ConfigError, match=r"Section 'semantic' was removed in 0\.9\. Delete it"):
+        load_spec(path)
+
+
 def test_statistical_section_removed(tmp_path: Path) -> None:
     path = _spec(tmp_path, "  statistical:\n    - rule: drift\n      method: ks_test\n")
     with pytest.raises(

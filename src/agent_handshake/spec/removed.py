@@ -27,6 +27,18 @@ _REMOVED_SECTIONS = {
 
 def removed_content(spec_data: dict[str, Any]) -> str | None:
     """The migration message for the first removed item in a raw spec, or None."""
+    if "semantic" in spec_data:
+        for rule in spec_data.get("semantic") or []:
+            method = rule.get("method") if isinstance(rule, dict) else None
+            if method:
+                return (
+                    f"Rule '{method}' was removed in {REMOVED_IN}. "
+                    "Use a custom validator instead. See CHANGELOG.md."
+                )
+        return (
+            f"Section 'semantic' was removed in {REMOVED_IN}. "
+            "Delete it, or use a custom validator instead. See CHANGELOG.md."
+        )
     for section, advice in _REMOVED_SECTIONS.items():
         if section in spec_data:
             return f"Section '{section}' was removed in {REMOVED_IN}. {advice} See CHANGELOG.md."

@@ -75,23 +75,6 @@ class TestInitTemplatesWork:
         [clean] = engine.evaluate({"summary": "order #12345 charged twice"}, {}, spec.policy)
         assert clean.passed
 
-    def test_example_semantic_rule_is_evaluable(self, tmp_path: Path, monkeypatch) -> None:
-        from agent_handshake.semantic.engine import SemanticEngine
-        from agent_handshake.spec.loader import load_spec
-
-        class SameVector:
-            def encode(self, texts: str | list[str]) -> list[list[float]]:
-                return [[1.0, 0.0] for _ in texts]
-
-        root = self._init(tmp_path, monkeypatch)
-        spec = load_spec(root / "handshake" / "specs" / "example-spec.yaml")
-        results = SemanticEngine(model=SameVector()).evaluate(
-            {"summary": "Customer was charged twice"},
-            {"message": "I was charged twice for my order"},
-            spec.semantic,
-        )
-        assert [r.passed for r in results] == [True], [r.detail for r in results]
-
     def test_empty_adapters_template_gives_guidance(self, tmp_path: Path, monkeypatch) -> None:
         self._init(tmp_path, monkeypatch)
         result = runner.invoke(app, ["record"])

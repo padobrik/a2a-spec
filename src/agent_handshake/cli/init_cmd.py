@@ -59,14 +59,6 @@ spec:
         minimum: 0.0
         maximum: 1.0
 
-  semantic:
-    - rule: summary_faithful_to_input
-      description: "Summary must reflect the actual input"
-      method: embedding_similarity
-      threshold: 0.5
-      source_field: message
-      target_field: summary
-
   policy:
     - rule: no_pii
       description: "Output must not contain PII"
