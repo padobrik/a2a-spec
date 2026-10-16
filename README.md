@@ -281,7 +281,7 @@ jobs:
       - uses: padobrik/agent-handshake@v0.7.0
 ```
 
-The action has these inputs: `package` (for example `agent-handshake[semantic]`), `working-directory`, `config`, `check-inferred` and `args`.
+The action has these inputs: `package` (for example `agent-handshake[semantic]`), `working-directory`, `config`, `check-inferred` and `args`. Its output `test-exit-code` is the exit code of `handshake test` (0 when every contract passed), and it is empty when that step did not run.
 
 You can also run the commands yourself:
 
