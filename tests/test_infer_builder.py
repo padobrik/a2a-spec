@@ -149,3 +149,19 @@ class TestInferNestedSpec:
             assert validate_output(snap.output_data, spec).passed
         result = validate_output({"customer": {"level": "pro"}}, spec)
         assert any("'tier' is a required property" in e for e in result.errors)
+
+
+def test_read_lines_are_stored_by_path() -> None:
+    reads = ConsumerReads(
+        source="res.py:run",
+        param="data",
+        reads=[
+            FieldRead(("customer", "tier"), 7, (True, False)),
+            FieldRead(("customer", "tier"), 3, (True, False)),
+            FieldRead(("priority",), 5, (False,)),
+        ],
+    )
+    snaps = [_snap("a", {"customer": {"tier": "pro"}, "priority": "high"})]
+    data = infer_spec("triage", "res", reads, snaps).data
+    assert data["read_at"] == {"customer": [3, 7], "customer.tier": [3, 7], "priority": [5]}
+    assert Spec.model_validate(data).read_at["customer.tier"] == [3, 7]

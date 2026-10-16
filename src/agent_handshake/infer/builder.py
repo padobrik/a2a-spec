@@ -49,7 +49,8 @@ def infer_spec(
         f"{len(snapshots)} {producer} snapshot(s). Review before committing.",
     ]
     outputs = [(s.scenario, s.output_data) for s in snapshots]
-    fields = _object_schema((), outputs, reads, producer, consumer, header, warnings)
+    read_at: dict[str, list[int]] = {}
+    fields = _object_schema((), outputs, reads, producer, consumer, header, warnings, read_at)
 
     data = {
         "name": name or f"{producer}-to-{consumer}",
@@ -58,6 +59,7 @@ def infer_spec(
         "consumer": consumer,
         "description": f"Fields {consumer} reads from {producer} (inferred)",
         "inferred_from": reads.source,
+        "read_at": read_at,
         "structural": {
             "type": "object",
             "required": fields.get("required", []),
@@ -75,8 +77,12 @@ def _object_schema(
     consumer: str,
     header: list[str],
     warnings: list[str],
+    read_at: dict[str, list[int]],
 ) -> dict[str, Any]:
     """Schema for the keys the consumer reads below ``parent``.
+
+    Header lines, warnings and the read lines per dotted path are added to
+    ``header``, ``warnings`` and ``read_at``.
 
     ``objects`` holds the value at ``parent`` in each snapshot that has it,
     by scenario. Only dict values can carry keys.
@@ -116,12 +122,13 @@ def _object_schema(
             required.append(key)
         status = "required" if key in required else "optional"
         header.append(f"  {label}: {status}, read at line {lines}")
+        read_at[label] = sorted({r.line for r in below})
 
         schema = _schema_for([value for _, value in present])
         if any(len(r.path) > depth + 1 for r in below):
             schema = schema or {"type": "object"}
             schema.update(
-                _object_schema(path, present, reads, producer, consumer, header, warnings)
+                _object_schema(path, present, reads, producer, consumer, header, warnings, read_at)
             )
         properties[key] = schema
 
