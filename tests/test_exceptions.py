@@ -7,7 +7,6 @@ import pytest
 from agent_handshake.exceptions import (
     AdapterError,
     ConfigError,
-    PipelineExecutionError,
     PolicyViolationError,
     SemanticDriftError,
     SnapshotMismatchError,
@@ -126,27 +125,6 @@ class TestPolicyViolationError:
         assert err.detail == "detail"
 
 
-class TestPipelineExecutionError:
-    """Tests for PipelineExecutionError."""
-
-    def test_contains_agent_id(self) -> None:
-        """Agent ID must appear in the message."""
-        err = PipelineExecutionError("qa-agent", ValueError("timeout"))
-        assert "qa-agent" in str(err)
-
-    def test_contains_cause_message(self) -> None:
-        """Cause exception message must appear in the pipeline error."""
-        err = PipelineExecutionError("qa-agent", ValueError("timeout"))
-        assert "timeout" in str(err)
-
-    def test_attributes_stored(self) -> None:
-        """agent_id and cause attributes must be stored."""
-        cause = ValueError("boom")
-        err = PipelineExecutionError("agent", cause)
-        assert err.agent_id == "agent"
-        assert err.cause is cause
-
-
 class TestAdapterError:
     """Tests for AdapterError."""
 
@@ -196,7 +174,6 @@ class TestExceptionHierarchy:
             SnapshotMismatchError("a", "b", "c"),
             SemanticDriftError("f", 0.1, 0.9),
             PolicyViolationError("r", "d"),
-            PipelineExecutionError("a", Exception("e")),
             AdapterError("a", "d"),
             ConfigError("msg"),
         ]

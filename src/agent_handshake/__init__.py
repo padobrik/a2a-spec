@@ -13,14 +13,12 @@ from agent_handshake.exceptions import (
     AdapterError,
     ConfigError,
     HandshakeError,
-    PipelineExecutionError,
     PolicyViolationError,
     SemanticDriftError,
     SnapshotMismatchError,
     SnapshotNotFoundError,
     SpecValidationError,
 )
-from agent_handshake.pipeline.executor import PipelineExecutor
 from agent_handshake.pipeline.trace import PipelineTrace
 from agent_handshake.snapshot.recorder import Recorder
 from agent_handshake.snapshot.replay import ReplayEngine
@@ -47,7 +45,6 @@ __all__ = [
     "DiffResult",
     "DriftSeverity",
     # Pipeline
-    "PipelineExecutor",
     "PipelineTrace",
     # Adapters
     "A2AAdapter",
@@ -66,7 +63,6 @@ __all__ = [
     "SnapshotMismatchError",
     "SemanticDriftError",
     "PolicyViolationError",
-    "PipelineExecutionError",
     "AdapterError",
     "ConfigError",
 ]

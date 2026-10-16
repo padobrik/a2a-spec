@@ -65,15 +65,6 @@ class PolicyViolationError(HandshakeError):
         super().__init__(f"Policy violation [{rule_name}]: {detail}")
 
 
-class PipelineExecutionError(HandshakeError):
-    """Raised when a pipeline execution fails."""
-
-    def __init__(self, agent_id: str, cause: Exception) -> None:
-        self.agent_id = agent_id
-        self.cause = cause
-        super().__init__(f"Pipeline failed at agent '{agent_id}': {cause}")
-
-
 class AdapterError(HandshakeError):
     """Raised when an agent adapter fails."""
 
