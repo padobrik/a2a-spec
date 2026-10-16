@@ -26,6 +26,9 @@ ci:
   replay_mode: exact
 """
 
+# Lines handshake init makes sure .gitignore has.
+GITIGNORE_LINES = ["__pycache__/"]
+
 EXAMPLE_SPEC = """# Example spec — defines what consumer expects from producer
 spec:
   name: example-spec
@@ -152,6 +155,8 @@ def init_command(
     if not adapters_init.exists():
         adapters_init.write_text(ADAPTERS_TEMPLATE, encoding="utf-8")
 
+    _update_gitignore(root)
+
     console.print()
     console.print("[green bold]agent-handshake project initialized.[/green bold]")
     console.print()
@@ -161,3 +166,18 @@ def init_command(
     console.print("  3. Run [bold]handshake record[/bold] to save snapshots")
     console.print("  4. Run [bold]handshake infer[/bold] or edit [bold]handshake/specs/[/bold]")
     console.print("  5. Run [bold]handshake test[/bold] (or [bold]pytest --handshake[/bold])")
+
+
+def _update_gitignore(root: Path) -> None:
+    """Add the missing GITIGNORE_LINES to .gitignore; never change existing lines."""
+    path = root / ".gitignore"
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    present = {line.strip().rstrip("/") for line in text.splitlines()}
+    missing = [line for line in GITIGNORE_LINES if line.rstrip("/") not in present]
+    if not missing:
+        return
+    separator = "\n" if text and not text.endswith("\n") else ""
+    with path.open("a", encoding="utf-8") as f:
+        f.write(separator + "".join(f"{line}\n" for line in missing))
+    action = "Updated" if text else "Created"
+    console.print(f"  [green]{action}[/green] .gitignore")

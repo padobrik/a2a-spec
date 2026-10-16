@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- `handshake init` adds `__pycache__/` to `.gitignore`. An existing file only
+  gets the missing lines at the end.
 - `handshake diff` rates changes by the consumers' specs: a removed or retyped
   field that a spec names is `FAIL` and says who reads it and where
   (`resolution-agent reads it at agents/resolution.py:2`); a change to a field

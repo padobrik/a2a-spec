@@ -78,7 +78,7 @@ pip install agent-handshake
 handshake init
 ```
 
-This command creates `handshake.yaml` and the `handshake/` directory.
+This command creates `handshake.yaml` and the `handshake/` directory, and adds `__pycache__/` to `.gitignore`.
 
 **3. Remove the example spec and the example scenario.**
 
