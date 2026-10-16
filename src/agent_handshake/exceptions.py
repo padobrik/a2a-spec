@@ -43,19 +43,6 @@ class SnapshotMismatchError(HandshakeError):
         )
 
 
-class SemanticDriftError(HandshakeError):
-    """Raised when semantic drift exceeds threshold."""
-
-    def __init__(self, field: str, similarity: float, threshold: float) -> None:
-        self.field = field
-        self.similarity = similarity
-        self.threshold = threshold
-        super().__init__(
-            f"Semantic drift on field '{field}': "
-            f"similarity={similarity:.3f}, threshold={threshold:.3f}"
-        )
-
-
 class PolicyViolationError(HandshakeError):
     """Raised when a policy rule is violated."""
 
