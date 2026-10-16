@@ -29,6 +29,20 @@ class SnapshotNotFoundError(HandshakeError):
         )
 
 
+class SnapshotFormatError(HandshakeError):
+    """Raised when a snapshot file cannot be read as a snapshot."""
+
+    def __init__(
+        self,
+        source: str,
+        problem: str,
+        fix: str = "Record it again with 'handshake record', or fix the file.",
+    ) -> None:
+        self.source = source
+        self.problem = problem
+        super().__init__(f"Snapshot {source} {problem}. {fix}")
+
+
 class SnapshotMismatchError(HandshakeError):
     """Raised when a snapshot fingerprint does not match current config."""
 

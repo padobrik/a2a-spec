@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import shutil
 import subprocess
 from pathlib import Path
 
 from agent_handshake.exceptions import ConfigError
-from agent_handshake.snapshot.store import Snapshot
+from agent_handshake.snapshot.store import Snapshot, parse_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +45,7 @@ class GitBaseline:
             content = self._git("show", f"{self.ref}:{rel}")
         except ConfigError:
             return None
-        return Snapshot.from_dict(json.loads(content))
+        return parse_snapshot(content, f"{rel} at {self.ref}")
 
     def files(self, agent_dir: Path) -> list[Path]:
         """Snapshot files under ``agent_dir`` that exist at the revision."""
