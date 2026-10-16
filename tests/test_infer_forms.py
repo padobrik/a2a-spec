@@ -27,6 +27,27 @@ PY_FORMS = [
     ("method of a list item", "return [t.upper() for t in d['tags']]", [("tags", (True,))]),
     ("attribute of a nested value", "return d['date'].year", [("date", (True,))]),
     (
+        "alias through or",
+        "a = d.get('a') or {}\n    return a.get('b')",
+        [("a", (False,)), ("a.b", (False, False))],
+    ),
+    (
+        "alias through if",
+        "a = d['a'] if key else {}\n    return a['b']",
+        [("a", (True,)), ("a.b", (False, True))],
+    ),
+    (
+        "loop item",
+        "for r in d['rs']:\n        r['x']\n    return 1",
+        [("rs", (True,)), ("rs[].x", (True, False, True))],
+    ),
+    (
+        "comprehension item",
+        "return [r['x'] for r in d['rs']]",
+        [("rs", (True,)), ("rs[].x", (True, False, True))],
+    ),
+    ("item read by index", "return d['rs'][0]['x']", [("rs[].x", (True, True, True))]),
+    (
         "comprehension name is local",
         "r = d['a']\n    xs = [r for r in d['rs']]\n    return r.get('b'), xs",
         [("a", (True,)), ("rs", (True,)), ("a.b", (True, False))],
@@ -59,12 +80,7 @@ PY_WARNINGS = [
     ("method on input", "return d.items()", "'d' calls .items()"),
     ("reassignment", "d = {}\n    return d", "'d' is reassigned"),
     ("alias whole use", "a = d['a']\n    a['b']\n    return helper(a)", "'a' is used as a whole"),
-    ("alias through or", "a = d.get('a') or {}\n    return a.get('b')", "holds 'a' through `or`"),
-    ("alias through if", "a = d['a'] if key else {}\n    return a['b']", "a conditional"),
-    ("loop item", "for r in d['rs']:\n        r['x']\n    return 1", "'r' is an item of 'rs'"),
-    ("comprehension item", "return [r['x'] for r in d['rs']]", "'r' is an item of 'rs'"),
     ("item passed on", "for r in d['rs']:\n        h(r)\n    return 1", "'r' is an item of 'rs'"),
-    ("item read by index", "return d['rs'][0]['x']", "an item of 'rs' is read"),
     ("attribute", "return d.spam", "'d' reads the attribute .spam, which is not followed yet"),
 ]
 

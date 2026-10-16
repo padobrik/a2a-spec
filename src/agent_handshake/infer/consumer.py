@@ -5,10 +5,11 @@ from __future__ import annotations
 import ast
 import logging
 from collections.abc import Collection
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from agent_handshake.exceptions import ConfigError
+from agent_handshake.infer.paths import dotted
 from agent_handshake.infer.py_types import PyModule
 from agent_handshake.infer.shapes import Annotation, choose_param, no_matching_param, undeclared
 
@@ -35,7 +36,7 @@ class FieldRead:
     @property
     def name(self) -> str:
         """The dotted path, for messages: ``customer.tier``."""
-        return ".".join(self.path)
+        return dotted(self.path)
 
 
 @dataclass(frozen=True)
@@ -113,9 +114,10 @@ def analyze_consumer(
         raise ConfigError(f"Function '{function}' in {path} takes no input parameter")
 
     module = PyModule(path, tree)
+    scope = _Scope(module, _helpers(tree, fn))
 
     def visit(param: str, annotation: Annotation) -> _ReadVisitor:
-        visitor = _ReadVisitor(param, annotation)
+        visitor = _ReadVisitor(param, annotation, scope)
         for stmt in fn.body:
             visitor.visit(stmt)
         visitor.finish()
@@ -138,6 +140,33 @@ def analyze_consumer(
 
 
 Chain = tuple[tuple[str, ...], tuple[bool, ...]]
+Function = ast.FunctionDef | ast.AsyncFunctionDef
+
+# How many levels of helper functions are followed.
+_MAX_HELPER_DEPTH = 3
+
+
+@dataclass(frozen=True)
+class _Scope:
+    """Where helper functions are looked up: the file's functions and the consumer's class."""
+
+    module: PyModule
+    helpers: dict[str, tuple[Function, bool]]  # name -> (function, is a method)
+    depth: int = 0
+    active: frozenset[str] = frozenset()
+
+
+def _helpers(tree: ast.Module, fn: Function) -> dict[str, tuple[Function, bool]]:
+    """Top-level functions of the file, and the methods of the class that holds ``fn``."""
+    functions = [n for n in tree.body if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
+    found: dict[str, tuple[Function, bool]] = {n.name: (n, False) for n in functions}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and fn in node.body:
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef | ast.AsyncFunctionDef):
+                    found[f"self.{item.name}"] = (item, True)
+    return found
+
 
 _MAPPING_METHODS = frozenset(
     {"get", "items", "keys", "values", "copy", "pop", "setdefault", "update"}
@@ -147,8 +176,17 @@ _MAPPING_METHODS = frozenset(
 class _ReadVisitor(ast.NodeVisitor):
     """Records key chains rooted at the input parameter or at a local alias of it."""
 
-    def __init__(self, param: str, annotation: Annotation | None = None) -> None:
+    def __init__(
+        self,
+        param: str,
+        annotation: Annotation | None = None,
+        scope: _Scope | None = None,
+        root: Chain = ((), ()),
+    ) -> None:
         self.param = param
+        # In a helper function, the parameter holds the part of the input at ``root``.
+        self.root = root
+        self.scope = scope
         annotation = annotation or Annotation()
         # An annotated parameter that is not a dict is an object: its
         # attributes are its fields. A list parameter holds one output per item.
@@ -161,22 +199,24 @@ class _ReadVisitor(ast.NodeVisitor):
         self.warnings: list[str] = []
         # An alias may hold a leaf value (``tier = data["tier"]``), so using it
         # as a whole is only worth a warning when the code also reads keys from it.
-        self._mapping_aliases: set[str] = set()
+        self._mapping_aliases: set[tuple[str, Chain]] = set()
         self._whole_alias_uses: list[tuple[str, Chain, int]] = []
-        # Names that hold a part of the input the analysis does not follow:
-        # ``x = data.get("k") or {}`` or a list item (``for r in data["rs"]``).
-        # Reading keys from them, or passing them on, gets a warning.
-        self._untracked: dict[str, str] = {}
+        self._branches = 0  # how deep the visit is inside if blocks
 
-    def finish(self) -> None:
+    def finish(self, check_shape: bool = True) -> None:
         """Report whole uses of aliases that the code also reads keys from."""
         for name, chain, line in self._whole_alias_uses:
-            if name in self._mapping_aliases:
-                self.warnings.append(
+            if (name, chain) in self._mapping_aliases:
+                self._add_warning(
                     f"line {line}: {self._label(chain)} is used as a whole; "
                     "the inferred contract may be incomplete"
                 )
-        self.warnings += undeclared(self.reads, self.shape)
+        if check_shape:
+            self.warnings += undeclared(self.reads, self.shape)
+
+    def _add_warning(self, warning: str) -> None:
+        if warning not in self.warnings:
+            self.warnings.append(warning)
 
     # -- resolving expressions to key chains ---------------------------------
 
@@ -185,13 +225,13 @@ class _ReadVisitor(ast.NodeVisitor):
         if isinstance(node, ast.Name):
             if node.id == self.param:
                 # A list of outputs or a framework result is not the output itself.
-                return None if self.items or self.wrapper else ((), ())
+                return None if self.items or self.wrapper else self.root
             return self.aliases.get(node.id)
-        if self._is_param(node, self.items) and _is_index(node):
-            return (), ()  # an item of a list of outputs
+        if self.items and self._is_param(node, True) and _is_index(node):
+            return self.root  # an item of a list of outputs
         if isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
             if self.wrapper and node.attr == self.wrapper and self._is_param(node.value):
-                return (), ()
+                return self.root
             if self.object_mode:
                 base = self._base(node.value)
                 if base is not None:
@@ -199,7 +239,7 @@ class _ReadVisitor(ast.NodeVisitor):
             return None
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and self.wrapper:
             if node.func.attr == f"{self.wrapper}_as" and self._is_param(node.func.value):
-                return (), ()  # result.final_output_as(Model)
+                return self.root  # result.final_output_as(Model)
         if (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
@@ -218,6 +258,10 @@ class _ReadVisitor(ast.NodeVisitor):
             key = node.slice
             if base is not None and isinstance(key, ast.Constant) and isinstance(key.value, str):
                 return base[0] + (key.value,), base[1] + (True,)
+            if base is not None and base[0] and _is_index(node):
+                return base[0] + ("[]",), base[1] + (True,)  # an item of an input list
+            if base is not None and base[0] and isinstance(key, ast.Slice):
+                return base  # a slice of an input list holds the same items
             return None
         if (
             isinstance(node, ast.Call)
@@ -239,60 +283,34 @@ class _ReadVisitor(ast.NodeVisitor):
     def _base(self, node: ast.AST) -> Chain | None:
         """Resolve an expression that keys are read from, noting aliases used as mappings."""
         if isinstance(node, ast.Name) and node.id in self.aliases:
-            self._mapping_aliases.add(node.id)
-        self._check_untracked(node)
+            self._mapping_aliases.add((node.id, self.aliases[node.id]))
         return self._chain(node)
 
-    def _check_untracked(self, node: ast.AST) -> None:
-        """Warn once when a name holding an unfollowed part of the input is read from."""
-        if isinstance(node, ast.Name) and node.id in self._untracked:
-            what = f"'{node.id}' {self._untracked.pop(node.id)}"
-        elif (
-            isinstance(node, ast.Subscript)
-            and isinstance(node.slice, ast.Constant)
-            and isinstance(node.slice.value, int)
-            and (chain := self._chain(node.value)) is not None
-            and chain[0]
-        ):
-            what = f"an item of '{'.'.join(chain[0])}' is read"
-        else:
-            return
-        warning = (
-            f"line {getattr(node, 'lineno', 0)}: {what}, and its keys are not followed; "
-            "the inferred contract may be incomplete"
-        )
-        if warning not in self.warnings:
-            self.warnings.append(warning)
-
-    def _held(self, node: ast.AST) -> tuple[Chain, str] | None:
-        """The input part an expression passes on without being a plain read of it."""
+    def _held(self, node: ast.AST) -> Chain | None:
+        """The input part ``x or {}`` or ``x if c else {}`` passes on; it may be missing."""
+        values: list[ast.expr] = []
         if isinstance(node, ast.BoolOp):
-            operator = "or" if isinstance(node.op, ast.Or) else "and"
-            for value in node.values:
-                chain = self._chain(value)
-                if chain is not None and chain[0]:
-                    return chain, f"`{operator}`"
-        if isinstance(node, ast.IfExp):
-            for value in (node.body, node.orelse):
-                chain = self._chain(value)
-                if chain is not None and chain[0]:
-                    return chain, "a conditional expression"
+            values = list(node.values)
+        elif isinstance(node, ast.IfExp):
+            values = [node.body, node.orelse]
+        for value in values:
+            chain = self._chain(value)
+            if chain is not None and chain[0]:
+                return chain[0], (*chain[1][:-1], False)
         return None
 
     def _bind_items(self, target: ast.AST, iterable: ast.AST) -> None:
-        """Note a loop or comprehension name that takes the items of an input list."""
+        """Bind a loop or comprehension name to the items of an input list."""
         if not isinstance(target, ast.Name):
             return
         if self.items and self._is_param(iterable):
-            self.aliases[target.id] = ((), ())  # each item is one output
-            self._untracked.pop(target.id, None)
+            self.aliases[target.id] = self.root  # each item is one output
             return
-        chain = self._chain(iterable)
-        self.aliases.pop(target.id, None)
+        chain = self._chain(iterable) or self._held(iterable)  # also `for x in (xs or [])`
         if chain is not None and chain[0]:
-            self._untracked[target.id] = f"is an item of '{'.'.join(chain[0])}'"
+            self.aliases[target.id] = ((*chain[0], "[]"), (*chain[1], False))
         else:
-            self._untracked.pop(target.id, None)
+            self.aliases.pop(target.id, None)
 
     @staticmethod
     def _is_get(node: ast.AST) -> bool:
@@ -313,7 +331,7 @@ class _ReadVisitor(ast.NodeVisitor):
             self._record(chain, line)
 
     def _label(self, chain: Chain) -> str:
-        return f"'{self.param}'" if not chain[0] else f"'{'.'.join(chain[0])}'"
+        return f"'{self.param}'" if not chain[0] else f"'{dotted(chain[0])}'"
 
     # -- visiting --------------------------------------------------------------
 
@@ -322,19 +340,26 @@ class _ReadVisitor(ast.NodeVisitor):
         chain = self._chain(node.value)
         for target in node.targets:
             if isinstance(target, ast.Name):
-                self._untracked.pop(target.id, None)
-                held = self._held(node.value) if chain is None else None
+                held = self._held(node.value) if chain is None else chain
                 if target.id == self.param:
                     self._warn(target, "is reassigned")
-                elif chain is not None and chain[0]:
-                    self.aliases[target.id] = chain
-                else:
+                elif held is not None and held[0]:
+                    self.aliases[target.id] = held
+                elif not (self._branches and target.id in self.aliases and _empty(node.value)):
+                    # `if not isinstance(h, dict): h = {}` is a fallback: h still
+                    # refers to the input part. Outside a branch, `h = {}` replaces it.
                     self.aliases.pop(target.id, None)
-                    if held is not None:
-                        label = ".".join(held[0][0])
-                        self._untracked[target.id] = f"holds '{label}' through {held[1]}"
             else:
                 self.visit(target)
+
+    def visit_If(self, node: ast.If) -> None:
+        self.visit(node.test)
+        self._branches += 1
+        try:
+            for stmt in [*node.body, *node.orelse]:
+                self.visit(stmt)
+        finally:
+            self._branches -= 1
 
     def visit_For(self, node: ast.For | ast.AsyncFor) -> None:
         self.visit(node.iter)
@@ -350,17 +375,14 @@ class _ReadVisitor(ast.NodeVisitor):
     ) -> None:
         # Comprehension names are local to the comprehension.
         names = [g.target.id for g in node.generators if isinstance(g.target, ast.Name)]
-        saved = {n: (self.aliases.get(n), self._untracked.get(n)) for n in names}
+        saved = {n: self.aliases.get(n) for n in names}
         try:
             self._visit_generators(node)
         finally:
-            for name, (alias, untracked) in saved.items():
+            for name, alias in saved.items():
                 self.aliases.pop(name, None)
-                self._untracked.pop(name, None)
                 if alias is not None:
                     self.aliases[name] = alias
-                if untracked is not None:
-                    self._untracked[name] = untracked
 
     def _visit_generators(
         self, node: ast.ListComp | ast.SetComp | ast.GeneratorExp | ast.DictComp
@@ -394,10 +416,11 @@ class _ReadVisitor(ast.NodeVisitor):
             if chain is not None:
                 self._record_use(node, chain, node.lineno)
                 return
-            self._check_untracked(node.value)
-            if not self.object_mode and self._chain(node.value) == ((), ()):
-                # The input is an object here (a dataclass, a model), not a dict.
-                self._warn(node, f"reads the attribute .{node.attr}, which is not followed yet")
+            base = self._chain(node.value)
+            if not self.object_mode and base is not None and (base == self.root or _item(base)):
+                # The input (or a list item) is an object here, not a dict.
+                what = f"reads the attribute .{node.attr}, which is not followed yet"
+                self._warn(node, what, None if base == self.root else base)
                 return
         self.generic_visit(node)
 
@@ -419,8 +442,21 @@ class _ReadVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
+        followed = self._follow(node)
+        if followed is not None:
+            for arg in [*node.args, *(k.value for k in node.keywords)]:
+                if id(arg) not in followed:
+                    self.visit(arg)
+            return
         for arg in [*node.args, *(k.value for k in node.keywords)]:
-            self._check_untracked(arg)
+            item = self._chain(arg) if isinstance(arg, ast.Name) else None
+            if isinstance(arg, ast.Name) and item is not None and _item(item):
+                # A list item given to a function that is not followed.
+                self._add_warning(
+                    f"line {arg.lineno}: '{arg.id}' is an item of '{dotted(item[0][:-1])}' "
+                    "and goes to a function that is not followed; "
+                    "the inferred contract may be incomplete"
+                )
         chain = self._chain(node)
         if chain is not None:
             self._record(chain, node.lineno)
@@ -428,14 +464,6 @@ class _ReadVisitor(ast.NodeVisitor):
                 self.visit(child)
             return
         func = node.func
-        if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
-            if func.value.id in self._untracked:
-                # A method of a list item: only mapping methods read its keys.
-                if func.attr in _MAPPING_METHODS:
-                    self._check_untracked(func.value)
-                for child in [*node.args, *node.keywords]:
-                    self.visit(child)
-                return
         if isinstance(func, ast.Attribute):
             base = self._chain(func.value)
             if base is not None:
@@ -452,6 +480,58 @@ class _ReadVisitor(ast.NodeVisitor):
                     self.visit(child)
                 return
         self.generic_visit(node)
+
+    def _follow(self, node: ast.Call) -> set[int] | None:
+        """Read a helper in the same file that gets a part of the input.
+
+        Returns the ids of the arguments whose reads were followed, or None
+        when the call is not to such a helper.
+        """
+        scope = self.scope
+        if scope is None or scope.depth >= _MAX_HELPER_DEPTH:
+            return None
+        func = node.func
+        if isinstance(func, ast.Name):
+            name = func.id
+        elif (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Name)
+            and func.value.id in ("self", "cls")
+        ):
+            name = f"self.{func.attr}"
+        else:
+            return None
+        if name not in scope.helpers or name in scope.active:
+            return None
+        helper, is_method = scope.helpers[name]
+        params = [*helper.args.posonlyargs, *helper.args.args]
+        if is_method and params and params[0].arg in ("self", "cls"):
+            params = params[1:]
+        by_name = {a.arg: a for a in [*params, *helper.args.kwonlyargs]}
+        pairs: list[tuple[ast.expr, ast.arg | None]] = [
+            (arg, param) for arg, param in zip(node.args, params, strict=False)
+        ]
+        pairs += [(k.value, by_name.get(k.arg or "")) for k in node.keywords]
+        inner = replace(scope, depth=scope.depth + 1, active=scope.active | {name})
+        followed: set[int] = set()
+        for arg, param in pairs:
+            chain = self._chain(arg) if param is not None else None
+            if chain is None or param is None or isinstance(arg, ast.Starred):
+                continue
+            annotation = scope.module.annotation(param.annotation)
+            if not annotation.present:
+                # An unannotated helper parameter is read like the value given to it.
+                annotation = Annotation(present=self.object_mode)
+            child = _ReadVisitor(param.arg, annotation, inner, root=chain)
+            for stmt in helper.body:
+                child.visit(stmt)
+            child.finish(check_shape=False)
+            self._record_use(arg, chain, arg.lineno)
+            self.reads += child.reads
+            for warning in child.warnings:
+                self._add_warning(warning)
+            followed.add(id(arg))
+        return followed if followed else None
 
     def visit_Compare(self, node: ast.Compare) -> None:
         if (
@@ -491,4 +571,22 @@ def _is_index(node: ast.AST) -> bool:
         isinstance(node, ast.Subscript)
         and isinstance(node.slice, ast.Constant)
         and isinstance(node.slice.value, int)
+    )
+
+
+def _item(chain: Chain) -> bool:
+    """The chain is an item of an input list (``rs[]``)."""
+    return bool(chain[0]) and chain[0][-1] == "[]"
+
+
+def _empty(node: ast.AST) -> bool:
+    """An empty literal container, such as ``{}``, ``[]`` or ``dict()``."""
+    if isinstance(node, ast.Dict | ast.List | ast.Tuple | ast.Set):
+        return not (node.keys if isinstance(node, ast.Dict) else node.elts)
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in ("dict", "list", "tuple", "set")
+        and not node.args
+        and not node.keywords
     )
