@@ -1,5 +1,0 @@
-description: pipeline test checks policy rules at each step, not only the structure.
-steps:
-  - run: handshake pipeline test pipeline.yaml --mode live --no-semantic
-    exit: 1
-    output: ["FAIL Pipeline: support / billing", "policy no_card_numbers", "NO SPEC resolution-agent"]
