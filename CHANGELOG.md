@@ -7,6 +7,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Removed
+These were non-deterministic, unused or outside the tool's job. A spec or
+`handshake.yaml` that still uses one fails to load with a message that names
+it and says what to use instead.
+
+- Semantic rules (`embedding_similarity`, and the never implemented
+  `entailment` and `language_detection`), the `semantic` extra
+  (sentence-transformers, numpy), `handshake test --semantic/--no-semantic`
+  and the pytest option `--handshake-no-semantic`. Use a custom validator
+  for checks on text.
+- The `semantic` section and `ci.fail_on_semantic_drift` / `ci.drift_threshold`
+  in `handshake.yaml`. Delete them.
+- Similarity scoring in `handshake diff` and its `--threshold` option. A
+  changed value is now a MEDIUM change, like any other structural change.
+- Statistical rules (`statistical:` with `chi_squared` / `ks_test`). They
+  were never checked; delete the section.
+- `handshake pipeline` and the pipeline modules (`PipelineExecutor`,
+  `PipelineTrace`, `PipelineExecutionError`). Test each producer-consumer
+  pair with its own spec.
+- The built-in validators `agent_handshake.policy.builtin.no_pii_in_output`
+  and `output_not_empty`. Use a `regex` policy rule with your own patterns,
+  or list the needed fields in `structural.required`.
+- `LangChainAdapter` and the `langchain` extra. Call the runnable from an
+  `async` function and use `FunctionAdapter`; see docs/writing-adapters.md.
+- `SemanticDriftError`, which nothing raised.
+
 ## [0.8.0] - 2026-10-16
 
 ### Fixed

@@ -2,22 +2,6 @@
 
 Assumptions made where the request or the code was ambiguous.
 
-## Semantic rules in `handshake test`
-
-- `embedding_similarity` compares `input[source_field]` from the snapshot with
-  `output[target_field]`. Both fields are required; a rule without them fails
-  rather than guessing which text to compare. Fields are top-level keys only.
-- `entailment` and `language_detection` are declared in the schema but were
-  never implemented. They now fail with "not implemented" instead of passing
-  silently.
-- Without the `semantic` extra the command exits 1 with an install hint.
-  Skipping is opt-in (`--no-semantic` or `semantic.enabled: false`) and the
-  report shows `semantic SKIPPED`, so a missing dependency never turns into a
-  silent pass.
-- The example spec threshold moved from 0.8 to 0.5. 0.8 had never been
-  executed; with `all-MiniLM-L6-v2` the example's own faithful summary scores
-  0.78, other faithful summaries 0.61–0.81, off-topic ones 0.28–0.31.
-
 ## Dependency bumps
 
 - The pending dependabot PRs were reproduced on a branch instead of being
@@ -121,3 +105,17 @@ Assumptions made where the request or the code was ambiguous.
   free of vendor and assistant names.
 - Snapshots are not committed until they are recorded with a real API key,
   so the example never shows made-up model output as recorded output.
+
+## Removals in 0.9
+
+- Removed as non-deterministic or unused: semantic rules and the
+  `semantic` extra, similarity scoring in `diff`, statistical rules, the
+  pipeline command and its modules, the built-in PII and non-empty
+  validators, and the LangChain adapter.
+- A spec or `handshake.yaml` that still uses a removed rule, section or
+  setting fails to load with a message that names it and says what to use
+  instead (`spec/removed.py`, `config/loader.py`). Silently ignoring them
+  would turn old checks into passes.
+- User `regex` policy rules and custom validators stay.
+- `diff` rates a changed value as MEDIUM, like any structural change; rating
+  changes against the consumer's spec is phase 2 work.
