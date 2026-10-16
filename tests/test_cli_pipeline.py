@@ -7,7 +7,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from a2a_spec.cli.main import app
+from agent_handshake.cli.main import app
 
 runner = CliRunner()
 
@@ -47,7 +47,7 @@ def _adapters(triage_output: str, with_triage: bool = True) -> str:
             + entries
         )
     return (
-        "from a2a_spec import FunctionAdapter\n"
+        "from agent_handshake import FunctionAdapter\n"
         f"async def triage(data):\n    return {triage_output}\n"
         "async def res(ticket):\n    return {'reply': 'ok'}\n"
         f"ADAPTERS = {{{entries}}}\n"
@@ -55,13 +55,13 @@ def _adapters(triage_output: str, with_triage: bool = True) -> str:
 
 
 def _project(tmp_path: Path, adapters: str, spec: str = SPEC) -> None:
-    root = tmp_path / "a2a_spec"
+    root = tmp_path / "handshake"
     (root / "specs").mkdir(parents=True)
     (root / "specs" / "t2r.yaml").write_text(spec)
     (root / "adapters").mkdir()
     (root / "adapters" / "__init__.py").write_text(adapters)
     (tmp_path / "pipeline.yaml").write_text(PIPELINE)
-    (tmp_path / "a2a-spec.yaml").write_text("project_name: demo\n")
+    (tmp_path / "handshake.yaml").write_text("project_name: demo\n")
 
 
 def _flat(text: str) -> str:
@@ -100,7 +100,7 @@ class TestPipelineCli:
         monkeypatch.chdir(tmp_path)
         _project(tmp_path, "ADAPTERS = {}\n")
         for agent, output in (("triage-agent", {"category": "billing"}), ("resolution-agent", {})):
-            d = tmp_path / "a2a_spec" / "snapshots" / agent
+            d = tmp_path / "handshake" / "snapshots" / agent
             d.mkdir(parents=True)
             (d / "billing_abc.json").write_text(
                 json.dumps(
@@ -152,8 +152,8 @@ class _MissingExtraEncoder:
 
 
 def _use_encoder(monkeypatch, encoder: object) -> None:
-    from a2a_spec.cli import pipeline_cmd
-    from a2a_spec.semantic.engine import SemanticEngine
+    from agent_handshake.cli import pipeline_cmd
+    from agent_handshake.semantic.engine import SemanticEngine
 
     monkeypatch.setattr(pipeline_cmd, "SemanticEngine", lambda **_: SemanticEngine(model=encoder))
 
