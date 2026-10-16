@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-handshake"
-version = "0.6.0"
+version = "0.7.0"
 description = "Contract tests for agent handoffs: record what one agent returns, infer what the next one reads, and check it in CI without LLM calls."
 readme = "README.md"
 license = { text = "Apache-2.0" }

@@ -278,7 +278,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: padobrik/agent-handshake@v0.6.0
+      - uses: padobrik/agent-handshake@v0.7.0
 ```
 
 The action has these inputs: `package` (for example `agent-handshake[semantic]`), `working-directory`, `config`, `check-inferred` and `args`.
