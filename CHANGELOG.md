@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-16
+
 ### Changed
 - The project is renamed from a2a-spec to agent-handshake. The A2A protocol is
   only one of the agent types it tests, and the old name read as an A2A-only
@@ -162,6 +164,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.7.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.7.0
 [0.6.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.6.0
 [0.5.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.5.0
 [0.4.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.4.0
