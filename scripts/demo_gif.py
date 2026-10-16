@@ -68,8 +68,7 @@ def prepare(workdir: Path) -> None:
     shutil.copytree(EXAMPLE, workdir)
     shutil.rmtree(workdir / "tests")
     config = (workdir / "handshake" / "handshake.yaml").read_text()
-    # Semantic rules are not part of this story; skip loading the model.
-    (workdir / "handshake.yaml").write_text(config.replace("enabled: true", "enabled: false"))
+    (workdir / "handshake.yaml").write_text(config)
     (workdir / "pyproject.toml").write_text(
         "[tool.pytest.ini_options]\n"
         'handshake_config = "handshake.yaml"\n'

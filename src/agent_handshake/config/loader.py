@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from agent_handshake.config.settings import HandshakeConfig
 from agent_handshake.exceptions import ConfigError
+from agent_handshake.spec.removed import REMOVED_IN
 
 DEFAULT_CONFIG_NAMES = ["handshake.yaml", "handshake.yml"]
 
@@ -48,6 +49,10 @@ def load_config(path: str | Path | None = None) -> HandshakeConfig:
     if not isinstance(raw, dict):
         raise ConfigError(f"Config must be a YAML mapping, got {type(raw).__name__}")
 
+    removed = _removed_setting(raw)
+    if removed is not None:
+        raise ConfigError(f"{config_path}: {removed}")
+
     try:
         return HandshakeConfig.model_validate(raw)
     except ValidationError as e:
@@ -60,4 +65,21 @@ def _find_config() -> Path | None:
         path = Path(name)
         if path.exists():
             return path
+    return None
+
+
+def _removed_setting(raw: dict[str, object]) -> str | None:
+    """The migration message for a setting that was removed, or None."""
+    if "semantic" in raw:
+        return (
+            f"Setting 'semantic' was removed in {REMOVED_IN} with semantic rules. "
+            "Delete it. See CHANGELOG.md."
+        )
+    ci = raw.get("ci")
+    for key in ("fail_on_semantic_drift", "drift_threshold"):
+        if isinstance(ci, dict) and key in ci:
+            return (
+                f"Setting 'ci.{key}' was removed in {REMOVED_IN}; handshake diff fails on "
+                "high-severity drift. Delete it. See CHANGELOG.md."
+            )
     return None
