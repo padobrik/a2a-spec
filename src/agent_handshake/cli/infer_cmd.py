@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -36,6 +37,14 @@ def infer_command(
         help="Output file, or '-' for stdout. Default: <specs_dir>/<name>.yaml.",
     ),
     force: bool = typer.Option(False, "--force", help="Overwrite an existing spec file."),
+    allow_missing: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--allow-missing",
+            help="A field the consumer reads that the producer leaves out on purpose, as a "
+            "dotted path. Without it such a field is an error. Repeat for more fields.",
+        ),
+    ] = None,
     check: bool = typer.Option(
         False,
         "--check",
@@ -80,11 +89,21 @@ def infer_command(
             console.print(f"  [yellow]{warning}[/yellow]")
         raise typer.Exit(EXIT_INPUT)
 
-    inferred = infer_spec(producer, consumer, reads, snapshots, name=name)
+    inferred = infer_spec(
+        producer, consumer, reads, snapshots, name=name, allow_missing=allow_missing or []
+    )
     text = inferred.to_yaml()
 
     for warning in inferred.warnings:
         console.print(f"[yellow]WARN: {warning}[/yellow]")
+    if inferred.missing:
+        for problem in inferred.missing:
+            console.print(f"[red]FAIL: {problem}[/red]")
+        console.print(
+            "[red]No spec written.[/red] Fix the producer and run 'handshake record' again, "
+            "or pass --allow-missing FIELD if the producer leaves the field out on purpose."
+        )
+        raise typer.Exit(EXIT_FAILED)
 
     if out == "-":
         typer.echo(text, nl=False)

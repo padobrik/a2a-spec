@@ -64,10 +64,31 @@ class TestInferSpec:
         assert spec.data["structural"]["required"] == ["tags"]
         assert spec.warnings == ["'tags' is read with [] by res (line 7) but missing in: b"]
 
-    def test_never_sent_field_warns(self) -> None:
+    def test_never_sent_field_is_an_error(self) -> None:
         spec = infer_spec("triage", "res", _reads(("issue_type", 4, False)), SNAPS)
+        assert spec.missing == [
+            "'issue_type' is read by res (line 4) but triage never sent it in any snapshot"
+        ]
+        assert spec.warnings == []
+
+    def test_allowed_missing_field_stays_optional(self) -> None:
+        reads = _reads(("issue_type", 4, False))
+        spec = infer_spec("triage", "res", reads, SNAPS, allow_missing=["issue_type"])
+        assert spec.missing == []
         assert spec.data["structural"]["properties"]["issue_type"] == {}
-        assert "never sent it" in spec.warnings[0]
+        assert spec.data["structural"]["required"] == []
+        assert spec.warnings == [
+            "'issue_type' is read by res (line 4) but triage never sent it in any snapshot; "
+            "allowed by --allow-missing"
+        ]
+
+    def test_allow_missing_for_a_sent_field_warns(self) -> None:
+        reads = _reads(("category", 4, False))
+        spec = infer_spec("triage", "res", reads, SNAPS, allow_missing=["category"])
+        assert spec.missing == []
+        assert spec.warnings == [
+            "--allow-missing 'category' names no field that is missing from every snapshot"
+        ]
 
     def test_types(self) -> None:
         reads = _reads(("confidence", 1, True), ("note", 2, False), ("tags", 3, False))
@@ -138,11 +159,12 @@ class TestInferNestedSpec:
         spec = infer_spec("triage", "res", _reads(("customer.vip", 5, True)), NESTED)
         assert spec.warnings == ["'customer.vip' is read with [] by res (line 5) but missing in: b"]
 
-    def test_never_sent_parent_warns_once(self) -> None:
+    def test_never_sent_parent_fails_once(self) -> None:
         spec = infer_spec("triage", "res", _reads(("account.owner.id", 6, False)), NESTED)
-        assert spec.warnings == [
+        assert spec.missing == [
             "'account' is read by res (line 6) but triage never sent it in any snapshot"
         ]
+        assert spec.warnings == []
         account = spec.data["structural"]["properties"]["account"]
         assert account["properties"]["owner"]["properties"] == {"id": {}}
 

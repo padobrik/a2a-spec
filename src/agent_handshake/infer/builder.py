@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -13,11 +14,16 @@ from agent_handshake.snapshot.store import Snapshot
 
 @dataclass(frozen=True)
 class InferredSpec:
-    """A generated spec plus what the generator could not be sure about."""
+    """A generated spec plus what the generator could not be sure about.
+
+    ``missing`` lists fields the consumer reads that the producer sent in no
+    snapshot. They are errors: the spec must not be written.
+    """
 
     data: dict[str, Any]
     header: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    missing: list[str] = field(default_factory=list)
 
     def to_yaml(self) -> str:
         """Render the spec as YAML, with the header as leading comments."""
@@ -31,6 +37,7 @@ def infer_spec(
     reads: ConsumerReads,
     snapshots: list[Snapshot],
     name: str | None = None,
+    allow_missing: Collection[str] = (),
 ) -> InferredSpec:
     """Infer the structural contract a consumer needs from a producer.
 
@@ -42,6 +49,11 @@ def infer_spec(
     consumer that falls back to a default via ``.get()`` would otherwise
     degrade silently if the field disappeared. Types come from the
     recorded values.
+
+    A field the producer sent in no snapshot is an error in ``missing``,
+    because typing it as optional would accept a broken producer. Dotted
+    paths in ``allow_missing`` are fields absent on purpose; they stay
+    optional with a warning.
     """
     warnings = list(reads.warnings)
     header = [
@@ -50,7 +62,22 @@ def infer_spec(
     ]
     outputs = [(s.scenario, s.output_data) for s in snapshots]
     read_at: dict[str, list[int]] = {}
-    fields = _object_schema((), outputs, reads, producer, consumer, header, warnings, read_at)
+    never_sent: list[tuple[str, str]] = []
+    fields = _object_schema(
+        (), outputs, reads, producer, consumer, header, warnings, read_at, never_sent
+    )
+    missing = [message for label, message in never_sent if label not in allow_missing]
+    warnings += [
+        f"{message}; allowed by --allow-missing"
+        for label, message in never_sent
+        if label in allow_missing
+    ]
+    labels = {label for label, _ in never_sent}
+    warnings += [
+        f"--allow-missing '{label}' names no field that is missing from every snapshot"
+        for label in allow_missing
+        if label not in labels
+    ]
 
     data: dict[str, Any] = {
         "name": name or f"{producer}-to-{consumer}",
@@ -68,7 +95,7 @@ def infer_spec(
         "required": fields.get("required", []),
         "properties": fields["properties"],
     }
-    return InferredSpec(data=data, header=header, warnings=warnings)
+    return InferredSpec(data=data, header=header, warnings=warnings, missing=missing)
 
 
 def _object_schema(
@@ -80,11 +107,13 @@ def _object_schema(
     header: list[str],
     warnings: list[str],
     read_at: dict[str, list[int]],
+    never_sent: list[tuple[str, str]],
 ) -> dict[str, Any]:
     """Schema for the keys the consumer reads below ``parent``.
 
     Header lines, warnings and the read lines per dotted path are added to
-    ``header``, ``warnings`` and ``read_at``.
+    ``header``, ``warnings`` and ``read_at``; keys the producer never sent go
+    to ``never_sent`` as (dotted path, message).
 
     ``objects`` holds the value at ``parent`` in each snapshot that has it,
     by scenario. Only dict values can carry keys.
@@ -108,11 +137,14 @@ def _object_schema(
         present = [(scenario, obj[key]) for scenario, obj in dicts if key in obj]
         missing = sorted(scenario for scenario, obj in dicts if key not in obj)
 
-        # When the parent itself was never sent, the warning about it covers this key.
+        # When the parent itself was never sent, the error about it covers this key.
         if (dicts or not parent) and not present:
-            warnings.append(
-                f"'{label}' is read by {consumer} (line {lines}) "
-                f"but {producer} never sent it in any snapshot"
+            never_sent.append(
+                (
+                    label,
+                    f"'{label}' is read by {consumer} (line {lines}) "
+                    f"but {producer} never sent it in any snapshot",
+                )
             )
         elif missing and strict:
             warnings.append(
@@ -130,7 +162,9 @@ def _object_schema(
         if any(len(r.path) > depth + 1 for r in below):
             schema = schema or {"type": "object"}
             schema.update(
-                _object_schema(path, present, reads, producer, consumer, header, warnings, read_at)
+                _object_schema(
+                    path, present, reads, producer, consumer, header, warnings, read_at, never_sent
+                )
             )
         properties[key] = schema
 
