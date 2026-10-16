@@ -22,8 +22,10 @@ spec:
 """
 
 
-def _snapshot(pytester: pytest.Pytester, scenario: str, output: dict[str, object]) -> None:
-    snaps = pytester.path / "a2a_spec" / "snapshots" / "triage-agent"
+def _snapshot(
+    pytester: pytest.Pytester, scenario: str, output: dict[str, object], base: str = "handshake"
+) -> None:
+    snaps = pytester.path / base / "snapshots" / "triage-agent"
     snaps.mkdir(parents=True, exist_ok=True)
     (snaps / f"{scenario}_abc123.json").write_text(
         json.dumps(
@@ -40,13 +42,13 @@ def _snapshot(pytester: pytest.Pytester, scenario: str, output: dict[str, object
 
 @pytest.fixture
 def project(pytester: pytest.Pytester) -> pytest.Pytester:
-    specs = pytester.path / "a2a_spec" / "specs"
+    specs = pytester.path / "handshake" / "specs"
     specs.mkdir(parents=True)
     (specs / "triage.yaml").write_text(SPEC)
     pytester.makefile(
         ".yaml",
         **{
-            "a2a-spec": 'specs_dir: "a2a_spec/specs"\nstorage:\n  path: "a2a_spec/snapshots"\n',
+            "handshake": 'specs_dir: "handshake/specs"\nstorage:\n  path: "handshake/snapshots"\n',
         },
     )
     _snapshot(pytester, "billing", {"category": "billing"})
@@ -55,13 +57,13 @@ def project(pytester: pytest.Pytester) -> pytest.Pytester:
 
 class TestPytestPlugin:
     def test_inert_without_opt_in(self, project: pytest.Pytester) -> None:
-        result = project.runpytest("a2a_spec/specs")
+        result = project.runpytest("handshake/specs")
         result.assert_outcomes()
         assert result.ret == pytest.ExitCode.NO_TESTS_COLLECTED
 
     def test_snapshots_become_tests(self, project: pytest.Pytester) -> None:
         _snapshot(project, "shipping", {"category": "shipping"})
-        result = project.runpytest("--a2a", "a2a_spec/specs", "-v")
+        result = project.runpytest("--handshake", "handshake/specs", "-v")
         result.assert_outcomes(passed=2)
         result.stdout.fnmatch_lines(
             ["*triage.yaml::billing PASSED*", "*triage.yaml::shipping PASSED*"]
@@ -69,7 +71,7 @@ class TestPytestPlugin:
 
     def test_violation_fails_with_readable_message(self, project: pytest.Pytester) -> None:
         _snapshot(project, "renamed", {"issue_type": "billing"})
-        result = project.runpytest("--a2a", "a2a_spec/specs")
+        result = project.runpytest("--handshake", "handshake/specs")
         result.assert_outcomes(passed=1, failed=1)
         result.stdout.fnmatch_lines(
             [
@@ -79,101 +81,131 @@ class TestPytestPlugin:
         )
 
     def test_ini_option_enables(self, project: pytest.Pytester) -> None:
-        project.makeini("[pytest]\na2a_config = a2a-spec.yaml\n")
-        result = project.runpytest("a2a_spec/specs")
+        project.makeini("[pytest]\nhandshake_config = handshake.yaml\n")
+        result = project.runpytest("handshake/specs")
         result.assert_outcomes(passed=1)
 
     def test_k_selects_scenario(self, project: pytest.Pytester) -> None:
         _snapshot(project, "shipping", {"category": "shipping"})
-        result = project.runpytest("--a2a", "a2a_spec/specs", "-k", "shipping")
+        result = project.runpytest("--handshake", "handshake/specs", "-k", "shipping")
         result.assert_outcomes(passed=1, deselected=1)
 
     def test_missing_snapshots_skip_visibly(self, project: pytest.Pytester) -> None:
         other = SPEC.replace("triage-agent", "ghost-agent").replace("triage-to", "ghost-to")
-        (project.path / "a2a_spec" / "specs" / "ghost.yaml").write_text(other)
-        result = project.runpytest("--a2a", "a2a_spec/specs", "-rs")
+        (project.path / "handshake" / "specs" / "ghost.yaml").write_text(other)
+        result = project.runpytest("--handshake", "handshake/specs", "-rs")
         result.assert_outcomes(passed=1, skipped=1)
         result.stdout.fnmatch_lines(["*no snapshots for 'ghost-agent'*"])
 
     def test_yaml_outside_specs_dir_ignored(self, project: pytest.Pytester) -> None:
         (project.path / "other.yaml").write_text("not: a spec\n")
-        result = project.runpytest("--a2a")
+        result = project.runpytest("--handshake")
         result.assert_outcomes(passed=1)
 
-    def test_a2a_check_fixture(self, project: pytest.Pytester) -> None:
+    def test_handshake_check_fixture(self, project: pytest.Pytester) -> None:
         project.makepyfile(
             test_live="""
             import pytest
 
-            def test_good(a2a_check):
-                result = a2a_check("triage-to-resolution", {"category": "billing"})
+            def test_good(handshake_check):
+                result = handshake_check("triage-to-resolution", {"category": "billing"})
                 assert result.passed
 
-            def test_bad(a2a_check):
-                a2a_check("triage-to-resolution", {"issue_type": "billing"})
+            def test_bad(handshake_check):
+                handshake_check("triage-to-resolution", {"issue_type": "billing"})
 
-            def test_unknown(a2a_check):
-                a2a_check("nope", {})
+            def test_unknown(handshake_check):
+                handshake_check("nope", {})
             """
         )
-        result = project.runpytest("--a2a", "test_live.py")
+        result = project.runpytest("--handshake", "test_live.py")
         result.assert_outcomes(passed=1, failed=2)
         result.stdout.fnmatch_lines(
             ["*'category' is a required property*", "*unknown spec 'nope'*"], consecutive=False
         )
 
-    def test_a2a_check_without_plugin_fails_clearly(self, project: pytest.Pytester) -> None:
-        project.makepyfile(test_live="def test_x(a2a_check):\n    pass\n")
+    def test_handshake_check_without_plugin_fails_clearly(self, project: pytest.Pytester) -> None:
+        project.makepyfile(test_live="def test_x(handshake_check):\n    pass\n")
         result = project.runpytest("test_live.py")
         result.assert_outcomes(errors=1)
-        result.stdout.fnmatch_lines(["*needs the a2a-spec plugin enabled*"])
+        result.stdout.fnmatch_lines(["*needs the agent-handshake plugin enabled*"])
 
     def test_ini_paths_relative_to_ini_file(
         self, project: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        project.makeini("[pytest]\na2a_config = a2a-spec.yaml\n")
+        project.makeini("[pytest]\nhandshake_config = handshake.yaml\n")
         monkeypatch.chdir(project.mkdir("sub"))
-        result = project.runpytest(str(project.path / "a2a_spec" / "specs"))
+        result = project.runpytest(str(project.path / "handshake" / "specs"))
         result.assert_outcomes(passed=1)
 
     def test_cli_config_relative_to_working_dir(
         self, project: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         nested = project.mkdir("nested")
-        (project.path / "a2a-spec.yaml").rename(nested / "a2a-spec.yaml")
-        result = project.runpytest("--a2a-config", "nested/a2a-spec.yaml", "a2a_spec/specs")
+        (project.path / "handshake.yaml").rename(nested / "handshake.yaml")
+        result = project.runpytest("--handshake-config", "nested/handshake.yaml", "handshake/specs")
         result.assert_outcomes(passed=1)
 
     def test_consumer_code_item_for_inferred_spec(self, project: pytest.Pytester) -> None:
         consumer = project.path / "res.py"
         consumer.write_text("def run(data):\n    return data['category']\n")
-        spec = project.path / "a2a_spec" / "specs" / "triage.yaml"
+        spec = project.path / "handshake" / "specs" / "triage.yaml"
         spec.write_text(
             SPEC.replace(
                 "  consumer: resolution-agent\n",
                 f"  consumer: resolution-agent\n  inferred_from: {consumer}:run\n",
             )
         )
-        result = project.runpytest("--a2a", "a2a_spec/specs", "-v")
+        result = project.runpytest("--handshake", "handshake/specs", "-v")
         result.assert_outcomes(passed=2)
         result.stdout.fnmatch_lines(["*triage.yaml::consumer_code PASSED*"])
 
         consumer.write_text("def run(data):\n    return data['category'], data['urgency']\n")
-        result = project.runpytest("--a2a", "a2a_spec/specs")
+        result = project.runpytest("--handshake", "handshake/specs")
         result.assert_outcomes(passed=1, failed=1)
         result.stdout.fnmatch_lines(
             ["*spec 'triage-to-resolution' is out of date*", "*run reads 'urgency' (line 2)*"]
         )
 
     def test_scenario_expectations(self, project: pytest.Pytester) -> None:
-        scen = project.path / "a2a_spec" / "scenarios"
+        scen = project.path / "handshake" / "scenarios"
         scen.mkdir()
         (scen / "s.yaml").write_text(
             "scenarios:\n  - name: billing\n    input: {message: hi}\n"
             "    expectations:\n      triage-agent: {category: shipping}\n"
         )
-        result = project.runpytest("--a2a", "a2a_spec/specs")
+        result = project.runpytest("--handshake", "handshake/specs")
         result.assert_outcomes(failed=1)
         result.stdout.fnmatch_lines(
             ["*expectation: expected 'category' = 'shipping', got 'billing'*"]
         )
+
+
+class TestNamesBeforeRename:
+    def test_old_flag(self, project: pytest.Pytester) -> None:
+        result = project.runpytest("--a2a", "handshake/specs")
+        result.assert_outcomes(passed=1)
+
+    def test_old_ini_option(self, project: pytest.Pytester) -> None:
+        project.makeini("[pytest]\na2a_config = handshake.yaml\n")
+        result = project.runpytest("handshake/specs")
+        result.assert_outcomes(passed=1)
+
+    def test_old_fixture(self, project: pytest.Pytester) -> None:
+        project.makepyfile(
+            """
+            def test_good(a2a_check):
+                assert a2a_check("triage-to-resolution", {"category": "billing"}).passed
+            """
+        )
+        result = project.runpytest("--handshake", "-p", "no:cacheprovider", "test_old_fixture.py")
+        result.assert_outcomes(passed=1)
+
+    def test_old_project_layout(self, pytester: pytest.Pytester) -> None:
+        specs = pytester.path / "a2a_spec" / "specs"
+        specs.mkdir(parents=True)
+        (specs / "triage.yaml").write_text(SPEC)
+        (pytester.path / "a2a-spec.yaml").write_text("project_name: old\n")
+        _snapshot(pytester, "billing", {"category": "billing"}, base="a2a_spec")
+        result = pytester.runpytest("--handshake", "a2a_spec/specs")
+        result.assert_outcomes(passed=1)
