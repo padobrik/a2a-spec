@@ -1,1 +1,1 @@
-"""Structural and semantic diff engines."""
+"""Structural diff between agent outputs."""

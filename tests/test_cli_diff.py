@@ -13,7 +13,7 @@ class TestCliDiff:
     def test_diff_help(self) -> None:
         result = runner.invoke(app, ["diff", "--help"])
         assert result.exit_code == 0
-        assert "threshold" in result.output.lower() or "diff" in result.output.lower()
+        assert "--base" in result.output
 
     def test_diff_no_snapshots(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
@@ -30,10 +30,6 @@ class TestCliDiff:
         config.write_text("- not a mapping")
         result = runner.invoke(app, ["diff", "--config", str(config)])
         assert result.exit_code != 0
-
-    def test_diff_custom_threshold(self) -> None:
-        result = runner.invoke(app, ["diff", "--help"])
-        assert "threshold" in result.output.lower()
 
 
 def _git(repo, *args: str) -> None:
@@ -76,9 +72,7 @@ def _isolate_git(monkeypatch) -> None:
 def _repo(tmp_path, monkeypatch):
     _isolate_git(monkeypatch)
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "handshake.yaml").write_text(
-        "storage:\n  path: snapshots\nsemantic:\n  enabled: false\n"
-    )
+    (tmp_path / "handshake.yaml").write_text("storage:\n  path: snapshots\n")
     _git(tmp_path, "init", "-q")
     _write_snapshot(tmp_path, "billing", {"category": "billing", "summary": "duplicate charge"})
     _git(tmp_path, "add", ".")
@@ -105,7 +99,7 @@ class TestCliDiffGitBaseline:
         result = runner.invoke(app, ["diff"])
         assert result.exit_code == 0, result.output
         assert "No differences detected" in result.output
-        assert "[diff] Semantic Diff Report" in result.output
+        assert "[diff] Diff Report" in result.output
 
     def test_new_scenario(self, tmp_path, monkeypatch) -> None:
         repo = _repo(tmp_path, monkeypatch)
@@ -146,18 +140,6 @@ class TestCliDiffGitBaseline:
         result = runner.invoke(app, ["diff"])
         assert result.exit_code == 1
         assert "not in a git repository" in _flat(result.output)
-
-    def test_missing_semantic_extra_falls_back_with_warning(self, tmp_path, monkeypatch) -> None:
-        import sys
-
-        repo = _repo(tmp_path, monkeypatch)
-        (repo / "handshake.yaml").write_text("storage:\n  path: snapshots\n")
-        _write_snapshot(repo, "billing", {"category": "billing", "summary": "billing issue"})
-        monkeypatch.setitem(sys.modules, "sentence_transformers", None)
-        result = runner.invoke(app, ["diff"])
-        assert result.exception is None or isinstance(result.exception, SystemExit), result.output
-        assert "Using token overlap" in _flat(result.output)
-        assert "summary" in result.output
 
     def test_added_field_does_not_fail(self, tmp_path, monkeypatch) -> None:
         repo = _repo(tmp_path, monkeypatch)

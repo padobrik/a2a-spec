@@ -89,7 +89,7 @@ def print_diff_results(
     scenario: str,
     results: list[DiffResult],
 ) -> None:
-    """Print semantic diff results."""
+    """Print diff results for one scenario."""
     if not results:
         console.print(f"  [green]PASS[/green] {agent_id} / {scenario}: No differences")
         return
