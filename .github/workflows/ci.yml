@@ -10,6 +10,11 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request cancels the run for the previous push.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -25,6 +30,8 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
       - name: Install dependencies
         run: pip install -e ".[dev,langchain,typescript]"
@@ -38,8 +45,13 @@ jobs:
       - name: Type check
         run: mypy src/
 
+      # coverage run instead of pytest --cov: the package's pytest plugin is
+      # imported before pytest-cov starts, which hid module-level lines.
       - name: Test with coverage
-        run: pytest tests/ -v --tb=short --cov=agent_handshake --cov-report=term-missing
+        run: coverage run -m pytest tests/ -v --tb=short
+
+      - name: Coverage report (fails under the threshold in pyproject.toml)
+        run: coverage report
 
       - name: Verify clean import (no optional deps)
         run: |
@@ -55,6 +67,35 @@ jobs:
           else
             echo "PASS: only yaml.safe_load used"
           fi
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build the sdist and wheel
+        run: |
+          pip install build twine
+          python -m build
+
+      - name: Check the package metadata
+        run: twine check --strict dist/*
+
+      # Outside the checkout, so only what the wheel ships is importable.
+      - name: Install the wheel in a clean environment and run it
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -m venv wheel-env
+          wheel-env/bin/pip install "$GITHUB_WORKSPACE"/dist/*.whl
+          wheel-env/bin/handshake --version
+          wheel-env/bin/handshake skill | grep -q "name: agent-handshake"
+          wheel-env/bin/python -c "import agent_handshake, agent_handshake.infer.ts_consumer"
 
   action:
     name: GitHub Action on the example
