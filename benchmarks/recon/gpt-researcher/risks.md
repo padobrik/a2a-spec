@@ -1,0 +1,5 @@
+# Silent-breakage risks
+
+- explicit — multi_agents/agents/fact_checker.py:14-15 — The fact checker reads `introduction` and `conclusion` with a `""` default, but the writer spreads unchecked LLM JSON into the state (`writer.py:146`), so a renamed or missing key makes it check an empty draft and accept it, and the publisher prints `None` (`publisher.py:58,66`).
+- explicit — multi_agents/agents/publisher.py:41-43 — The publisher reads `headers` with `or {}` and a dict check, then `headers.get(...)` (`publisher.py:54-68`), while the writer replaces `headers` with LLM JSON when `follow_guidelines` is on (`writer.py:141-144`), so renamed keys or a failed call give `# None` / `## None` titles with no error.
+- disputed — multi_agents/agents/researcher.py:36-39 — The depth researcher turns any research error (external web research) into `{subtopic: None}`, and the publisher writes the text `None` as that section (`publisher.py:28-31`); the consumer has no default, the failure is hidden on the producer side.
