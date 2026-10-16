@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "agent_id": "fundamentals",
+  "scenario": "tool_call",
+  "input": {
+    "prompt": "(writer tool call input)"
+  },
+  "output": {
+    "summary": "Summary for fundamentals"
+  }
+}

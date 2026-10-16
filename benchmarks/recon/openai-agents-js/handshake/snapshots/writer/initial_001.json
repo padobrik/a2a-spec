@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "agent_id": "writer",
+  "scenario": "initial",
+  "input": {
+    "prompt": "Original query: Write up an analysis of Apple Inc.'s most recent quarter.\n\nSource summary 1:\nPrimary source summary"
+  },
+  "output": {
+    "short_summary": "Initial summary",
+    "markdown_report": "Initial report",
+    "follow_up_questions": []
+  }
+}
