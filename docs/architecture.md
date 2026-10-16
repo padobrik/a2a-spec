@@ -41,7 +41,7 @@ src/agent_handshake/
 ```
 cli → config, spec, snapshot, diff, infer, reporting
 diff → structural, engine
-spec → schema, loader, validator, registry
+spec → schema, loader, validator, fields
 snapshot → store, fingerprint, recorder, replay
 ```
 
