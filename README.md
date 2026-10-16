@@ -238,7 +238,7 @@ Add `handshake infer --check` to CI. The pytest plugin also runs this check as t
 
 ## Run the tests with pytest
 
-agent-handshake has a pytest plugin. It turns on by itself when `handshake.yaml` is in the pytest rootdir, and it adds the specs directory to the run. pytest then runs one test for each snapshot:
+agent-handshake has a pytest plugin. It turns on by itself when it finds `handshake.yaml` in the directory where pytest starts, or in a parent directory up to the pytest rootdir; the nearest file wins, so each project in a monorepo can have its own. It adds the specs directory to the run. pytest then runs one test for each snapshot:
 
 ```
 $ pytest -v

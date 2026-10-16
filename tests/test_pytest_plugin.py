@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -51,6 +52,15 @@ def project(pytester: pytest.Pytester) -> pytest.Pytester:
     return pytester
 
 
+def _move_to_subproject(pytester: pytest.Pytester) -> Path:
+    """Move the project into app/ under a rootdir that has only a pytest.ini."""
+    app = pytester.mkdir("app")
+    for name in ("handshake.yaml", "handshake"):
+        (pytester.path / name).rename(app / name)
+    pytester.makeini("[pytest]\n")
+    return app
+
+
 class TestPytestPlugin:
     def test_inert_without_handshake_yaml(self, project: pytest.Pytester) -> None:
         (project.path / "handshake.yaml").unlink()
@@ -61,6 +71,34 @@ class TestPytestPlugin:
     def test_enabled_by_handshake_yaml_in_rootdir(self, project: pytest.Pytester) -> None:
         result = project.runpytest("handshake/specs")
         result.assert_outcomes(passed=1)
+
+    def test_nearest_handshake_yaml_below_rootdir(
+        self, project: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        app = _move_to_subproject(project)
+        monkeypatch.chdir(app / "handshake")
+        result = project.runpytest()
+        result.assert_outcomes(passed=1)
+
+    def test_nearest_handshake_yaml_wins(
+        self, project: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        app = _move_to_subproject(project)
+        other = project.mkdir("other_specs")
+        (other / "orphan.yaml").write_text(SPEC.replace("triage-agent", "nobody"))
+        project.makefile(".yaml", handshake='specs_dir: "other_specs"\n')
+        monkeypatch.chdir(app)
+        result = project.runpytest()
+        result.assert_outcomes(passed=1)
+
+    def test_handshake_yaml_above_rootdir_ignored(
+        self, project: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        app = project.mkdir("app")
+        (app / "pytest.ini").write_text("[pytest]\n")
+        monkeypatch.chdir(app)
+        result = project.runpytest()
+        assert result.ret == pytest.ExitCode.NO_TESTS_COLLECTED
 
     def test_disabled_with_p_no_handshake(self, project: pytest.Pytester) -> None:
         result = project.runpytest("-p", "no:handshake", "handshake/specs")
