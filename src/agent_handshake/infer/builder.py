@@ -73,6 +73,7 @@ def infer_spec(
         if label in allow_missing
     ]
     labels = {label for label, _ in never_sent}
+    allowed = [label for label in dict.fromkeys(allow_missing) if label in labels]
     warnings += [
         f"--allow-missing '{label}' names no field that is missing from every snapshot"
         for label in allow_missing
@@ -90,6 +91,8 @@ def infer_spec(
     }
     if reads.warnings:
         data["reads_unknown_keys"] = True
+    if allowed:
+        data["allow_missing"] = allowed
     data["structural"] = {
         "type": "object",
         "required": fields.get("required", []),

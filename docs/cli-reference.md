@@ -78,8 +78,10 @@ If the consumer reads a field that the producer sent in no snapshot, the
 command prints `FAIL`, writes no spec and exits 1. A broken producer is not
 turned into an optional field. If the producer leaves the field out on
 purpose, pass `--allow-missing FIELD` (a dotted path such as
-`customer.tier`; repeat it for more fields): the field is then optional and
-the command shows a `WARN` line.
+`customer.tier`; repeat it for more fields): the field is then optional, the
+command shows a `WARN` line, and the spec lists it under `allow_missing`.
+`--check` accepts a `data["key"]` read of such a field, and its
+"Regenerate" command repeats the flags.
 
 `--source` can also name a TypeScript or JavaScript function
 (`agents/resolution.ts:resolutionAgent`) when the `typescript` extra is

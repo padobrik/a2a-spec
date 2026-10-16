@@ -153,10 +153,11 @@ def _check(config_path: str | None) -> None:
             console.print(f"    [yellow]WARN: {warning}[/yellow]")
         if not result.passed:
             stale += 1
+            allowed = "".join(f" --allow-missing {name}" for name in spec.allow_missing)
             console.print(
                 f"    Regenerate: handshake infer --producer {spec.producer} "
                 f"--consumer {spec.consumer} --source {spec.inferred_from} "
-                f"--out {path} --force"
+                f"--out {path} --force{allowed}"
             )
     if broken:
         raise typer.Exit(EXIT_INPUT)

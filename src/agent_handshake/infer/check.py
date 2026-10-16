@@ -54,7 +54,11 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
             properties = schema_dict(schema, "properties")
             if key not in properties and key not in required:
                 problem = f"{function} reads '{name}' (line {lines}), which the spec does not cover"
-            elif any(r.strict[depth] for r in below) and key not in required:
+            elif (
+                any(r.strict[depth] for r in below)
+                and key not in required
+                and name not in spec.allow_missing
+            ):
                 problem = (
                     f"{function} reads '{name}' with [] (line {lines}), "
                     "but the spec makes it optional"

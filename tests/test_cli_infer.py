@@ -150,6 +150,29 @@ class TestCliInferCheck:
             "Regenerate: handshake infer --producer triage-agent --consumer resolution-agent" in out
         )
 
+    def test_allow_missing_survives_check_and_regenerate(self, tmp_path: Path) -> None:
+        config = _project(tmp_path)
+        consumer = tmp_path / "resolution.py"
+        consumer.write_text("def resolution_agent(data):\n    return data['x']\n")
+        out = tmp_path / "specs" / "t2r.yaml"
+        args = _args(tmp_path, config, "--out", str(out), "--allow-missing", "x")
+        result = runner.invoke(app, args)
+        assert result.exit_code == 0, result.output
+        assert load_spec(out).allow_missing == ["x"]
+
+        check = ["infer", "--check", "--config", str(config)]
+        result = runner.invoke(app, check)
+        assert result.exit_code == 0, result.output
+
+        # Stale for another reason: the regenerate command keeps --allow-missing.
+        consumer.write_text("def resolution_agent(data):\n    return data['x'], data['category']\n")
+        result = runner.invoke(app, check)
+        assert result.exit_code == 1
+        assert _flat(result.output).endswith("--force --allow-missing x")
+        result = runner.invoke(app, [*args, "--force"])
+        assert result.exit_code == 0, result.output
+        assert runner.invoke(app, check).exit_code == 0
+
     def test_check_without_inferred_specs(self, tmp_path: Path) -> None:
         config = _project(tmp_path)
         (tmp_path / "specs").mkdir()

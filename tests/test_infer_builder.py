@@ -77,6 +77,7 @@ class TestInferSpec:
         assert spec.missing == []
         assert spec.data["structural"]["properties"]["issue_type"] == {}
         assert spec.data["structural"]["required"] == []
+        assert spec.data["allow_missing"] == ["issue_type"]
         assert spec.warnings == [
             "'issue_type' is read by res (line 4) but triage never sent it in any snapshot; "
             "allowed by --allow-missing"
@@ -93,6 +94,7 @@ class TestInferSpec:
         reads = _reads(("category", 4, False))
         spec = infer_spec("triage", "res", reads, SNAPS, allow_missing=["category"])
         assert spec.missing == []
+        assert "allow_missing" not in spec.data
         assert spec.warnings == [
             "--allow-missing 'category' names no field that is missing from every snapshot"
         ]
