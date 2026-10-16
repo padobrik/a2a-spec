@@ -80,9 +80,7 @@ policy:
     validator: checks.no_refund_promise   # checks.py: def no_refund_promise(output, input_data)
 ```
 
-The function returns `(passed, detail)`. The built-in validators work the
-same way: `agent_handshake.policy.builtin.no_pii_in_output` and
-`agent_handshake.policy.builtin.output_not_empty`.
+The function returns `(passed, detail)`.
 
 ## Best Practices
 
