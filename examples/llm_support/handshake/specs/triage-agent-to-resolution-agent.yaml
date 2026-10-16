@@ -11,6 +11,20 @@ spec:
   consumer: resolution-agent
   description: Fields resolution-agent reads from triage-agent (inferred)
   inferred_from: agents/resolution.py:resolution_agent
+  read_at:
+    customer:
+    - 10
+    - 11
+    - 16
+    customer.sentiment:
+    - 11
+    customer.wants_refund:
+    - 16
+    priority:
+    - 11
+    category:
+    - 12
+    - 16
   structural:
     type: object
     required:
