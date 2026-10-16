@@ -119,3 +119,16 @@ Assumptions made where the request or the code was ambiguous.
 - User `regex` policy rules and custom validators stay.
 - `diff` rates a changed value as MEDIUM, like any structural change; rating
   changes against the consumer's spec is phase 2 work.
+
+## Phase 2
+
+- `infer --check` with no inferred specs exits 0: a project with only
+  hand-written specs has nothing to check, and the GitHub Action runs this
+  step on every project.
+- The README and `examples/llm_support` keep their card number regex; the
+  owner asked to replace PII patterns only in the `init` template and in
+  `examples/customer_support`.
+- The pytest plugin turns on when `handshake.yaml` is in the pytest rootdir
+  only, not in the directory pytest was started from.
+- `SpecRegistry` is unused inside the package but public, so it gets tests
+  instead of being removed.
