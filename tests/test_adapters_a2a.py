@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 from typing import Any
 
@@ -237,10 +239,45 @@ class TestReply:
         with pytest.raises(AdapterError, match="neither 'task' nor 'message'"):
             await _call(Server(result={}))
 
-    async def test_file_parts_rejected(self) -> None:
-        result = {"message": {"parts": [{"url": "https://x/y.png"}]}}
-        with pytest.raises(AdapterError, match="file parts"):
+    async def test_file_parts_listed(self) -> None:
+        raw = base64.b64encode(b"%PDF-1.7").decode()
+        parts = [
+            {"text": "see attached"},
+            {"url": "https://x/y.png", "mediaType": "image/png"},
+            {"raw": raw, "filename": "invoice.pdf", "mediaType": "application/pdf"},
+        ]
+        response = await _call(Server(result={"message": {"parts": parts}}))
+        assert response.output == {
+            "text": "see attached",
+            "files": [
+                {"mediaType": "image/png", "url": "https://x/y.png"},
+                {
+                    "filename": "invoice.pdf",
+                    "mediaType": "application/pdf",
+                    "size": 8,
+                    "sha256": hashlib.sha256(b"%PDF-1.7").hexdigest(),
+                },
+            ],
+        }
+
+    async def test_invalid_raw_file(self) -> None:
+        result = {"message": {"parts": [{"raw": "not base64!"}]}}
+        with pytest.raises(AdapterError, match="invalid base64"):
             await _call(Server(result=result))
+
+    async def test_files_key_clash(self) -> None:
+        parts = [{"data": {"files": []}}, {"url": "https://x/y.png"}]
+        with pytest.raises(AdapterError, match="already has a 'files' field"):
+            await _call(Server(result={"message": {"parts": parts}}))
+
+    async def test_json_text_kept_as_text_next_to_files(self) -> None:
+        parts = [{"text": '{"a": 1}'}, {"url": "https://x/y.png"}]
+        response = await _call(Server(result={"message": {"parts": parts}}), json_text=True)
+        assert response.output["text"] == '{"a": 1}'
+
+    async def test_unknown_part(self) -> None:
+        with pytest.raises(AdapterError, match="unknown part"):
+            await _call(Server(result={"message": {"parts": [{"metadata": {}}]}}))
 
     async def test_no_parts(self) -> None:
         with pytest.raises(AdapterError, match="no parts"):
