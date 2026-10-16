@@ -118,6 +118,11 @@ class TestReads:
     def test_function_forms(self, tmp_path: Path, code: str, function: str) -> None:
         assert analyze_consumer(_write(tmp_path, code), function).fields == ["a"]
 
+    @pytest.mark.parametrize("suffix", [".mts", ".cts", ".tsx", ".js", ".mjs", ".cjs"])
+    def test_every_suffix(self, tmp_path: Path, suffix: str) -> None:
+        path = _write(tmp_path, "function agent(d) { return d.a; }\n", name=f"consumer{suffix}")
+        assert analyze_consumer(path, "agent").fields == ["a"]
+
     def test_javascript_with_jsx(self, tmp_path: Path) -> None:
         path = _write(
             tmp_path,

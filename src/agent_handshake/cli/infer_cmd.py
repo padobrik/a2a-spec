@@ -25,7 +25,7 @@ def infer_command(
         None,
         "--source",
         help="Consumer function that reads the producer's output, as path/to/file.py:function. "
-        ".ts, .tsx, .js, .jsx, .mjs and .cjs files need the 'typescript' extra.",
+        ".ts, .mts, .cts, .tsx, .js, .jsx, .mjs and .cjs files need the 'typescript' extra.",
     ),
     name: str | None = typer.Option(None, "--name", "-n", help="Spec name."),
     out: str | None = typer.Option(
