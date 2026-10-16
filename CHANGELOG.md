@@ -7,6 +7,39 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-16
+
+### Migrating from 0.8
+0.9 removes non-deterministic features and makes checks stricter. Work
+through these steps once; each removed name is reported when it is loaded.
+
+1. Delete settings and rules that no longer exist: the `semantic` section,
+   `ci.fail_on_semantic_drift` and `ci.drift_threshold` in `handshake.yaml`,
+   and `semantic:` and `statistical:` in specs. Drop `diff --threshold`,
+   `test --semantic/--no-semantic` and `--handshake-no-semantic` from scripts.
+2. Fix settings that `handshake.yaml` now reports as unknown. The message
+   names the closest valid key.
+3. Replace removed code: the validators `no_pii_in_output` and
+   `output_not_empty` with a `regex` rule or `structural.required`;
+   `LangChainAdapter` with `FunctionAdapter`; `handshake pipeline` with one
+   spec per producer-consumer pair; `SpecRegistry` with `load_all_specs`.
+4. Check scripts that read exit codes. `diff` exits 1 on drift (was 2).
+   Configuration and input errors exit 2 (most were 1). A spec whose producer
+   has no snapshots, a missing adapter in `--live`, no specs at all, and
+   `diff` without snapshots exit 2 (were a warning, a skip or 0).
+5. pytest: the plugin turns on by itself when it finds `handshake.yaml`.
+   Set `handshake_enabled = false` where you do not want contract tests, and
+   replace `-p no:agent_handshake` with `-p no:handshake`. A spec without
+   snapshots is now a failed test, not a skipped one.
+6. Regenerate inferred specs with `handshake infer ... --force` to add
+   `read_at` and `reads_unknown_keys`. Until then `diff` cannot name the
+   read lines, and `infer --check` fails for a spec whose consumer reads keys
+   the analysis cannot name. If `infer` now fails with "never sent it", fix the producer and
+   record again, or pass `--allow-missing FIELD` for a field the producer
+   leaves out on purpose.
+7. Optional: run `handshake record` to add `schema_version` to snapshot
+   files. Files without it are read as version 1 with a warning.
+
 ### Added
 - `handshake init` adds `__pycache__/` to `.gitignore`. An existing file only
   gets the missing lines at the end.
@@ -32,18 +65,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   field the producer sent in no snapshot. Before, the field became optional,
   so inferring after a broken producer accepted the break. Pass
   `--allow-missing FIELD` for a field the producer leaves out on purpose.
-- Regenerate inferred specs with `handshake infer ... --force` to add
-  `read_at` and `reads_unknown_keys`. Until then `diff` cannot name the read
-  lines, and `infer --check` fails for a spec whose consumer reads keys the
-  analysis cannot name.
 - `handshake.yaml` rejects unknown settings, also inside `storage` and `ci`,
   and names the closest known one: `Unknown setting 'spec_dir'. Did you mean
   'specs_dir'?`. Before, a typo was ignored and the default was used.
 - The pytest plugin turns on by itself when it finds `handshake.yaml` in the
   directory where pytest starts or a parent up to the pytest rootdir (the
   nearest file wins), and adds the specs directory to the run (unless test
-  paths are named on the command line). Turn it off with `-p no:handshake` (the plugin is now
-  registered as `handshake`) or `handshake_enabled = false`.
+  paths are named on the command line). Turn it off with `-p no:handshake`
+  (the plugin is now registered as `handshake`) or `handshake_enabled = false`.
 - In the pytest plugin, a spec whose producer has no snapshots is a failed
   test instead of a skipped one.
 - Exit codes are the same in every command: `0` everything passed, `1` a
@@ -278,6 +307,7 @@ it and says what to use instead.
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.9.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.9.0
 [0.8.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.8.0
 [0.7.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.7.0
 [0.6.0]: https://github.com/padobrik/a2a-spec/releases/tag/v0.6.0

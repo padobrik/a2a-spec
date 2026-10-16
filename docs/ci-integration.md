@@ -9,7 +9,7 @@ in CI.
 ```yaml
 steps:
   - uses: actions/checkout@v6
-  - uses: padobrik/agent-handshake@v0.8.0
+  - uses: padobrik/agent-handshake@v0.9.0
     with:
       package: agent-handshake[typescript]        # pip requirement to install
       working-directory: services/agents   # where handshake.yaml is

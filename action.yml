@@ -7,7 +7,7 @@ branding:
 
 inputs:
   package:
-    description: pip requirement to install, for example "agent-handshake[typescript]==0.8.0".
+    description: pip requirement to install, for example "agent-handshake[typescript]==0.9.0".
     default: agent-handshake
   python-version:
     description: Python version to use.
