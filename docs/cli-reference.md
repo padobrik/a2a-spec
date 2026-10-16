@@ -8,6 +8,9 @@ Initialize a new agent-handshake project with directory structure and example fi
 handshake init [DIRECTORY] [--name NAME]
 ```
 
+It also adds `__pycache__/` to `.gitignore`. An existing `.gitignore` is not
+rewritten: only missing lines are added at the end.
+
 ## `handshake record`
 
 Record live agent outputs as snapshots by calling agents through adapters.
