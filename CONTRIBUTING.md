@@ -58,3 +58,18 @@ Open an issue using the **Bug report** template. Include a minimal reproducible 
 
 Open an issue using the **Feature request** template before starting significant work,
 to avoid building something that won't be merged.
+
+## Releasing
+
+1. In a pull request, bump the version in `pyproject.toml`, `src/agent_handshake/__init__.py`
+   and the bug report template, and rename `## [Unreleased]` in `CHANGELOG.md` to
+   `## [X.Y.Z] - YYYY-MM-DD`. CI fails if the version has no CHANGELOG section.
+2. After the pull request is merged, tag the merge commit on `main` and push the tag:
+
+   ```bash
+   git tag vX.Y.Z && git push origin vX.Y.Z
+   ```
+
+The `Release` workflow checks that the tag matches the version and that the CHANGELOG
+section exists, runs CI, publishes to PyPI, creates the GitHub release with the
+CHANGELOG section as its notes, and installs the new version from PyPI to check it.
