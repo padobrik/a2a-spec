@@ -1,6 +1,6 @@
 """a2a-spec: The open specification for agent-to-agent interactions."""
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 from a2a_spec.adapters.a2a_adapter import A2AAdapter
 from a2a_spec.adapters.base import AgentAdapter, AgentMetadata, AgentResponse

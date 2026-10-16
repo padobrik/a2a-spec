@@ -9,7 +9,7 @@ in CI.
 ```yaml
 steps:
   - uses: actions/checkout@v6
-  - uses: padobrik/a2a-spec@v0.5.0
+  - uses: padobrik/a2a-spec@v0.6.0
     with:
       package: a2a-spec[semantic]          # pip requirement to install
       working-directory: services/agents   # where a2a-spec.yaml is
