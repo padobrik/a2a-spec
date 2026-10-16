@@ -132,6 +132,15 @@ class TestStreaming:
         with pytest.raises(AdapterError, match="A2A error -32001: busy"):
             await _call(server)
 
+    async def test_error_that_is_not_an_object(self) -> None:
+        server = Server(f"data: {json.dumps({'jsonrpc': '2.0', 'id': '1', 'error': 'busy'})}\n\n")
+        with pytest.raises(AdapterError, match="A2A error: 'busy'"):
+            await _call(server)
+
+    async def test_event_value_that_is_not_an_object(self) -> None:
+        with pytest.raises(AdapterError, match="stream event is not an object"):
+            await _call(Server(_sse({"statusUpdate": "done"})))
+
     async def test_plain_json_error_response(self) -> None:
         error = {"jsonrpc": "2.0", "id": "1", "error": {"code": -32600, "message": "bad"}}
         server = Server(json.dumps(error), content_type="application/json")
