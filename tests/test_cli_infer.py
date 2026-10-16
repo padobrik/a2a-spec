@@ -155,7 +155,7 @@ class TestCliInferCheck:
         (tmp_path / "specs").mkdir()
         result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
         assert result.exit_code == 0
-        assert "No inferred specs to check" in _flat(result.output)
+        assert "No inferred specs found, nothing to check." in _flat(result.output)
 
     def test_check_reports_missing_consumer(self, tmp_path: Path) -> None:
         config = self._inferred(tmp_path)

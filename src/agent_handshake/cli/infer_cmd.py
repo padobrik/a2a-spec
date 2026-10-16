@@ -131,8 +131,8 @@ def _check(config_path: str | None) -> None:
     inferred = [(path, spec) for path, spec in spec_files if spec.inferred_from]
     if not inferred:
         console.print(
-            "[yellow]No inferred specs to check. Specs made by 'handshake infer' "
-            "record their consumer in 'inferred_from'.[/yellow]"
+            "[yellow]No inferred specs found, nothing to check. Specs made by "
+            "'handshake infer' record their consumer in 'inferred_from'.[/yellow]"
         )
         return
 
