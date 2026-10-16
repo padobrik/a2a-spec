@@ -79,7 +79,8 @@ def analyze_ts_consumer(path: Path, function: str) -> ConsumerReads:
         visitor.visit(body)
     visitor.finish()
     return ConsumerReads(
-        source=f"{path}:{function}",
+        # POSIX separators, so a spec inferred on Windows checks on Linux and back.
+        source=f"{path.as_posix()}:{function}",
         param=visitor.param or node_text(pattern),
         reads=visitor.reads,
         warnings=visitor.warnings,

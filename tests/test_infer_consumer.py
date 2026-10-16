@@ -36,6 +36,14 @@ class TestAnalyzeConsumer:
         ]
         assert reads.warnings == []
 
+    def test_source_uses_posix_separators(self, tmp_path: Path) -> None:
+        (tmp_path / "agents").mkdir()
+        path = tmp_path / "agents" / "consumer.py"
+        path.write_text("def agent(d):\n    return d['a']\n")
+        reads = analyze_consumer(path, "agent")
+        assert reads.source == f"{path.as_posix()}:agent"
+        assert "\\" not in reads.source
+
     def test_fields_deduplicated_in_order(self, tmp_path: Path) -> None:
         path = _write(tmp_path, "def agent(d):\n    return d.get('b'), d['a'], d['b']\n")
         assert analyze_consumer(path, "agent").fields == ["b", "a"]
