@@ -87,6 +87,8 @@ it and says what to use instead.
 - `LangChainAdapter` and the `langchain` extra. Call the runnable from an
   `async` function and use `FunctionAdapter`; see docs/writing-adapters.md.
 - `SemanticDriftError`, which nothing raised.
+- `SpecRegistry` (`agent_handshake.spec.registry`), which nothing used. Use
+  `load_all_specs` and filter by `producer` or `consumer`.
 
 ## [0.8.0] - 2026-10-16
 
