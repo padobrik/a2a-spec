@@ -27,14 +27,6 @@ spec:
         type: string
         enum: [low, medium, high]
 
-  semantic:
-    - rule: summary_reflects_input
-      description: "Summary must faithfully reflect the customer's message"
-      method: embedding_similarity
-      threshold: 0.5
-      source_field: message
-      target_field: summary
-
   policy:
     - rule: no_pii
       description: "Output must not contain PII"

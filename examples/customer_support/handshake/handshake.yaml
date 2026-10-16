@@ -5,16 +5,9 @@ version: "1.0"
 specs_dir: "./handshake/specs"
 scenarios_dir: "./handshake/scenarios"
 
-semantic:
-  provider: sentence-transformers
-  model: all-MiniLM-L6-v2
-  enabled: true
-
 storage:
   backend: local
   path: ./handshake/snapshots
 
 ci:
-  fail_on_semantic_drift: true
-  drift_threshold: 0.15
   replay_mode: exact

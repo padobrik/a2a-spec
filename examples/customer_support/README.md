@@ -36,7 +36,6 @@ customer_support/
 The spec `triage-to-resolution.yaml` defines what the resolution agent expects from the triage agent:
 
 - **Structural**: Must return `category`, `summary`, and `confidence` fields
-- **Semantic**: Summary must faithfully reflect the customer's input
 - **Policy**: Output must not contain PII
 
 ### Step 2: Create adapters

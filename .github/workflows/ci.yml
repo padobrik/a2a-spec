@@ -157,7 +157,6 @@ jobs:
           package: ${{ github.workspace }}
           working-directory: examples/customer_support
           config: handshake/handshake.yaml
-          args: --no-semantic
 
       # Replays the recorded model output: no API key and no model SDK needed.
       - name: Run the repository action on the LLM example
@@ -165,7 +164,6 @@ jobs:
         with:
           package: ${{ github.workspace }}
           working-directory: examples/llm_support
-          args: --no-semantic
 
       # The last --format wins, so this run adds no annotations to the PR.
       - name: Run the repository action on a broken contract
@@ -176,7 +174,7 @@ jobs:
           package: ${{ github.workspace }}
           working-directory: tests/e2e/projects/producer-renames-field
           check-inferred: "false"
-          args: --no-semantic --format console
+          args: --format console
 
       # Exit code 1 from handshake test, not a failed installation.
       - name: Check that the contract test failed the action

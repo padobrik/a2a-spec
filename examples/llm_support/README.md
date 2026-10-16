@@ -11,7 +11,7 @@ agent-handshake calls the model once, when you record. After that the tests repl
 
 Run every command from `examples/llm_support`.
 
-**1. Install.** The `semantic` extra is needed only for the semantic rule in step 4.
+**1. Install.**
 
 ```bash
 pip install -r requirements.txt
@@ -38,12 +38,11 @@ The spec requires `category` because the code reads it with `ticket["category"]`
 **4. Test.** No API key is needed from here on.
 
 ```bash
-handshake test               # all rules
-handshake test --no-semantic # without the semantic extra
+handshake test
 pytest --handshake handshake/specs
 ```
 
-`handshake/specs/triage-quality.yaml` is written by hand. It adds rules that the consumer code cannot show: the summary must mean the same as the message (semantic), and the output must not contain a card number (policy).
+`handshake/specs/triage-quality.yaml` is written by hand. It adds rules that the consumer code cannot show: the summary must be at least 10 characters long (structural), and the output must not contain a card number (policy).
 
 **5. Change the model or the prompt.** Edit `SYSTEM` in `agents/triage.py`, or set `TRIAGE_MODEL`, and record again:
 
