@@ -83,7 +83,9 @@ class TestSkillCommand:
     def test_installs_into_dir(self, tmp_path: Path) -> None:
         result = runner.invoke(app, ["skill", "--dir", str(tmp_path)])
         assert result.exit_code == 0, result.output
-        assert (tmp_path / "agent-handshake" / "SKILL.md").read_text() == skill_text()
+        assert (tmp_path / "agent-handshake" / "SKILL.md").read_text(
+            encoding="utf-8"
+        ) == skill_text()
 
     def test_refuses_overwrite_without_force(self, tmp_path: Path) -> None:
         target = tmp_path / "agent-handshake" / "SKILL.md"

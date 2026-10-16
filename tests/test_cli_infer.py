@@ -38,8 +38,8 @@ def _project(tmp_path: Path, with_snapshot: bool = True) -> Path:
         )
     config = tmp_path / "handshake.yaml"
     config.write_text(
-        f'project_name: test\nspecs_dir: "{tmp_path / "specs"}"\n'
-        f'storage:\n  path: "{tmp_path / "snapshots"}"\n'
+        f'project_name: test\nspecs_dir: "{(tmp_path / "specs").as_posix()}"\n'
+        f'storage:\n  path: "{(tmp_path / "snapshots").as_posix()}"\n'
     )
     return config
 

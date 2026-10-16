@@ -18,7 +18,9 @@ class TestCliDiff:
     def test_diff_no_snapshots(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
         config = tmp_path / "handshake.yaml"
-        config.write_text(f'project_name: test\nstorage:\n  path: "{tmp_path / "empty_snaps"}"')
+        config.write_text(
+            f'project_name: test\nstorage:\n  path: "{(tmp_path / "empty_snaps").as_posix()}"'
+        )
         result = runner.invoke(app, ["diff", "--config", str(config)])
         assert result.exit_code == 0
 
