@@ -1,25 +1,25 @@
 # CLI Reference
 
-## `a2aspec init`
+## `handshake init`
 
-Initialize a new a2a-spec project with directory structure and example files.
+Initialize a new agent-handshake project with directory structure and example files.
 
 ```bash
-a2aspec init [DIRECTORY] [--name NAME]
+handshake init [DIRECTORY] [--name NAME]
 ```
 
-## `a2aspec record`
+## `handshake record`
 
 Record live agent outputs as snapshots by calling agents through adapters.
 
 ```bash
-a2aspec record [--suite PATH] [--scenario NAME] [--agent ID]... [--config PATH]
+handshake record [--suite PATH] [--scenario NAME] [--agent ID]... [--config PATH]
 ```
 
 `--suite` records only the scenarios in one file; `--scenario` records one
 scenario by name; `--agent` records only the given agents from `ADAPTERS`
 (repeat it for several). A scenario with an `agents` list is recorded only
-for those agents, and `a2aspec test --live` calls only those agents with it:
+for those agents, and `handshake test --live` calls only those agents with it:
 
 ```yaml
 scenarios:
@@ -29,12 +29,12 @@ scenarios:
     agents: [triage-agent]
 ```
 
-## `a2aspec test`
+## `handshake test`
 
 Run spec validation against snapshots (replay) or live agents.
 
 ```bash
-a2aspec test [--replay/--live] [--specs DIR] [--config PATH] [--format FORMAT] [--fail-fast] [--no-semantic]
+handshake test [--replay/--live] [--specs DIR] [--config PATH] [--format FORMAT] [--fail-fast] [--no-semantic]
 ```
 
 `--live` calls each spec's producer through `ADAPTERS` with every scenario
@@ -44,7 +44,7 @@ adapter is skipped with a warning, and a failed agent call is a failed test.
 `--format` is `console` (default), `github` (console output plus GitHub
 Actions annotations), `markdown` or `junit` (only the report on stdout).
 
-## `a2aspec diff`
+## `handshake diff`
 
 Compare recorded snapshots against their committed version in git for
 structural and semantic drift. Reports scenarios added (`NEW`) or deleted
@@ -52,16 +52,16 @@ structural and semantic drift. Reports scenarios added (`NEW`) or deleted
 snapshot when `ci.fail_on_semantic_drift` is true.
 
 ```bash
-a2aspec diff [--agent NAME] [--base REF] [--threshold FLOAT] [--config PATH]
+handshake diff [--agent NAME] [--base REF] [--threshold FLOAT] [--config PATH]
 ```
 
-## `a2aspec infer`
+## `handshake infer`
 
 Generate a consumer-driven spec from the fields a consumer function reads.
 
 ```bash
-a2aspec infer --producer ID --consumer ID --source FILE.py:FUNCTION [--name NAME] [--out PATH|-] [--force]
-a2aspec infer --check
+handshake infer --producer ID --consumer ID --source FILE.py:FUNCTION [--name NAME] [--out PATH|-] [--force]
+handshake infer --check
 ```
 
 The generated spec records its consumer in `inferred_from`. `--check`
@@ -72,27 +72,27 @@ a field the spec makes optional. Nested reads such as
 `required` of the spec. Fields the code no longer reads are
 warnings. No snapshots are needed.
 
-## `a2aspec skill`
+## `handshake skill`
 
-Print the bundled agent skill, or install it as `DIR/a2a-spec/SKILL.md`.
+Print the bundled agent skill, or install it as `DIR/agent-handshake/SKILL.md`.
 
 ```bash
-a2aspec skill [--dir DIR] [--force]
+handshake skill [--dir DIR] [--force]
 ```
 
-## `a2aspec pipeline test`
+## `handshake pipeline test`
 
 Test a pipeline DAG definition, validating each agent against specs.
 
 ```bash
-a2aspec pipeline test PIPELINE_FILE [--scenario NAME] [--mode replay|live] [--no-semantic] [--config PATH]
+handshake pipeline test PIPELINE_FILE [--scenario NAME] [--mode replay|live] [--no-semantic] [--config PATH]
 ```
 
 `--mode replay` uses each agent's snapshot for the test case name; `--mode
 live` calls the agents in `ADAPTERS`. Each step is checked against the
 structural, policy and semantic rules of the specs where that agent is the
 producer. Semantic rules compare with the input the agent got in the
-pipeline. `--no-semantic` skips them, as in `a2aspec test`.
+pipeline. `--no-semantic` skips them, as in `handshake test`.
 
 ## Global Options
 

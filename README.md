@@ -1,20 +1,22 @@
 <p align="center">
-  <strong>a2a-spec</strong><br>
+  <strong>agent-handshake</strong><br>
   <em>Contract tests for multi-agent systems</em>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/a2a-spec/"><img src="https://img.shields.io/pypi/v/a2a-spec?style=flat-square" alt="PyPI"></a>
-  <a href="https://github.com/padobrik/a2a-spec/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/padobrik/a2a-spec/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
-  <a href="https://github.com/padobrik/a2a-spec/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License"></a>
+  <a href="https://pypi.org/project/agent-handshake/"><img src="https://img.shields.io/pypi/v/agent-handshake?style=flat-square" alt="PyPI"></a>
+  <a href="https://github.com/padobrik/agent-handshake/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/padobrik/agent-handshake/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+  <a href="https://github.com/padobrik/agent-handshake/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License"></a>
   <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue?style=flat-square" alt="Python 3.11+">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/padobrik/a2a-spec/main/docs/demo.gif" alt="a2aspec infer generates a contract from the consumer's code; after a producer change, the hand-written spec passes and the inferred contract fails" width="760">
+  <img src="https://raw.githubusercontent.com/padobrik/agent-handshake/main/docs/demo.gif" alt="handshake infer generates a contract from the consumer's code; after a producer change, the hand-written spec passes and the inferred contract fails" width="760">
 </p>
 
-a2a-spec finds the fields that one agent reads from another agent. It tests these fields in CI. The tests use recorded outputs, so they make no LLM calls and need no API keys.
+agent-handshake finds the fields that one agent reads from another agent. It tests these fields in CI. The tests use recorded outputs, so they make no LLM calls and need no API keys.
+
+> agent-handshake was called a2a-spec before version 0.7. The old command (`a2aspec`), config file (`a2a-spec.yaml`), project folder (`a2a_spec/`) and pytest options still work. To move a project, see [Rename from a2a-spec](#rename-from-a2a-spec).
 
 ## The problem
 
@@ -22,14 +24,14 @@ Agent A sends data to agent B. You change the prompt of agent A, and its output 
 
 Agent B reads `priority` with a default value. It does not stop with an error. It gives a wrong result, and no test fails.
 
-## What a2a-spec does
+## What agent-handshake does
 
 1. It reads the code of agent B and finds the fields that agent B uses.
 2. It records the output of agent A one time and saves it as JSON files in git.
 3. It tests the recorded output against the fields that agent B needs. You run these tests in pytest or in CI.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/padobrik/a2a-spec/main/docs/diagrams/how-it-works.svg" alt="a2aspec record saves the output of agent A as snapshots. a2aspec infer reads the code of agent B and writes a spec. a2aspec test or pytest tests the snapshots against the spec, with no LLM calls, and gives pass or fail." width="760">
+  <img src="https://raw.githubusercontent.com/padobrik/agent-handshake/main/docs/diagrams/how-it-works.svg" alt="handshake record saves the output of agent A as snapshots. handshake infer reads the code of agent B and writes a spec. handshake test or pytest tests the snapshots against the spec, with no LLM calls, and gives pass or fail." width="760">
 </p>
 
 ## Terms
@@ -41,7 +43,7 @@ Agent B reads `priority` with a default value. It does not stop with an error. I
 | Spec | A YAML file. It gives the fields that the consumer needs from the producer. |
 | Snapshot | A JSON file. It contains one recorded input and output of the producer. |
 | Scenario | A named input for the producer. |
-| Adapter | A small Python object. a2a-spec uses it to call your agent. |
+| Adapter | A small Python object. agent-handshake uses it to call your agent. |
 
 ## Get started
 
@@ -64,30 +66,30 @@ async def resolution_agent(ticket: dict) -> dict:
     return {"reply": f"We are checking your {ticket['category']} issue.", "escalate": escalate}
 ```
 
-**1. Install a2a-spec.**
+**1. Install agent-handshake.**
 
 ```bash
-pip install a2a-spec
+pip install agent-handshake
 ```
 
 **2. Create the project files.**
 
 ```bash
-a2aspec init
+handshake init
 ```
 
-This command creates `a2a-spec.yaml` and the `a2a_spec/` directory.
+This command creates `handshake.yaml` and the `handshake/` directory.
 
 **3. Remove the example spec and the example scenario.**
 
 ```bash
-rm a2a_spec/specs/example-spec.yaml a2a_spec/scenarios/example-scenarios.yaml
+rm handshake/specs/example-spec.yaml handshake/scenarios/example-scenarios.yaml
 ```
 
-**4. Add the producer to `a2a_spec/adapters/__init__.py`.**
+**4. Add the producer to `handshake/adapters/__init__.py`.**
 
 ```python
-from a2a_spec import FunctionAdapter
+from agent_handshake import FunctionAdapter
 from agents.triage import triage_agent
 
 ADAPTERS = {
@@ -95,7 +97,7 @@ ADAPTERS = {
 }
 ```
 
-**5. Add inputs for the producer to `a2a_spec/scenarios/support.yaml`.**
+**5. Add inputs for the producer to `handshake/scenarios/support.yaml`.**
 
 ```yaml
 scenarios:
@@ -110,7 +112,7 @@ scenarios:
 **6. Record the output of the producer.**
 
 ```bash
-a2aspec record
+handshake record
 ```
 
 The command calls the producer one time for each scenario:
@@ -118,22 +120,22 @@ The command calls the producer one time for each scenario:
 ```
     PASS triage-agent / double_charge recorded
     PASS triage-agent / question recorded
-[done] 2 snapshots saved to ./a2a_spec/snapshots
+[done] 2 snapshots saved to ./handshake/snapshots
 ```
 
-If `ADAPTERS` has more than one agent, the command calls each agent with each scenario. To record one agent only, use `a2aspec record --agent triage-agent`. To give a scenario to some agents only, add `agents: [triage-agent]` to the scenario.
+If `ADAPTERS` has more than one agent, the command calls each agent with each scenario. To record one agent only, use `handshake record --agent triage-agent`. To give a scenario to some agents only, add `agents: [triage-agent]` to the scenario.
 
 **7. Make the spec from the code of the consumer.**
 
 ```bash
-a2aspec infer --producer triage-agent --consumer resolution-agent \
+handshake infer --producer triage-agent --consumer resolution-agent \
   --source agents/resolution.py:resolution_agent
 ```
 
-The command writes `a2a_spec/specs/triage-agent-to-resolution-agent.yaml`:
+The command writes `handshake/specs/triage-agent-to-resolution-agent.yaml`:
 
 ```yaml
-# Generated by 'a2aspec infer' from agents/resolution.py:resolution_agent and 2 triage-agent snapshot(s). Review before committing.
+# Generated by 'handshake infer' from agents/resolution.py:resolution_agent and 2 triage-agent snapshot(s). Review before committing.
 #   priority: required, read at line 2
 #   category: required, read at line 3
 spec:
@@ -153,7 +155,7 @@ Read the spec before you commit it. If the command shows a `WARN` line, read [Li
 **8. Run the tests.**
 
 ```bash
-a2aspec test
+handshake test
 ```
 
 ```
@@ -165,7 +167,7 @@ PASS triage-agent-to-resolution-agent / question
 **9. Commit the files.**
 
 ```bash
-git add a2a-spec.yaml a2a_spec agents
+git add handshake.yaml agent_handshake agents
 git commit -m "test: add agent contracts"
 ```
 
@@ -174,7 +176,7 @@ The committed snapshots are the baseline for the next steps.
 ## When you change an agent
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/padobrik/a2a-spec/main/docs/diagrams/change-workflow.svg" alt="Change the producer, then run a2aspec record, a2aspec diff and a2aspec test. If the tests pass, commit. If they fail and the change is not intended, fix the producer and record again. If the change is intended, update the consumer, run a2aspec infer --force and commit." width="760">
+  <img src="https://raw.githubusercontent.com/padobrik/agent-handshake/main/docs/diagrams/change-workflow.svg" alt="Change the producer, then run handshake record, handshake diff and handshake test. If the tests pass, commit. If they fail and the change is not intended, fix the producer and record again. If the change is intended, update the consumer, run handshake infer --force and commit." width="760">
 </p>
 
 **1. Change the producer.** For example, change its prompt, its model or its code. In this example, the producer now sends `urgency` instead of `priority`.
@@ -182,13 +184,13 @@ The committed snapshots are the baseline for the next steps.
 **2. Record the output again.**
 
 ```bash
-a2aspec record
+handshake record
 ```
 
 **3. Compare the new output with the committed snapshots.**
 
 ```bash
-a2aspec diff
+handshake diff
 ```
 
 ```
@@ -200,7 +202,7 @@ a2aspec diff
 **4. Run the tests.**
 
 ```bash
-a2aspec test
+handshake test
 ```
 
 ```
@@ -211,7 +213,7 @@ FAIL triage-agent-to-resolution-agent / double_charge
 **5. Correct the problem.**
 
 - If the change in the producer is an error, correct the producer. Then do steps 2 to 4 again.
-- If the change is necessary, change the consumer. Then run `a2aspec infer` with `--force` and commit the new spec and snapshots.
+- If the change is necessary, change the consumer. Then run `handshake infer` with `--force` and commit the new spec and snapshots.
 
 Do not record the snapshots again only to make a test pass. Do not delete snapshots or remove fields from a spec for this purpose.
 
@@ -220,7 +222,7 @@ Do not record the snapshots again only to make a test pass. Do not delete snapsh
 A consumer can start to read a new field when you change its code. Then its spec is not complete. To find this problem, run:
 
 ```bash
-a2aspec infer --check
+handshake infer --check
 ```
 
 ```
@@ -228,43 +230,43 @@ FAIL triage-agent-to-resolution-agent (agents/resolution.py:resolution_agent)
     resolution_agent reads 'language' (line 3), which the spec does not cover
 ```
 
-The command compares each spec that `a2aspec infer` made with the current code of its consumer. It reads only code, so it needs no snapshots and makes no LLM calls. The output also shows the command that makes the spec again.
+The command compares each spec that `handshake infer` made with the current code of its consumer. It reads only code, so it needs no snapshots and makes no LLM calls. The output also shows the command that makes the spec again.
 
-Add `a2aspec infer --check` to CI. The pytest plugin also runs this check as the `consumer_code` test of each inferred spec.
+Add `handshake infer --check` to CI. The pytest plugin also runs this check as the `consumer_code` test of each inferred spec.
 
 ## Run the tests with pytest
 
-a2a-spec has a pytest plugin. Add these lines to `pyproject.toml`:
+agent-handshake has a pytest plugin. Add these lines to `pyproject.toml`:
 
 ```toml
 [tool.pytest.ini_options]
-a2a_config = "a2a-spec.yaml"
-testpaths = ["tests", "a2a_spec/specs"]
+handshake_config = "handshake.yaml"
+testpaths = ["tests", "handshake/specs"]
 ```
 
 pytest then runs one test for each snapshot:
 
 ```
 $ pytest -v
-a2a_spec/specs/triage-agent-to-resolution-agent.yaml::double_charge PASSED   [ 50%]
-a2a_spec/specs/triage-agent-to-resolution-agent.yaml::question PASSED        [100%]
+handshake/specs/triage-agent-to-resolution-agent.yaml::double_charge PASSED   [ 50%]
+handshake/specs/triage-agent-to-resolution-agent.yaml::question PASSED        [100%]
 ```
 
-The usual pytest options work, for example `-k`, `-x` and `--junitxml`. To run the tests one time without the configuration, use `pytest --a2a`.
+The usual pytest options work, for example `-k`, `-x` and `--junitxml`. To run the tests one time without the configuration, use `pytest --handshake`.
 
-To test a live output in your own test, use the `a2a_check` fixture. This example is an `async` test, so it needs an async plugin such as `pytest-asyncio`.
+To test a live output in your own test, use the `handshake_check` fixture. This example is an `async` test, so it needs an async plugin such as `pytest-asyncio`.
 
 ```python
-async def test_triage_live(a2a_check):
+async def test_triage_live(handshake_check):
     output = await triage_agent({"message": "I was charged twice"})
-    a2a_check("triage-agent-to-resolution-agent", output)
+    handshake_check("triage-agent-to-resolution-agent", output)
 ```
 
 ## Run the tests in CI
 
 The tests use the committed snapshots. CI needs no API keys.
 
-On GitHub, use the a2a-spec action. It runs `a2aspec infer --check` and `a2aspec test`, and it shows each failure as an annotation in the pull request:
+On GitHub, use the agent-handshake action. It runs `handshake infer --check` and `handshake test`, and it shows each failure as an annotation in the pull request:
 
 ```yaml
 # .github/workflows/contracts.yml
@@ -276,10 +278,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: padobrik/a2a-spec@v0.6.0
+      - uses: padobrik/agent-handshake@v0.6.0
 ```
 
-The action has these inputs: `package` (for example `a2a-spec[semantic]`), `working-directory`, `config`, `check-inferred` and `args`.
+The action has these inputs: `package` (for example `agent-handshake[semantic]`), `working-directory`, `config`, `check-inferred` and `args`.
 
 You can also run the commands yourself:
 
@@ -296,12 +298,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install a2a-spec
-      - run: a2aspec infer --check
-      - run: a2aspec test --format github
+      - run: pip install agent-handshake
+      - run: handshake infer --check
+      - run: handshake test --format github
 ```
 
-`--format github` shows each failure as an annotation in the pull request. For JUnit XML, use `--format junit > results.xml`. If your specs have semantic rules, install `a2a-spec[semantic]` instead.
+`--format github` shows each failure as an annotation in the pull request. For JUnit XML, use `--format junit > results.xml`. If your specs have semantic rules, install `agent-handshake[semantic]` instead.
 
 ## Write a spec by hand
 
@@ -336,11 +338,11 @@ spec:
       patterns: ['\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b']
 ```
 
-Semantic rules need `pip install "a2a-spec[semantic]"`. See [Writing specs](docs/writing-specs.md) for all options.
+Semantic rules need `pip install "agent-handshake[semantic]"`. See [Writing specs](docs/writing-specs.md) for all options.
 
 ## Check exact values
 
-A scenario can also give exact values for the output of an agent. `a2aspec test` and pytest compare these values with the snapshot or with the live output.
+A scenario can also give exact values for the output of an agent. `handshake test` and pytest compare these values with the snapshot or with the live output.
 
 ```yaml
 scenarios:
@@ -364,13 +366,13 @@ FAIL triage-agent-to-resolution-agent / double_charge
 |---|---|
 | Python `async` function | `FunctionAdapter(fn=..., agent_id=..., version=...)` |
 | HTTP endpoint (POST JSON, receive JSON) | `HTTPAdapter(url=..., agent_id=..., version=...)` |
-| LangChain runnable | `LangChainAdapter(runnable=..., agent_id=..., version=...)` (install `a2a-spec[langchain]`) |
+| LangChain runnable | `LangChainAdapter(runnable=..., agent_id=..., version=...)` (install `agent-handshake[langchain]`) |
 | Agent with the [A2A protocol](https://a2a-protocol.org) 1.0 | `A2AAdapter(url=..., agent_id=...)` |
 
 For an A2A agent, give the base URL of the agent. The adapter reads the Agent Card, finds the JSON-RPC interface and sends the scenario input. It records the agent version from the Agent Card in each snapshot.
 
 ```python
-from a2a_spec import A2AAdapter
+from agent_handshake import A2AAdapter
 
 ADAPTERS = {
     "triage-agent": A2AAdapter(url="https://triage.example.com", agent_id="triage-agent"),
@@ -381,35 +383,46 @@ See [Writing adapters](docs/writing-adapters.md) for all options.
 
 ## Use with coding agents
 
-a2a-spec contains an [Agent Skill](https://agentskills.io). The skill tells a coding agent how to use a2a-spec. It also tells the agent not to make a failed test pass by recording the snapshots again.
+agent-handshake contains an [Agent Skill](https://agentskills.io). The skill tells a coding agent how to use agent-handshake. It also tells the agent not to make a failed test pass by recording the snapshots again.
 
 ```bash
-a2aspec skill --dir path/to/skills
+handshake skill --dir path/to/skills
 ```
 
-This command writes `path/to/skills/a2a-spec/SKILL.md`. Export the skill again after you update a2a-spec.
+This command writes `path/to/skills/agent-handshake/SKILL.md`. Export the skill again after you update agent-handshake.
 
 ## Limits
 
-- `a2aspec infer` reads Python consumers only. It finds `data["key"]`, `data.get("key")` and `"key" in data`, also in nested objects (`data["customer"]["tier"]`, `data.get("customer", {}).get("tier")`) and through a local name (`customer = data["customer"]`). It does not follow list items.
-- If the consumer gives its input to another function, `a2aspec infer` cannot follow it. The command then shows a `WARN` line. Add the missing fields to the spec by hand.
-- `a2aspec infer --check` checks only specs that contain `inferred_from`. Specs from a2a-spec 0.3 and earlier do not have it. Run `a2aspec infer` with `--force` again to add it.
-- `a2aspec diff` compares with the snapshots in git. Commit the snapshots before you use it.
+- `handshake infer` reads Python consumers only. It finds `data["key"]`, `data.get("key")` and `"key" in data`, also in nested objects (`data["customer"]["tier"]`, `data.get("customer", {}).get("tier")`) and through a local name (`customer = data["customer"]`). It does not follow list items.
+- If the consumer gives its input to another function, `handshake infer` cannot follow it. The command then shows a `WARN` line. Add the missing fields to the spec by hand.
+- `handshake infer --check` checks only specs that contain `inferred_from`. Specs from agent-handshake 0.3 and earlier do not have it. Run `handshake infer` with `--force` again to add it.
+- `handshake diff` compares with the snapshots in git. Commit the snapshots before you use it.
 - `A2AAdapter` supports A2A 1.0 with JSON-RPC. It does not support streaming.
 - Semantic rules use a local embedding model. The `semantic` extra installs PyTorch.
+
+## Rename from a2a-spec
+
+To move a project from a2a-spec to agent-handshake:
+
+1. Replace `a2a-spec` with `agent-handshake` in your requirements, and `a2a_spec` with `agent_handshake` in imports.
+2. Rename `a2a-spec.yaml` to `handshake.yaml` and the folder `a2a_spec/` to `handshake/`. Change the paths in `handshake.yaml` if it gives them.
+3. Use `handshake` instead of `a2aspec`, `--handshake` instead of `--a2a`, `handshake_config` instead of `a2a_config` and `handshake_check` instead of `a2a_check`.
+4. In GitHub Actions, use `padobrik/agent-handshake@v0.7.0`.
+
+The package `a2a-spec` on PyPI now only installs agent-handshake and makes `import a2a_spec` work.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `a2aspec init` | Creates the project files. |
-| `a2aspec record` | Calls the producers and saves their output as snapshots. |
-| `a2aspec infer` | Makes a spec from the fields that a consumer reads. |
-| `a2aspec infer --check` | Finds specs that do not cover what their consumer reads now. |
-| `a2aspec test` | Tests the snapshots against the specs. |
-| `a2aspec test --live` | Calls the producers with each scenario and tests their output. It saves nothing. |
-| `a2aspec diff` | Compares the snapshots with the committed snapshots. |
-| `a2aspec skill` | Exports the skill for coding agents. |
+| `handshake init` | Creates the project files. |
+| `handshake record` | Calls the producers and saves their output as snapshots. |
+| `handshake infer` | Makes a spec from the fields that a consumer reads. |
+| `handshake infer --check` | Finds specs that do not cover what their consumer reads now. |
+| `handshake test` | Tests the snapshots against the specs. |
+| `handshake test --live` | Calls the producers with each scenario and tests their output. It saves nothing. |
+| `handshake diff` | Compares the snapshots with the committed snapshots. |
+| `handshake skill` | Exports the skill for coding agents. |
 
 See [CLI reference](docs/cli-reference.md) for all options.
 
