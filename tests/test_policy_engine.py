@@ -45,7 +45,39 @@ class TestPolicyEngine:
         rules = [PolicyRule(rule="missing", method="custom", validator="nonexistent.func")]
         results = engine.evaluate({}, {}, rules)
         assert not results[0].passed
-        assert "not registered" in results[0].detail
+        assert "Could not import module 'nonexistent'" in results[0].detail
+
+    def test_custom_validator_loaded_from_dotted_path(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.syspath_prepend(str(tmp_path))
+        (tmp_path / "shop_checks.py").write_text(
+            "def no_refund_promise(output, input_data):\n"
+            "    ok = 'refund' not in output.get('reply', '')\n"
+            "    return ok, '' if ok else 'reply promises a refund'\n"
+        )
+        engine = PolicyEngine()
+        rules = [
+            PolicyRule(
+                rule="no_promise", method="custom", validator="shop_checks.no_refund_promise"
+            )
+        ]
+        assert engine.evaluate({"reply": "We are looking into it."}, {}, rules)[0].passed
+        failed = engine.evaluate({"reply": "We will refund you."}, {}, rules)[0]
+        assert not failed.passed and failed.detail == "reply promises a refund"
+
+    def test_builtin_validator_by_dotted_path(self) -> None:
+        engine = PolicyEngine()
+        path = "agent_handshake.policy.builtin.output_not_empty"
+        rules = [PolicyRule(rule="not_empty", method="custom", validator=path)]
+        assert engine.evaluate({"summary": "Charged twice."}, {}, rules)[0].passed
+        assert engine.evaluate({}, {}, rules)[0].detail == "Output is empty"
+
+    def test_custom_validator_path_without_module(self) -> None:
+        engine = PolicyEngine()
+        rules = [PolicyRule(rule="bad", method="custom", validator="check")]
+        assert "Expected format: 'module.path.function_name'" in (
+            engine.evaluate({}, {}, rules)[0].detail
+        )
 
     def test_custom_no_validator_field(self) -> None:
         engine = PolicyEngine()
