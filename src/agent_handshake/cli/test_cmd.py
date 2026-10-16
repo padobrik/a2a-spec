@@ -21,8 +21,6 @@ from agent_handshake.reporting.console import print_summary, print_validation_re
 from agent_handshake.reporting.github import format_github_annotation
 from agent_handshake.reporting.junit import generate_junit_xml
 from agent_handshake.reporting.markdown import generate_report
-from agent_handshake.semantic.embeddings import EmbeddingModel
-from agent_handshake.semantic.engine import SemanticEngine
 from agent_handshake.snapshot.replay import ReplayEngine
 from agent_handshake.snapshot.store import SnapshotStore
 from agent_handshake.spec.checker import SpecChecker
@@ -86,11 +84,6 @@ def test_command(
         "--fail-fast",
         help="Stop on first failure.",
     ),
-    semantic: bool = typer.Option(
-        True,
-        "--semantic/--no-semantic",
-        help="Evaluate semantic rules (requires the 'semantic' extra).",
-    ),
 ) -> None:
     """Run spec validation against recorded snapshots or live agents.
 
@@ -136,12 +129,7 @@ def test_command(
         except ConfigError:
             scenarios = []  # no scenario files: no expectations to check
     by_name = {sc.name: sc for sc in scenarios}
-    semantic = semantic and config.semantic.enabled
-    checker = SpecChecker(
-        semantic_engine=SemanticEngine(model=EmbeddingModel(config.semantic.model))
-        if semantic
-        else None
-    )
+    checker = SpecChecker()
 
     records: list[dict[str, Any]] = []
     failed = 0
@@ -179,12 +167,7 @@ def test_command(
                 errors = [case.error or "no output"]
                 passed_one = False
             else:
-                try:
-                    result = checker.check(spec, case.output, case.input, case.expected)
-                except ImportError as e:
-                    out.print(f"[red]{e}[/red]")
-                    out.print("[red]Or pass --no-semantic to skip semantic rules.[/red]")
-                    raise typer.Exit(1) from None
+                result = checker.check(spec, case.output, case.input, case.expected)
                 errors = result.failures()
                 passed_one = result.passed
                 if not report_only:
@@ -193,8 +176,6 @@ def test_command(
                         scenario,
                         result.structural,
                         result.policy,
-                        result.semantic,
-                        semantic_skipped=result.semantic_skipped,
                         expectation_errors=result.expectations,
                     )
 
