@@ -1,0 +1,5 @@
+rules:
+  # It asks for a '$/...' form of local workflow and action references; the
+  # documented './...' form is kept until that syntax is verified to work.
+  self-repository:
+    disable: true
