@@ -87,6 +87,12 @@ class TestRateForConsumers:
             "spec 't2b' for billing names it"
         )
 
+    def test_specs_with_the_same_name_keep_their_own_fields(self) -> None:
+        summary = {"summary": {"type": "string"}}
+        specs = [_spec(), _spec(consumer="billing", properties=summary, inferred=False)]
+        rated = _rate({k: v for k, v in OLD.items() if k != "customer"}, specs)
+        assert rated["customer"][0] == DriftSeverity.HIGH
+
     def test_no_specs_keeps_structural_rating(self) -> None:
         rated = _rate({k: v for k, v in OLD.items() if k != "summary"}, [])
         assert rated["summary"][0] == DriftSeverity.HIGH
