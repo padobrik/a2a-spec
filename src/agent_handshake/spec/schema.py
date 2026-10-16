@@ -16,13 +16,6 @@ class SemanticMethod(StrEnum):
     LANGUAGE_DETECTION = "language_detection"
 
 
-class StatisticalMethod(StrEnum):
-    """Supported statistical drift methods."""
-
-    CHI_SQUARED = "chi_squared"
-    KS_TEST = "ks_test"
-
-
 class PolicyMethod(StrEnum):
     """Supported policy check methods."""
 
@@ -39,16 +32,6 @@ class SemanticRule(BaseModel):
     threshold: float = 0.8
     source_field: str | None = None
     target_field: str | None = None
-
-
-class StatisticalRule(BaseModel):
-    """A statistical drift detection rule."""
-
-    rule: str
-    method: StatisticalMethod
-    baseline: str | None = None
-    max_drift: float = 0.15
-    p_value_threshold: float = 0.05
 
 
 class PolicyRule(BaseModel):
@@ -83,7 +66,6 @@ class Spec(BaseModel):
 
     structural: StructuralSpec
     semantic: list[SemanticRule] = Field(default_factory=list)
-    statistical: list[StatisticalRule] = Field(default_factory=list)
     policy: list[PolicyRule] = Field(default_factory=list)
 
     model_config = {"extra": "forbid"}
