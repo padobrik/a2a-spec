@@ -134,6 +134,10 @@ class _ReadVisitor(ast.NodeVisitor):
         # as a whole is only worth a warning when the code also reads keys from it.
         self._mapping_aliases: set[str] = set()
         self._whole_alias_uses: list[tuple[str, Chain, int]] = []
+        # Names that hold a part of the input the analysis does not follow:
+        # ``x = data.get("k") or {}`` or a list item (``for r in data["rs"]``).
+        # Reading keys from them, or passing them on, gets a warning.
+        self._untracked: dict[str, str] = {}
 
     def finish(self) -> None:
         """Report whole uses of aliases that the code also reads keys from."""
@@ -173,7 +177,55 @@ class _ReadVisitor(ast.NodeVisitor):
         """Resolve an expression that keys are read from, noting aliases used as mappings."""
         if isinstance(node, ast.Name) and node.id in self.aliases:
             self._mapping_aliases.add(node.id)
+        self._check_untracked(node)
         return self._chain(node)
+
+    def _check_untracked(self, node: ast.AST) -> None:
+        """Warn once when a name holding an unfollowed part of the input is read from."""
+        if isinstance(node, ast.Name) and node.id in self._untracked:
+            what = f"'{node.id}' {self._untracked.pop(node.id)}"
+        elif (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.slice, ast.Constant)
+            and isinstance(node.slice.value, int)
+            and (chain := self._chain(node.value)) is not None
+            and chain[0]
+        ):
+            what = f"an item of '{'.'.join(chain[0])}' is read"
+        else:
+            return
+        warning = (
+            f"line {getattr(node, 'lineno', 0)}: {what}, and its keys are not followed; "
+            "the inferred contract may be incomplete"
+        )
+        if warning not in self.warnings:
+            self.warnings.append(warning)
+
+    def _held(self, node: ast.AST) -> tuple[Chain, str] | None:
+        """The input part an expression passes on without being a plain read of it."""
+        if isinstance(node, ast.BoolOp):
+            operator = "or" if isinstance(node.op, ast.Or) else "and"
+            for value in node.values:
+                chain = self._chain(value)
+                if chain is not None and chain[0]:
+                    return chain, f"`{operator}`"
+        if isinstance(node, ast.IfExp):
+            for value in (node.body, node.orelse):
+                chain = self._chain(value)
+                if chain is not None and chain[0]:
+                    return chain, "a conditional expression"
+        return None
+
+    def _bind_items(self, target: ast.AST, iterable: ast.AST) -> None:
+        """Note a loop or comprehension name that takes the items of an input list."""
+        if not isinstance(target, ast.Name):
+            return
+        chain = self._chain(iterable)
+        self.aliases.pop(target.id, None)
+        if chain is not None and chain[0]:
+            self._untracked[target.id] = f"is an item of '{'.'.join(chain[0])}'"
+        else:
+            self._untracked.pop(target.id, None)
 
     @staticmethod
     def _is_get(node: ast.AST) -> bool:
@@ -203,14 +255,63 @@ class _ReadVisitor(ast.NodeVisitor):
         chain = self._chain(node.value)
         for target in node.targets:
             if isinstance(target, ast.Name):
+                self._untracked.pop(target.id, None)
+                held = self._held(node.value) if chain is None else None
                 if target.id == self.param:
                     self._warn(target, "is reassigned")
                 elif chain is not None and chain[0]:
                     self.aliases[target.id] = chain
                 else:
                     self.aliases.pop(target.id, None)
+                    if held is not None:
+                        label = ".".join(held[0][0])
+                        self._untracked[target.id] = f"holds '{label}' through {held[1]}"
             else:
                 self.visit(target)
+
+    def visit_For(self, node: ast.For | ast.AsyncFor) -> None:
+        self.visit(node.iter)
+        self._bind_items(node.target, node.iter)
+        for stmt in [*node.body, *node.orelse]:
+            self.visit(stmt)
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+        self.visit_For(node)
+
+    def _visit_comprehension(
+        self, node: ast.ListComp | ast.SetComp | ast.GeneratorExp | ast.DictComp
+    ) -> None:
+        for generator in node.generators:
+            self.visit(generator.iter)
+            self._bind_items(generator.target, generator.iter)
+            for condition in generator.ifs:
+                self.visit(condition)
+        if isinstance(node, ast.DictComp):
+            self.visit(node.key)
+            self.visit(node.value)
+        else:
+            self.visit(node.elt)
+
+    def visit_ListComp(self, node: ast.ListComp) -> None:
+        self._visit_comprehension(node)
+
+    def visit_SetComp(self, node: ast.SetComp) -> None:
+        self._visit_comprehension(node)
+
+    def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+        self._visit_comprehension(node)
+
+    def visit_DictComp(self, node: ast.DictComp) -> None:
+        self._visit_comprehension(node)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        if isinstance(node.ctx, ast.Load):
+            self._check_untracked(node.value)
+            if self._chain(node.value) == ((), ()):
+                # The input is an object here (a dataclass, a model), not a dict.
+                self._warn(node, f"reads the attribute .{node.attr}, which is not followed yet")
+                return
+        self.generic_visit(node)
 
     def visit_Subscript(self, node: ast.Subscript) -> None:
         if isinstance(node.ctx, ast.Load):
@@ -230,6 +331,8 @@ class _ReadVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
+        for arg in [*node.args, *(k.value for k in node.keywords)]:
+            self._check_untracked(arg)
         chain = self._chain(node)
         if chain is not None:
             self._record(chain, node.lineno)
@@ -237,6 +340,14 @@ class _ReadVisitor(ast.NodeVisitor):
                 self.visit(child)
             return
         func = node.func
+        if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
+            if func.value.id in self._untracked:
+                # A method of a list item: only mapping methods read its keys.
+                if func.attr in _MAPPING_METHODS:
+                    self._check_untracked(func.value)
+                for child in [*node.args, *node.keywords]:
+                    self.visit(child)
+                return
         if isinstance(func, ast.Attribute):
             base = self._chain(func.value)
             if base is not None:
