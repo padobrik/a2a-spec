@@ -29,7 +29,7 @@ class TestCliTest:
         config = tmp_path / "handshake.yaml"
         config.write_text(f'project_name: test\nspecs_dir: "{specs.as_posix()}"')
         result = runner.invoke(app, ["test", "--config", str(config)])
-        assert result.exit_code == 0
+        assert result.exit_code == 2
 
     def test_version_flag(self) -> None:
         result = runner.invoke(app, ["--version"])
@@ -186,11 +186,11 @@ class TestCliTestLive:
         assert "agent call failed: " in result.output
         assert "model down" in result.output
 
-    def test_producer_without_adapter_is_skipped(self, tmp_path, monkeypatch) -> None:
+    def test_producer_without_adapter_is_an_error(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
         _live_project(tmp_path, {"ok": "charged twice"}, adapters="ADAPTERS = {}\n")
         result = runner.invoke(app, ["test", "--live"])
-        assert result.exit_code == 0
+        assert result.exit_code == 2
         assert "No adapter for 'triage-agent'" in " ".join(result.output.split())
 
     def test_live_skips_scenarios_for_other_agents(self, tmp_path, monkeypatch) -> None:

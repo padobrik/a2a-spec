@@ -102,7 +102,7 @@ class TestCliRecordAdapters:
         monkeypatch.chdir(tmp_path)
         config = _project(tmp_path, "import not_a_real_module_xyz\nADAPTERS = {}\n")
         result = runner.invoke(app, ["record", "--config", str(config)])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Failed to load adapters" in _flat(result.output)
         assert "not_a_real_module_xyz" in _flat(result.output)
 
@@ -110,7 +110,7 @@ class TestCliRecordAdapters:
         monkeypatch.chdir(tmp_path)
         config = _project(tmp_path, "x = 1\n")
         result = runner.invoke(app, ["record", "--config", str(config)])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "must define ADAPTERS" in _flat(result.output)
 
     def test_missing_adapters_package(self, tmp_path: Path, monkeypatch) -> None:
@@ -118,7 +118,7 @@ class TestCliRecordAdapters:
         config = _project(tmp_path, "ADAPTERS = {}\n")
         config.write_text("project_name: test\nadapters_dir: ./elsewhere\n")
         result = runner.invoke(app, ["record", "--config", str(config)])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "No adapters package at" in _flat(result.output)
 
     def test_suite_option_limits_to_one_file(self, tmp_path: Path, monkeypatch) -> None:
@@ -139,7 +139,7 @@ class TestCliRecordAdapters:
         monkeypatch.chdir(tmp_path)
         config = _project(tmp_path, "ADAPTERS = {}\n")
         result = runner.invoke(app, ["record", "--config", str(config), "--suite", "nope.yaml"])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Scenario suite not found: nope.yaml" in _flat(result.output)
 
 
@@ -177,7 +177,7 @@ class TestCliRecordAgentFilter:
         monkeypatch.chdir(tmp_path)
         config = _project(tmp_path, TWO_ADAPTERS)
         result = runner.invoke(app, ["record", "--config", str(config), "-a", "billing-agent"])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         out = _flat(result.output)
         assert "No adapter for billing-agent in ADAPTERS" in out
         assert "Available: triage-agent, resolution-agent" in out
@@ -198,5 +198,5 @@ class TestCliRecordAgentFilter:
         suite = tmp_path / "handshake" / "scenarios" / "support.yaml"
         suite.write_text(SCENARIOS + "    agents: triage-agent\n")
         result = runner.invoke(app, ["record", "--config", str(config)])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "'agents' must be a list of agent ids" in _flat(result.output)

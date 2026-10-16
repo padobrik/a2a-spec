@@ -8,6 +8,7 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
+from agent_handshake.cli.exit_codes import EXIT_FAILED, EXIT_INPUT
 from agent_handshake.config.loader import load_config
 from agent_handshake.exceptions import HandshakeError
 from agent_handshake.project import load_adapters, load_scenarios
@@ -55,13 +56,13 @@ def record_command(
         config = load_config(config_path)
     except HandshakeError as e:
         console.print(f"[red]Config error: {e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     try:
         scenarios = load_scenarios(config, suite)
     except HandshakeError as e:
         console.print(f"[red]{e}[/red]\nRun 'handshake init' first.")
-        raise typer.Exit(1) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     console.print("\n[bold]\\[record][/bold] Recording snapshots...\n")
     console.print(
@@ -73,14 +74,14 @@ def record_command(
         adapters = load_adapters(config)
     except Exception as e:  # noqa: BLE001  # the user's adapters package can raise anything
         console.print(f"[red]Failed to load adapters: {e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     if not adapters:
         console.print("[yellow]No adapters found. Create adapters first.[/yellow]")
         console.print(
             "See: https://github.com/padobrik/agent-handshake/blob/main/docs/writing-adapters.md"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_INPUT)
 
     unknown = sorted(set(agent or []) - set(adapters))
     if unknown:
@@ -88,7 +89,7 @@ def record_command(
             f"[red]No adapter for {', '.join(unknown)} in ADAPTERS. "
             f"Available: {', '.join(adapters)}[/red]"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_INPUT)
     if agent:
         adapters = {k: v for k, v in adapters.items() if k in agent}
 
@@ -120,4 +121,4 @@ def record_command(
     console.print(f"\n\\[done] {recorded} snapshots saved to {config.storage.path}")
     if errors:
         console.print(f"[red]WARN: {errors} recording error(s)[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_FAILED)

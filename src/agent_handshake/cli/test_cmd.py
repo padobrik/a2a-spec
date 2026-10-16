@@ -15,6 +15,7 @@ import typer
 from rich.console import Console
 
 from agent_handshake.api import check, load_snapshots
+from agent_handshake.cli.exit_codes import EXIT_FAILED, EXIT_INPUT
 from agent_handshake.config.loader import load_config
 from agent_handshake.exceptions import ConfigError, HandshakeError, SnapshotFormatError
 from agent_handshake.project import Scenario, load_adapters, load_scenarios
@@ -98,18 +99,21 @@ def test_command(
         config = load_config(config_path)
     except HandshakeError as e:
         out.print(f"[red]Config error: {e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     _specs_dir = specs_dir or config.specs_dir
     try:
         spec_files = load_spec_files(_specs_dir)
     except HandshakeError as e:
         out.print(f"[red]Error loading specs: {e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     if not spec_files:
-        out.print("[yellow]No spec files found. Run 'handshake init' first.[/yellow]")
-        raise typer.Exit(0)
+        out.print(
+            f"[red]No spec files in {_specs_dir}. Write one, or run 'handshake infer' "
+            "or 'handshake init'.[/red]"
+        )
+        raise typer.Exit(EXIT_INPUT)
 
     adapters: dict[str, Any] = {}
     scenarios: list[Scenario] = []
@@ -120,7 +124,7 @@ def test_command(
             scenarios = load_scenarios(config)
         except Exception as e:  # noqa: BLE001  # the user's adapters package can raise anything
             out.print(f"[red]Cannot run live: {e}[/red]")
-            raise typer.Exit(1) from None
+            raise typer.Exit(EXIT_INPUT) from None
     else:
         try:
             scenarios = load_scenarios(config)
@@ -132,10 +136,13 @@ def test_command(
         except SnapshotFormatError as e:
             # A snapshot file that is not valid stops the run: it is an input error.
             out.print(f"[red]{e}[/red]")
-            raise typer.Exit(2) from None
+            raise typer.Exit(EXIT_INPUT) from None
 
     records: list[dict[str, Any]] = []
     failed = 0
+    # Problems with the input, such as a spec whose producer has no snapshots.
+    # They make the run incomplete, so they are errors, not skips.
+    input_errors: list[str] = []
 
     mode_label = "[blue]replay[/blue]" if replay else "[yellow]live[/yellow]"
     if not report_only:
@@ -147,15 +154,18 @@ def test_command(
             result = check(spec, snapshots, expected)
             if result.errors:
                 for error in result.errors:
-                    out.print(f"  [yellow]WARN: {error}[/yellow]")
+                    out.print(f"  [red]ERROR[/red] {error}")
+                input_errors += result.errors
                 continue
             cases: Iterable[Case] = [Case(c.snapshot.scenario, check=c.check) for c in result.cases]
         else:
             if spec.producer not in adapters:
-                out.print(
-                    f"  [yellow]WARN: No adapter for '{spec.producer}' in ADAPTERS; "
-                    f"skipping {spec.name}.[/yellow]"
+                error = (
+                    f"No adapter for '{spec.producer}', the producer of spec '{spec.name}'. "
+                    "Add it to ADAPTERS."
                 )
+                out.print(f"  [red]ERROR[/red] {error}")
+                input_errors.append(error)
                 continue
             cases = _live_cases(spec, adapters[spec.producer], scenarios, expected)
 
@@ -219,8 +229,11 @@ def test_command(
     else:
         print_summary(len(records), len(records) - failed, failed)
 
+    if input_errors:
+        out.print(f"[red]{len(input_errors)} input error(s); the run is not complete.[/red]")
+        raise typer.Exit(EXIT_INPUT)
     if failed > 0:
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_FAILED)
 
 
 def _live_cases(

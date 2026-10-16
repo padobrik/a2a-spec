@@ -78,5 +78,5 @@ class TestInitTemplatesWork:
     def test_empty_adapters_template_gives_guidance(self, tmp_path: Path, monkeypatch) -> None:
         self._init(tmp_path, monkeypatch)
         result = runner.invoke(app, ["record"])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "No adapters found" in result.output

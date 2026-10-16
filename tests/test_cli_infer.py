@@ -86,7 +86,7 @@ class TestCliInfer:
         out = tmp_path / "spec.yaml"
         out.write_text("keep me")
         result = runner.invoke(app, _args(tmp_path, config, "--out", str(out)))
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "--force" in _flat(result.output)
         assert out.read_text() == "keep me"
 
@@ -97,7 +97,7 @@ class TestCliInfer:
     def test_no_snapshots(self, tmp_path: Path) -> None:
         config = _project(tmp_path, with_snapshot=False)
         result = runner.invoke(app, _args(tmp_path, config))
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "handshake record" in _flat(result.output)
 
     def test_bad_source_ref(self, tmp_path: Path) -> None:
@@ -105,14 +105,14 @@ class TestCliInfer:
         args = _args(tmp_path, config)
         args[args.index("--source") + 1] = "resolution.py"
         result = runner.invoke(app, args)
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "path/to/file.py:function" in _flat(result.output)
 
     def test_consumer_reading_nothing(self, tmp_path: Path) -> None:
         config = _project(tmp_path)
         (tmp_path / "resolution.py").write_text("def resolution_agent(d):\n    return helper(d)\n")
         result = runner.invoke(app, _args(tmp_path, config))
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "reads no fields" in _flat(result.output)
         assert "is used as a whole" in _flat(result.output)
 
@@ -161,7 +161,7 @@ class TestCliInferCheck:
         config = self._inferred(tmp_path)
         (tmp_path / "resolution.py").unlink()
         result = runner.invoke(app, ["infer", "--check", "--config", str(config)])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Consumer source not found" in _flat(result.output)
 
     def test_generate_requires_arguments(self, tmp_path: Path) -> None:

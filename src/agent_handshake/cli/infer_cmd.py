@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from agent_handshake.cli.exit_codes import EXIT_FAILED, EXIT_INPUT
 from agent_handshake.config.loader import load_config
 from agent_handshake.exceptions import HandshakeError
 from agent_handshake.infer.builder import infer_spec
@@ -59,7 +60,7 @@ def infer_command(
         return
     if not (producer and consumer and source):
         console.print("[red]--producer, --consumer and --source are required.[/red]")
-        raise typer.Exit(2)
+        raise typer.Exit(EXIT_INPUT)
 
     try:
         config = load_config(config_path)
@@ -68,16 +69,16 @@ def infer_command(
         snapshots = SnapshotStore(config.storage.path).load_all(producer)
     except (HandshakeError, ValueError) as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     if not snapshots:
         console.print(f"[red]No snapshots for '{producer}'. Run 'handshake record' first.[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_INPUT)
     if not reads.reads:
         console.print(f"[red]{source} reads no fields from its input.[/red]")
         for warning in reads.warnings:
             console.print(f"  [yellow]{warning}[/yellow]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_INPUT)
 
     inferred = infer_spec(producer, consumer, reads, snapshots, name=name)
     text = inferred.to_yaml()
@@ -92,7 +93,7 @@ def infer_command(
     target = Path(out) if out else Path(config.specs_dir) / f"{inferred.data['name']}.yaml"
     if target.exists() and not force:
         console.print(f"[red]{target} already exists. Pass --force to overwrite.[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_INPUT)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(text, encoding="utf-8")
 
@@ -106,7 +107,7 @@ def _check(config_path: str | None) -> None:
         spec_files = load_spec_files(config.specs_dir)
     except HandshakeError as e:
         console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     inferred = [(path, spec) for path, spec in spec_files if spec.inferred_from]
     if not inferred:
@@ -117,12 +118,13 @@ def _check(config_path: str | None) -> None:
         return
 
     stale = 0
+    broken = 0
     for path, spec in inferred:
         try:
             result = check_inferred_spec(spec)
         except HandshakeError as e:
-            console.print(f"[red]FAIL[/red] {spec.name}: {e}")
-            stale += 1
+            console.print(f"[red]ERROR[/red] {spec.name}: {e}")
+            broken += 1
             continue
         label = "[green]OK[/green]  " if result.passed else "[red]FAIL[/red]"
         console.print(f"{label} {spec.name} ({spec.inferred_from})")
@@ -137,5 +139,7 @@ def _check(config_path: str | None) -> None:
                 f"--consumer {spec.consumer} --source {spec.inferred_from} "
                 f"--out {path} --force"
             )
+    if broken:
+        raise typer.Exit(EXIT_INPUT)
     if stale:
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_FAILED)
