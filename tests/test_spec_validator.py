@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from a2a_spec.spec.schema import Spec, StructuralSpec
-from a2a_spec.spec.validator import ValidationResult, validate_output
+from agent_handshake.spec.schema import Spec, StructuralSpec
+from agent_handshake.spec.validator import ValidationResult, validate_output
 
 
 @pytest.fixture
@@ -100,7 +100,7 @@ class TestValidateStructural:
 
 class TestCheckExpectations:
     def test_match_mismatch_missing(self) -> None:
-        from a2a_spec.spec.checker import check_expectations
+        from agent_handshake.spec.checker import check_expectations
 
         assert check_expectations({"category": "billing"}, {"category": "billing"}) == []
         assert check_expectations({"category": "general"}, {"category": "billing"}) == [

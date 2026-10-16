@@ -10,8 +10,8 @@ from typing import Any
 import httpx
 import pytest
 
-from a2a_spec import A2AAdapter
-from a2a_spec.exceptions import AdapterError
+from agent_handshake import A2AAdapter
+from agent_handshake.exceptions import AdapterError
 
 BASE = "https://agent.example.com"
 CARD = {

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from a2a_spec.policy.engine import PolicyEngine
-from a2a_spec.spec.schema import PolicyRule
+from agent_handshake.policy.engine import PolicyEngine
+from agent_handshake.spec.schema import PolicyRule
 
 
 class TestPolicyEngine:

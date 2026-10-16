@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from a2a_spec.exceptions import ConfigError
-from a2a_spec.infer.consumer import analyze_consumer, parse_source_ref
+from agent_handshake.exceptions import ConfigError
+from agent_handshake.infer.consumer import analyze_consumer, parse_source_ref
 
 
 def _write(tmp_path: Path, code: str) -> Path:

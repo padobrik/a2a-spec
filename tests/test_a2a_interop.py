@@ -35,9 +35,9 @@ from a2a.types import (  # noqa: E402
 from google.protobuf import json_format, struct_pb2  # noqa: E402
 from starlette.applications import Starlette  # noqa: E402
 
-from a2a_spec import A2AAdapter, SnapshotStore  # noqa: E402
-from a2a_spec.exceptions import AdapterError  # noqa: E402
-from a2a_spec.snapshot.recorder import Recorder  # noqa: E402
+from agent_handshake import A2AAdapter, SnapshotStore  # noqa: E402
+from agent_handshake.exceptions import AdapterError  # noqa: E402
+from agent_handshake.snapshot.recorder import Recorder  # noqa: E402
 
 BASE = "http://agent.test"
 RECEIPT = b"%PDF-1.7 receipt"

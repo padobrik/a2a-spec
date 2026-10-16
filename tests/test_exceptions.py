@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from a2a_spec.exceptions import (
+from agent_handshake.exceptions import (
     AdapterError,
     ConfigError,
     PipelineExecutionError,
@@ -41,9 +41,9 @@ class TestSnapshotNotFoundError:
     """Tests for SnapshotNotFoundError."""
 
     def test_suggests_record_command(self) -> None:
-        """Error message must suggest running a2aspec record."""
+        """Error message must suggest running handshake record."""
         err = SnapshotNotFoundError("triage-agent", "billing")
-        assert "a2aspec record" in str(err)
+        assert "handshake record" in str(err)
 
     def test_contains_agent_id(self) -> None:
         """Agent ID must appear in the message."""
@@ -170,12 +170,12 @@ class TestAdapterError:
 class TestConfigError:
     """Tests for ConfigError."""
 
-    def test_is_a2a_spec_error(self) -> None:
-        """ConfigError must inherit from A2ASpecError."""
-        from a2a_spec.exceptions import A2ASpecError
+    def test_is_agent_handshake_error(self) -> None:
+        """ConfigError must inherit from HandshakeError."""
+        from agent_handshake.exceptions import HandshakeError
 
         err = ConfigError("bad config")
-        assert isinstance(err, A2ASpecError)
+        assert isinstance(err, HandshakeError)
 
     def test_message_preserved(self) -> None:
         """The message must be accessible."""
@@ -187,8 +187,8 @@ class TestExceptionHierarchy:
     """Tests for the exception hierarchy."""
 
     def test_all_errors_inherit_base(self) -> None:
-        """All custom exceptions must inherit from A2ASpecError."""
-        from a2a_spec.exceptions import A2ASpecError
+        """All custom exceptions must inherit from HandshakeError."""
+        from agent_handshake.exceptions import HandshakeError
 
         errors = [
             SpecValidationError("s", []),
@@ -201,11 +201,13 @@ class TestExceptionHierarchy:
             ConfigError("msg"),
         ]
         for err in errors:
-            assert isinstance(err, A2ASpecError), f"{type(err).__name__} must extend A2ASpecError"
+            assert isinstance(err, HandshakeError), (
+                f"{type(err).__name__} must extend HandshakeError"
+            )
 
     def test_all_errors_catchable_as_base(self) -> None:
-        """Catching A2ASpecError must catch all custom errors."""
-        from a2a_spec.exceptions import A2ASpecError
+        """Catching HandshakeError must catch all custom errors."""
+        from agent_handshake.exceptions import HandshakeError
 
-        with pytest.raises(A2ASpecError):
+        with pytest.raises(HandshakeError):
             raise SnapshotNotFoundError("a", "b")

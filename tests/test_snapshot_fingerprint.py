@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from a2a_spec.snapshot.fingerprint import Fingerprint
+from agent_handshake.snapshot.fingerprint import Fingerprint
 
 
 class TestFingerprint:

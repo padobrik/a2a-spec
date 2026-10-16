@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from a2a_spec.semantic.engine import SemanticEngine
-from a2a_spec.spec.schema import SemanticMethod, SemanticRule
+from agent_handshake.semantic.engine import SemanticEngine
+from agent_handshake.spec.schema import SemanticMethod, SemanticRule
 
 
 class FakeEncoder:

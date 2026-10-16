@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from a2a_spec.exceptions import SnapshotNotFoundError
-from a2a_spec.snapshot.fingerprint import Fingerprint
-from a2a_spec.snapshot.store import Snapshot, SnapshotStore
+from agent_handshake.exceptions import SnapshotNotFoundError
+from agent_handshake.snapshot.fingerprint import Fingerprint
+from agent_handshake.snapshot.store import Snapshot, SnapshotStore
 
 
 class TestSnapshotStore:

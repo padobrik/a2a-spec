@@ -12,8 +12,8 @@ from langchain_core.messages import AIMessage  # noqa: E402
 from langchain_core.runnables import RunnableLambda  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
-from a2a_spec.adapters.langchain_adapter import LangChainAdapter  # noqa: E402
-from a2a_spec.exceptions import AdapterError  # noqa: E402
+from agent_handshake.adapters.langchain_adapter import LangChainAdapter  # noqa: E402
+from agent_handshake.exceptions import AdapterError  # noqa: E402
 
 
 class _Triage(BaseModel):
@@ -27,7 +27,7 @@ def _adapter(fn: object) -> LangChainAdapter:
 
 class TestLangChainAdapter:
     def test_exported_from_package(self) -> None:
-        from a2a_spec import LangChainAdapter as Exported
+        from agent_handshake import LangChainAdapter as Exported
 
         assert Exported is LangChainAdapter
 

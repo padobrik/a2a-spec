@@ -1,1 +1,1 @@
-"""Tests for a2a-spec."""
+"""Tests for agent-handshake."""

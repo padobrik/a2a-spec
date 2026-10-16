@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from a2a_spec.adapters.http_adapter import HTTPAdapter
-from a2a_spec.exceptions import AdapterError
+from agent_handshake.adapters.http_adapter import HTTPAdapter
+from agent_handshake.exceptions import AdapterError
 
 
 class TestHTTPAdapter:

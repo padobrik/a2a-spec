@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from a2a_spec.diff.semantic import compute_similarity
+from agent_handshake.diff.semantic import compute_similarity
 
 
 class TestSemanticComparison:
