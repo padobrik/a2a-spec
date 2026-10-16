@@ -26,6 +26,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a newer version fails with a message to upgrade agent-handshake.
 
 ### Changed
+- `handshake infer` fails (exit 1, no spec written) when the consumer reads a
+  field the producer sent in no snapshot. Before, the field became optional,
+  so inferring after a broken producer accepted the break. Pass
+  `--allow-missing FIELD` for a field the producer leaves out on purpose.
 - Regenerate inferred specs with `handshake infer ... --force` to add
   `read_at` and `reads_unknown_keys`. Until then `diff` cannot name the read
   lines, and `infer --check` fails for a spec whose consumer reads keys the

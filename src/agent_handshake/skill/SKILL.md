@@ -76,10 +76,12 @@ handshake infer --producer PRODUCER --consumer CONSUMER \
   --source path/to/consumer.py:function --force
 ```
 
-- Review every `WARN` line. "never sent it" means the consumer reads a field
-  the producer does not produce: that is a bug in one of them, not in the spec.
-  "used as a whole" or "non-literal key" means the analyzer could not see all
-  reads; add the missing fields to the spec by hand.
+- A `FAIL` line "never sent it" means the consumer reads a field the producer
+  does not produce: that is a bug in one of them, and no spec is written. Fix
+  the producer and record again. Pass `--allow-missing FIELD` only when the
+  user confirms the producer leaves the field out on purpose.
+- Review every `WARN` line. "used as a whole" or "non-literal key" means the
+  analyzer could not see all reads; add the missing fields to the spec by hand.
 - Show the user the YAML diff (`git diff` on the spec) before committing.
 - Run `handshake test` afterwards.
 
