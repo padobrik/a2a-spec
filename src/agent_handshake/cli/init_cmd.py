@@ -53,12 +53,11 @@ spec:
         maximum: 1.0
 
   policy:
-    - rule: no_pii
-      description: "Output must not contain PII"
+    - rule: no_internal_ticket_ids
+      description: "Internal ticket IDs such as INT-123456 must not reach the customer"
       method: regex
       patterns:
-        - '\\b\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b'  # card number
-        - '\\b\\d{3}-\\d{2}-\\d{4}\\b'  # US SSN
+        - '\\bINT-\\d{6}\\b'
 """
 
 ADAPTERS_TEMPLATE = '''"""Agent adapters for agent-handshake.

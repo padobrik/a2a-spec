@@ -31,8 +31,8 @@ def test_triage_output_matches_spec() -> None:
     assert result.passed, f"Validation failed: {result.errors}"
 
 
-def test_triage_output_no_pii() -> None:
-    """Validate that triage output contains no PII."""
+def test_triage_output_no_internal_ids() -> None:
+    """Validate that triage output leaks no internal ticket IDs."""
     spec = load_spec(SPEC_PATH)
 
     store = SnapshotStore(SNAPSHOTS_DIR)

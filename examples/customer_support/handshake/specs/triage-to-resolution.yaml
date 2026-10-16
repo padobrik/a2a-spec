@@ -28,9 +28,8 @@ spec:
         enum: [low, medium, high]
 
   policy:
-    - rule: no_pii
-      description: "Output must not contain PII"
+    - rule: no_internal_ticket_ids
+      description: "Internal ticket IDs such as INT-123456 must not reach the customer"
       method: regex
       patterns:
-        - '\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b'
-        - '\b\d{3}-\d{2}-\d{4}\b'
+        - '\bINT-\d{6}\b'

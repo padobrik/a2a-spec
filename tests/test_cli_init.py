@@ -62,16 +62,15 @@ class TestInitTemplatesWork:
         assert result.exit_code == 0, result.output
         return tmp_path
 
-    def test_example_policy_catches_pii(self, tmp_path: Path, monkeypatch) -> None:
+    def test_example_policy_catches_internal_ids(self, tmp_path: Path, monkeypatch) -> None:
         from agent_handshake.policy.engine import PolicyEngine
         from agent_handshake.spec.loader import load_spec
 
         root = self._init(tmp_path, monkeypatch)
         spec = load_spec(root / "handshake" / "specs" / "example-spec.yaml")
         engine = PolicyEngine()
-        for leak in ("card 4111 1111 1111 1111 on file", "ssn 123-45-6789 on file"):
-            [result] = engine.evaluate({"summary": leak}, {}, spec.policy)
-            assert not result.passed, leak
+        [leak] = engine.evaluate({"summary": "escalated as INT-004211"}, {}, spec.policy)
+        assert not leak.passed
         [clean] = engine.evaluate({"summary": "order #12345 charged twice"}, {}, spec.policy)
         assert clean.passed
 
