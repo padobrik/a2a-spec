@@ -1,15 +1,54 @@
-name: Publish to PyPI
+name: Release
 
+# Push a tag vX.Y.Z on main to release. The tag must match the version in
+# pyproject.toml and src/agent_handshake/__init__.py, and CHANGELOG.md must
+# have a section for it; that section becomes the GitHub release notes.
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
 
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
+  check:
+    name: Check version and CHANGELOG
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Tag matches the package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          PYPROJECT=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          MODULE=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/agent_handshake/__init__.py)
+          if [ "${TAG#v}" != "$PYPROJECT" ] || [ "${TAG#v}" != "$MODULE" ]; then
+            echo "::error::Tag $TAG does not match pyproject.toml ($PYPROJECT) and __version__ ($MODULE)"
+            exit 1
+          fi
+
+      - name: Release notes from CHANGELOG
+        env:
+          TAG: ${{ github.ref_name }}
+        run: python scripts/changelog_section.py "$TAG" > release-notes.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+
   publish:
-    needs: ci
+    name: Publish to PyPI
+    needs: [ci, check]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -23,19 +62,57 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install package
-        run: pip install -e "."
-
-      - name: Verify tag matches __version__
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          VER=$(python -c "import agent_handshake; print(agent_handshake.__version__)")
-          if [ "$TAG" != "$VER" ]; then
-            echo "Tag $TAG != __version__ $VER" && exit 1
-          fi
-
       - name: Build
         run: pip install build && python -m build
 
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  release:
+    name: GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: >-
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag
+          --title "$TAG" --notes-file release-notes.md
+
+  verify:
+    name: Install from PyPI
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # The PyPI index can take a few minutes to show a new version.
+      - name: Install the published version and run it
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG#v}"
+          python -m venv pypi-env
+          for attempt in $(seq 1 30); do
+            if pypi-env/bin/pip install --no-cache-dir "agent-handshake==$VERSION"; then
+              break
+            fi
+            if [ "$attempt" = 30 ]; then
+              echo "::error::agent-handshake==$VERSION cannot be installed from PyPI"
+              exit 1
+            fi
+            sleep 20
+          done
+          pypi-env/bin/handshake --version | grep -qx "agent-handshake $VERSION"
+          pypi-env/bin/handshake skill | grep -q "name: agent-handshake"
