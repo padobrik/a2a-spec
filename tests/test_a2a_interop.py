@@ -15,14 +15,14 @@ import pytest
 
 pytest.importorskip("a2a.server.routes", reason="needs a2a-sdk[http-server]")
 
-from a2a.server.agent_execution.agent_executor import AgentExecutor  # noqa: E402
-from a2a.server.agent_execution.context import RequestContext  # noqa: E402
-from a2a.server.events.event_queue import EventQueue  # noqa: E402
-from a2a.server.request_handlers import DefaultRequestHandler  # noqa: E402
-from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes  # noqa: E402
-from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore  # noqa: E402
-from a2a.server.tasks.task_updater import TaskUpdater  # noqa: E402
-from a2a.types import (  # noqa: E402
+from a2a.server.agent_execution.agent_executor import AgentExecutor
+from a2a.server.agent_execution.context import RequestContext
+from a2a.server.events.event_queue import EventQueue
+from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
+from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
+from a2a.server.tasks.task_updater import TaskUpdater
+from a2a.types import (
     AgentCapabilities,
     AgentCard,
     AgentInterface,
@@ -32,12 +32,12 @@ from a2a.types import (  # noqa: E402
     TaskState,
     TaskStatus,
 )
-from google.protobuf import json_format, struct_pb2  # noqa: E402
-from starlette.applications import Starlette  # noqa: E402
+from google.protobuf import json_format, struct_pb2
+from starlette.applications import Starlette
 
-from agent_handshake import A2AAdapter, SnapshotStore  # noqa: E402
-from agent_handshake.exceptions import AdapterError  # noqa: E402
-from agent_handshake.snapshot.recorder import Recorder  # noqa: E402
+from agent_handshake import A2AAdapter, SnapshotStore
+from agent_handshake.exceptions import AdapterError
+from agent_handshake.snapshot.recorder import Recorder
 
 BASE = "http://agent.test"
 RECEIPT = b"%PDF-1.7 receipt"
@@ -47,7 +47,9 @@ class TriageExecutor(AgentExecutor):
     """Classifies the incoming message; data in, data + text out."""
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        assert context.message and context.task_id and context.context_id
+        assert context.message
+        assert context.task_id
+        assert context.context_id
         await event_queue.enqueue_event(
             Task(
                 id=context.task_id,
@@ -137,7 +139,8 @@ class TestA2AInterop:
             "confidence": 0.9,
             "text": "Classified: I was charged twice",
         }
-        assert resp.metadata is not None and resp.metadata["task_id"]
+        assert resp.metadata is not None
+        assert resp.metadata["task_id"]
 
     async def test_text_round_trip(self) -> None:
         resp = await _adapter(text_field="message").call({"message": "where is my parcel"})
@@ -185,7 +188,8 @@ class TestA2AInteropStreaming:
             "confidence": 0.9,
             "text": "Classified: I was charged twice",
         }
-        assert resp.metadata is not None and resp.metadata["task_id"]
+        assert resp.metadata is not None
+        assert resp.metadata["task_id"]
 
     async def test_failed_task(self) -> None:
         with pytest.raises(AdapterError, match="task ended in TASK_STATE_FAILED: model down"):

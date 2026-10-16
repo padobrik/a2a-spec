@@ -63,7 +63,8 @@ class TestPolicyEngine:
         ]
         assert engine.evaluate({"reply": "We are looking into it."}, {}, rules)[0].passed
         failed = engine.evaluate({"reply": "We will refund you."}, {}, rules)[0]
-        assert not failed.passed and failed.detail == "reply promises a refund"
+        assert not failed.passed
+        assert failed.detail == "reply promises a refund"
 
     def test_validator_module_that_raises_on_import(self, tmp_path, monkeypatch) -> None:
         monkeypatch.syspath_prepend(str(tmp_path))

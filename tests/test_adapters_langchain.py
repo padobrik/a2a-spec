@@ -8,12 +8,12 @@ import pytest
 
 pytest.importorskip("langchain_core")
 
-from langchain_core.messages import AIMessage  # noqa: E402
-from langchain_core.runnables import RunnableLambda  # noqa: E402
-from pydantic import BaseModel  # noqa: E402
+from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableLambda
+from pydantic import BaseModel
 
-from agent_handshake.adapters.langchain_adapter import LangChainAdapter  # noqa: E402
-from agent_handshake.exceptions import AdapterError  # noqa: E402
+from agent_handshake.adapters.langchain_adapter import LangChainAdapter
+from agent_handshake.exceptions import AdapterError
 
 
 class _Triage(BaseModel):

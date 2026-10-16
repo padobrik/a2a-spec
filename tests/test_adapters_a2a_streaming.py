@@ -175,7 +175,7 @@ class TestStreaming:
             await _call(Server(_sse({"pushConfig": {}})))
 
     async def test_invalid_json(self) -> None:
-        with pytest.raises(AdapterError, match="A2A stream from .* failed"):
+        with pytest.raises(AdapterError, match=r"A2A stream from .* failed"):
             await _call(Server("data: {not json\n\n"))
 
     async def test_card_without_streaming(self) -> None:

@@ -168,4 +168,5 @@ class TestCliDiffGitBaseline:
         )
         result = runner.invoke(app, ["diff"])
         assert result.exit_code == 0, result.output
-        assert "LOW" in result.output and "confidence" in result.output
+        assert "LOW" in result.output
+        assert "confidence" in result.output

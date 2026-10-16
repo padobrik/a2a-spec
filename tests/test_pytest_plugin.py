@@ -45,9 +45,7 @@ def project(pytester: pytest.Pytester) -> pytest.Pytester:
     (specs / "triage.yaml").write_text(SPEC)
     pytester.makefile(
         ".yaml",
-        **{
-            "handshake": 'specs_dir: "handshake/specs"\nstorage:\n  path: "handshake/snapshots"\n',
-        },
+        handshake='specs_dir: "handshake/specs"\nstorage:\n  path: "handshake/snapshots"\n',
     )
     _snapshot(pytester, "billing", {"category": "billing"})
     return pytester
