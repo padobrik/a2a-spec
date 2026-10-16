@@ -14,6 +14,19 @@ To install the optional extra for TypeScript consumers:
 pip install -e ".[dev,typescript]"
 ```
 
+### With Nix
+
+The repository ships a flake. `nix build` builds the package and runs the
+full test suite; `nix develop` gives a shell with the dependencies, ruff,
+mypy and git (install the package into the shell with `pip install -e .`
+before running the checks against your working tree):
+
+```bash
+nix build .#default   # build and test
+nix flake check       # same, plus flake hygiene
+nix develop           # development shell
+```
+
 ## Running the checks
 
 ```bash
