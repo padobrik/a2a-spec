@@ -193,17 +193,45 @@ class ReadVisitor:
         if args is not None:
             for arg in args.named_children:
                 self._check_untracked(arg)
+        found = self._callback_item(callee, args)
+        if found is None:
+            self._visit_call(node, callee, args)
+            return
+        item, listed = found
+        # The callback's item name is local to the callback.
+        name = node_text(item)
+        alias, untracked = self.aliases.get(name), self._untracked.get(name)
+        self._bind_items(item, listed)
+        try:
+            self._visit_call(node, callee, args)
+        finally:
+            self.aliases.pop(name, None)
+            self._untracked.pop(name, None)
+            if alias is not None:
+                self.aliases[name] = alias
+            if untracked is not None:
+                self._untracked[name] = untracked
+
+    def _callback_item(self, callee: Node | None, args: Node | None) -> tuple[Node, Chain] | None:
+        """The item parameter of an array callback over an input list (``xs.map(x => ...)``)."""
+        if callee is None or callee.type != "member_expression" or args is None:
+            return None
+        obj = callee.child_by_field_name("object")
+        listed = self._list(obj) if obj is not None else None
+        if listed is None or node_key(callee) not in _ITEM_CALLBACKS:
+            return None
+        callbacks = [a for a in args.named_children if a.type in _FUNCTIONS]
+        if not callbacks:
+            return None
+        params = _parameters(callbacks[0])
+        position = _ITEM_CALLBACKS[node_key(callee) or ""]
+        item = params[position] if len(params) > position else None
+        return (item, listed) if item is not None and item.type == "identifier" else None
+
+    def _visit_call(self, node: Node, callee: Node | None, args: Node | None) -> None:
         if callee is not None and callee.type == "member_expression":
             obj = callee.child_by_field_name("object")
             method = node_key(callee)
-            listed = self._list(obj) if obj is not None else None
-            if listed is not None and method in _ITEM_CALLBACKS and args is not None:
-                callbacks = [a for a in args.named_children if a.type in _FUNCTIONS]
-                if callbacks:
-                    params = _parameters(callbacks[0])
-                    position = _ITEM_CALLBACKS[method]
-                    item = params[position] if len(params) > position else None
-                    self._bind_items(item, listed)
             inner = _unwrap(obj) if obj is not None else None
             if inner is not None and self._is_untracked(inner):
                 # A method of a list item (a string or an object): not a key read.

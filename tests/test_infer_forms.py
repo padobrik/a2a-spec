@@ -26,6 +26,11 @@ PY_FORMS = [
     ("alias", "a = d['a']\n    return a.get('b')", [("a", (True,)), ("a.b", (True, False))]),
     ("method of a list item", "return [t.upper() for t in d['tags']]", [("tags", (True,))]),
     ("attribute of a nested value", "return d['date'].year", [("date", (True,))]),
+    (
+        "comprehension name is local",
+        "r = d['a']\n    xs = [r for r in d['rs']]\n    return r.get('b'), xs",
+        [("a", (True,)), ("rs", (True,)), ("a.b", (True, False))],
+    ),
 ]
 
 TS_FORMS = [
@@ -40,6 +45,11 @@ TS_FORMS = [
     ("alias", "const a = d.a; return a.b;", [("a", (False,)), ("a.b", (True, False))]),
     ("length of a list item", "return d.tags.map(t => t.length);", [("tags", (True,))]),
     ("method of a list item", "return d.tags.map(t => t.trim());", [("tags", (True,))]),
+    (
+        "callback name is local",
+        "const item = d.customer; d.tags.map(item => item.length); return item.name;",
+        [("customer", (False,)), ("tags", (True,)), ("customer.name", (True, False))],
+    ),
 ]
 
 PY_WARNINGS = [
