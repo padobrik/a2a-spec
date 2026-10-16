@@ -16,6 +16,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   between text and an object, as a change to `(output)`.
 
 ### Fixed
+- `handshake infer` no longer drops reads without a word. A value taken with
+  `or` or a conditional (`x = data.get("k") or {}` then `x.get("sub")`), list
+  items (loops, comprehensions, `map` and other array callbacks, items read
+  by index or passed to a function) and attribute reads of the input each give
+  a `WARN` line with the line number, which also sets `reads_unknown_keys`.
+  An attribute read says so instead of "is used as a whole".
 - A spec made with `handshake infer --allow-missing x` for a consumer that
   reads `data["x"]` failed `infer --check` at once, and the "Regenerate"
   command that `--check` prints dropped `--allow-missing`. The spec now lists
