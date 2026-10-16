@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from a2a_spec.exceptions import ConfigError
-from a2a_spec.pipeline.dag import Edge, PipelineDAG, build_dag
+from agent_handshake.exceptions import ConfigError
+from agent_handshake.pipeline.dag import Edge, PipelineDAG, build_dag
 
 
 class TestPipelineDAG:

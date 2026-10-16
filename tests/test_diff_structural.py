@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from a2a_spec.diff.structural import structural_diff
+from agent_handshake.diff.structural import structural_diff
 
 
 class TestStructuralDiff:
@@ -58,20 +58,20 @@ class TestStructuralDiff:
 
 class TestStructuralSeverity:
     def test_added_field_is_low(self) -> None:
-        from a2a_spec.diff.engine import DiffEngine, DriftSeverity
+        from agent_handshake.diff.engine import DiffEngine, DriftSeverity
 
         [result] = DiffEngine().diff({"a": 1}, {"a": 1, "b": 2})
         assert result.field == "b"
         assert result.severity == DriftSeverity.LOW
 
     def test_removed_field_is_high(self) -> None:
-        from a2a_spec.diff.engine import DiffEngine, DriftSeverity
+        from agent_handshake.diff.engine import DiffEngine, DriftSeverity
 
         [result] = DiffEngine().diff({"a": 1, "b": 2}, {"a": 1})
         assert result.severity == DriftSeverity.HIGH
 
     def test_type_change_is_critical(self) -> None:
-        from a2a_spec.diff.engine import DiffEngine, DriftSeverity
+        from agent_handshake.diff.engine import DiffEngine, DriftSeverity
 
         [result] = DiffEngine().diff({"a": 1}, {"a": "1"})
         assert result.severity == DriftSeverity.CRITICAL

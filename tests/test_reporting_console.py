@@ -6,8 +6,8 @@ from io import StringIO
 
 from rich.console import Console
 
-from a2a_spec.reporting.console import print_summary, print_validation_result
-from a2a_spec.spec.validator import ValidationResult
+from agent_handshake.reporting.console import print_summary, print_validation_result
+from agent_handshake.spec.validator import ValidationResult
 
 
 class TestConsoleReporting:
@@ -33,14 +33,14 @@ class TestConsoleReporting:
         print_validation_result("test-spec", "scenario1", result)
 
     def test_print_validation_with_policy(self) -> None:
-        from a2a_spec.policy.engine import PolicyResult
+        from agent_handshake.policy.engine import PolicyResult
 
         result = ValidationResult()
         policies = [PolicyResult(rule_name="no_pii", passed=True)]
         print_validation_result("test-spec", "scenario1", result, policies)
 
     def test_print_validation_with_failed_policy(self) -> None:
-        from a2a_spec.policy.engine import PolicyResult
+        from agent_handshake.policy.engine import PolicyResult
 
         result = ValidationResult()
         policies = [PolicyResult(rule_name="no_pii", passed=False, detail="PII found")]
@@ -49,7 +49,7 @@ class TestConsoleReporting:
 
 class TestGithubAnnotationEscaping:
     def test_escapes_message_and_properties(self) -> None:
-        from a2a_spec.reporting.github import format_github_annotation
+        from agent_handshake.reporting.github import format_github_annotation
 
         line = format_github_annotation(
             file="specs/a,b.yaml", line=3, level="error", message="50% bad\nnext", title="x: y"

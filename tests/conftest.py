@@ -7,10 +7,10 @@ from typing import Any
 
 import pytest
 
-from a2a_spec.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
-from a2a_spec.snapshot.fingerprint import Fingerprint
-from a2a_spec.snapshot.store import Snapshot, SnapshotStore
-from a2a_spec.spec.schema import PolicyRule, Spec, StructuralSpec
+from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
+from agent_handshake.snapshot.fingerprint import Fingerprint
+from agent_handshake.snapshot.store import Snapshot, SnapshotStore
+from agent_handshake.spec.schema import PolicyRule, Spec, StructuralSpec
 
 
 @pytest.fixture

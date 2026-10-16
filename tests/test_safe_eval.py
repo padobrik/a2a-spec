@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from a2a_spec._internal.safe_eval import safe_evaluate
+from agent_handshake._internal.safe_eval import safe_evaluate
 
 
 class TestBasicExpressions:

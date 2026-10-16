@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from a2a_spec.reporting.markdown import generate_report
+from agent_handshake.reporting.markdown import generate_report
 
 
 class TestMarkdownReport:
@@ -12,7 +12,7 @@ class TestMarkdownReport:
             {"spec_name": "s2", "scenario": "sc2", "passed": True},
         ]
         report = generate_report("test-project", results)
-        assert "# a2a-spec Report: test-project" in report
+        assert "# agent-handshake Report: test-project" in report
         assert "2/2 passed" in report
         assert "Failures" not in report
 
@@ -39,7 +39,7 @@ class TestMarkdownReport:
 
     def test_footer_present(self) -> None:
         report = generate_report("test-project", [])
-        assert "a2a-spec" in report
+        assert "agent-handshake" in report
         assert "---" in report
 
     def test_multiple_errors(self) -> None:

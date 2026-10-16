@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from a2a_spec.exceptions import ConfigError
-from a2a_spec.spec.loader import load_all_specs, load_spec
+from agent_handshake.exceptions import ConfigError
+from agent_handshake.spec.loader import load_all_specs, load_spec
 
 VALID_SPEC_YAML = """
 spec:

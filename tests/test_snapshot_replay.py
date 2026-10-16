@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from a2a_spec.exceptions import SnapshotNotFoundError
-from a2a_spec.snapshot.replay import ReplayEngine
-from a2a_spec.snapshot.store import Snapshot, SnapshotStore
+from agent_handshake.exceptions import SnapshotNotFoundError
+from agent_handshake.snapshot.replay import ReplayEngine
+from agent_handshake.snapshot.store import Snapshot, SnapshotStore
 
 
 class TestReplayEngine:

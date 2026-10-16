@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from a2a_spec.exceptions import PipelineExecutionError
-from a2a_spec.pipeline.dag import Edge, PipelineDAG
-from a2a_spec.pipeline.executor import PipelineExecutor
-from a2a_spec.snapshot.fingerprint import Fingerprint
-from a2a_spec.snapshot.replay import ReplayEngine
-from a2a_spec.snapshot.store import Snapshot, SnapshotStore
+from agent_handshake.exceptions import PipelineExecutionError
+from agent_handshake.pipeline.dag import Edge, PipelineDAG
+from agent_handshake.pipeline.executor import PipelineExecutor
+from agent_handshake.snapshot.fingerprint import Fingerprint
+from agent_handshake.snapshot.replay import ReplayEngine
+from agent_handshake.snapshot.store import Snapshot, SnapshotStore
 
 
 class TestPipelineExecutor:

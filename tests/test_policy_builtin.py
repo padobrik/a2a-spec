@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from a2a_spec.policy.builtin import no_pii_in_output, output_not_empty
+from agent_handshake.policy.builtin import no_pii_in_output, output_not_empty
 
 
 class TestNoPII:
