@@ -96,4 +96,4 @@ class TestSkillCommand:
         assert target.read_text() == "custom"
         result = runner.invoke(app, ["skill", "--dir", str(tmp_path), "--force"])
         assert result.exit_code == 0
-        assert target.read_text() == skill_text()
+        assert target.read_text(encoding="utf-8") == skill_text()
