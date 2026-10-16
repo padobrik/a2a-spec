@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "fingerprint": "7bede5b4e4dc",
   "agent_id": "triage-agent",
   "scenario": "late_parcel",

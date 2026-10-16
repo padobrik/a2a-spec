@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "fingerprint": "52c779d38d0e",
   "agent_id": "resolution-agent",
   "scenario": "shipping_delay",

@@ -7,6 +7,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- Snapshot files carry `schema_version` (now 1). A file without it is read
+  as version 1 with a warning; recording it again adds the field. A file with
+  a newer version fails with a message to upgrade agent-handshake.
+
+### Changed
+- `handshake record` keeps a snapshot file as it is when the input, the
+  output and the format version have not changed, so git shows no change.
+
+### Fixed
+- A snapshot file that is not valid JSON, is not an object, or lacks
+  `agent_id`, `scenario`, `input` or `output` no longer crashes with a
+  traceback. `handshake test` and `handshake diff` name the file, say what is
+  wrong and exit 2; the pytest plugin fails that test with the same message.
+
 ### Removed
 These were non-deterministic, unused or outside the tool's job. A spec or
 `handshake.yaml` that still uses one fails to load with a message that names
