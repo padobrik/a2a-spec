@@ -18,7 +18,7 @@ steps:
       args: --fail-fast                    # extra flags for handshake test
 ```
 
-The output `test-exit-code` is the exit code of `handshake test`: `0` when every contract passed, `1` when one failed, empty when the step did not run (for example, the installation failed). Use it with `continue-on-error: true` to act on the result in a later step.
+The output `test-exit-code` is the exit code of `handshake test`: `0` when every contract passed, `1` when one failed, `2` for a configuration or input error, empty when the step did not run (for example, the installation failed). Use it with `continue-on-error: true` to act on the result in a later step.
 
 All inputs are optional. Annotations point at the spec files relative to the
 repository root.
@@ -69,8 +69,12 @@ to a file.
 
 ## Exit codes
 
-| Command | Code | Meaning |
-|---------|------|---------|
-| `handshake test` | 0 | All tests passed |
-| `handshake test` | 1 | One or more tests failed, or the configuration is not valid |
-| `handshake diff` | 2 | High-severity drift or a deleted snapshot |
+Every command uses the same codes:
+
+| Code | Meaning | Examples |
+|---|---|---|
+| `0` | Everything checked passed | All contracts hold; `diff` found no serious drift |
+| `1` | A check found a problem | A contract is broken, `diff` found high-severity drift, `infer --check` found a spec that is out of date, an agent call failed |
+| `2` | The command could not run as asked | Invalid `handshake.yaml` or spec, a broken snapshot file, a spec whose producer has no snapshots, no specs at all, a missing adapter |
+
+When a run has both, the code is `2`: the run was not complete, so its passes cannot be trusted.

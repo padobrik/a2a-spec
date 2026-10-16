@@ -48,7 +48,7 @@ Actions annotations), `markdown` or `junit` (only the report on stdout).
 
 Compare recorded snapshots against their committed version in git for
 structural drift. Reports scenarios added (`NEW`) or deleted (`GONE`) since
-the baseline. Exits 2 on high-severity drift or a deleted snapshot.
+the baseline. Exits 1 on high-severity drift or a deleted snapshot.
 
 ```bash
 handshake diff [--agent NAME] [--base REF] [--config PATH]
@@ -86,6 +86,16 @@ Print the bundled agent skill, or install it as `DIR/agent-handshake/SKILL.md`.
 ```bash
 handshake skill [--dir DIR] [--force]
 ```
+
+## Exit codes
+
+| Code | Meaning | Examples |
+|---|---|---|
+| `0` | Everything checked passed | All contracts hold; `diff` found no serious drift |
+| `1` | A check found a problem | A contract is broken, `diff` found high-severity drift, `infer --check` found a spec that is out of date, an agent call failed |
+| `2` | The command could not run as asked | Invalid `handshake.yaml` or spec, a broken snapshot file, a spec whose producer has no snapshots, no specs at all, a missing adapter |
+
+When a run has both, the code is `2`: the run was not complete, so its passes cannot be trusted.
 
 ## Global Options
 

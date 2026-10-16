@@ -384,6 +384,18 @@ handshake skill --dir path/to/skills
 
 This command writes `path/to/skills/agent-handshake/SKILL.md`. Export the skill again after you update agent-handshake.
 
+## Exit codes
+
+Every `handshake` command exits with one of three codes:
+
+| Code | Meaning | Examples |
+|---|---|---|
+| `0` | Everything checked passed | All contracts hold; `diff` found no serious drift |
+| `1` | A check found a problem | A contract is broken, `diff` found high-severity drift, `infer --check` found a spec that is out of date, an agent call failed |
+| `2` | The command could not run as asked | Invalid `handshake.yaml` or spec, a broken snapshot file, a spec whose producer has no snapshots, no specs at all, a missing adapter |
+
+When a run has both, the code is `2`: the run was not complete, so its passes cannot be trusted.
+
 ## Limits
 
 - `handshake infer` reads Python consumers. It finds `data["key"]`, `data.get("key")` and `"key" in data`, also in nested objects (`data["customer"]["tier"]`, `data.get("customer", {}).get("tier")`) and through a local name (`customer = data["customer"]`). It does not follow list items.
