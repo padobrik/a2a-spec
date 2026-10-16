@@ -107,7 +107,8 @@ def analyze_consumer(path: str | Path, function: str) -> ConsumerReads:
     visitor.finish()
     logger.debug("Consumer %s:%s reads %d field(s)", path, function, len(visitor.reads))
     return ConsumerReads(
-        source=f"{path}:{function}",
+        # POSIX separators, so a spec inferred on Windows checks on Linux and back.
+        source=f"{path.as_posix()}:{function}",
         param=params[0],
         reads=visitor.reads,
         warnings=visitor.warnings,

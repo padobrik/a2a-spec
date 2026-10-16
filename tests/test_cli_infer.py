@@ -127,7 +127,7 @@ class TestCliInferCheck:
     def test_records_inferred_from(self, tmp_path: Path) -> None:
         self._inferred(tmp_path)
         spec = load_spec(tmp_path / "specs" / "triage-agent-to-resolution-agent.yaml")
-        assert spec.inferred_from == f"{tmp_path / 'resolution.py'}:resolution_agent"
+        assert spec.inferred_from == f"{(tmp_path / 'resolution.py').as_posix()}:resolution_agent"
 
     def test_check_passes_when_current(self, tmp_path: Path) -> None:
         config = self._inferred(tmp_path)
@@ -234,7 +234,7 @@ class TestCliInferTypeScript:
         result = runner.invoke(app, args)
         assert result.exit_code == 0, result.output
         spec = load_spec(tmp_path / "specs" / "triage-agent-to-resolution-agent.yaml")
-        assert spec.inferred_from == f"{consumer}:resolutionAgent"
+        assert spec.inferred_from == f"{consumer.as_posix()}:resolutionAgent"
         assert spec.structural.required == ["customer", "priority"]
         assert spec.structural.properties["customer"]["required"] == ["tier"]
 
