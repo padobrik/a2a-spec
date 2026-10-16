@@ -1,6 +1,6 @@
 """agent-handshake: The open specification for agent-to-agent interactions."""
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 from agent_handshake.adapters.a2a_adapter import A2AAdapter
 from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
