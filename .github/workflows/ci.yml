@@ -93,12 +93,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install the workflow linters
+        run: pip install "zizmor==1.30.0" "actionlint-py==1.7.12.25"
+
+      # Syntax, expressions and contexts; shell scripts through shellcheck.
+      - name: Lint the workflows with actionlint
+        run: actionlint
+
       # Unpinned actions, credentials left in checkouts, template injection, and so on.
       # Rules are configured in .github/zizmor.yml.
       - name: Audit the workflows and the action with zizmor
-        run: |
-          pip install "zizmor==1.30.0"
-          zizmor --offline .github/workflows action.yml
+        run: zizmor --offline .github/workflows action.yml
 
   package:
     name: Package
