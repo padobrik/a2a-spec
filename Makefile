@@ -13,7 +13,8 @@ test:
 	pytest tests/ -v --tb=short
 
 test-cov:
-	pytest tests/ -v --cov=agent_handshake --cov-report=term-missing
+	coverage run -m pytest tests/ -v
+	coverage report
 
 typecheck:
 	mypy src/

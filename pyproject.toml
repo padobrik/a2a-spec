@@ -98,6 +98,14 @@ ignore = [
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
+[tool.coverage.run]
+source = ["agent_handshake"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
