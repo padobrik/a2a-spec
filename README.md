@@ -121,6 +121,8 @@ The command calls the producer one time for each scenario:
 [done] 2 snapshots saved to ./a2a_spec/snapshots
 ```
 
+If `ADAPTERS` has more than one agent, the command calls each agent with each scenario. To record one agent only, use `a2aspec record --agent triage-agent`. To give a scenario to some agents only, add `agents: [triage-agent]` to the scenario.
+
 **7. Make the spec from the code of the consumer.**
 
 ```bash
