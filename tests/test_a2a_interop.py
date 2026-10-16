@@ -7,6 +7,7 @@ without opening a port.
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 import httpx
@@ -39,6 +40,7 @@ from a2a_spec.exceptions import AdapterError  # noqa: E402
 from a2a_spec.snapshot.recorder import Recorder  # noqa: E402
 
 BASE = "http://agent.test"
+RECEIPT = b"%PDF-1.7 receipt"
 
 
 class TriageExecutor(AgentExecutor):
@@ -61,6 +63,16 @@ class TriageExecutor(AgentExecutor):
         text = received.get("message", "")
         if "fail" in text:
             await updater.failed(message=updater.new_agent_message([Part(text="model down")]))
+            return
+        if "receipt" in text:
+            await updater.add_artifact(
+                parts=[
+                    Part(raw=RECEIPT, filename="receipt.pdf", media_type="application/pdf"),
+                    Part(url="https://files.test/r.png", media_type="image/png"),
+                ],
+                name="receipt",
+            )
+            await updater.complete()
             return
 
         data = struct_pb2.Value()
@@ -135,6 +147,20 @@ class TestA2AInterop:
     async def test_failed_task(self) -> None:
         with pytest.raises(AdapterError, match="task ended in TASK_STATE_FAILED: model down"):
             await _adapter().call({"message": "please fail"})
+
+    async def test_file_parts(self) -> None:
+        resp = await _adapter().call({"message": "send my receipt"})
+        assert resp.output == {
+            "files": [
+                {
+                    "filename": "receipt.pdf",
+                    "mediaType": "application/pdf",
+                    "size": len(RECEIPT),
+                    "sha256": hashlib.sha256(RECEIPT).hexdigest(),
+                },
+                {"mediaType": "image/png", "url": "https://files.test/r.png"},
+            ]
+        }
 
     async def test_health_check(self) -> None:
         assert await _adapter().health_check()

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+import hashlib
 import json
 import time
 import uuid
@@ -24,8 +27,11 @@ class A2AAdapter(AgentAdapter):
     ``text_field``, that field's value is sent as a ``text`` part. The reply
     (a Message, or the artifacts of a completed Task) becomes the output
     dict: ``data`` parts holding objects are merged, ``text`` parts are joined
-    under ``"text"``. With ``json_text=True`` a text-only reply that is a JSON
-    object is used as the output directly.
+    under ``"text"``, and file parts (``raw`` or ``url``) are listed under
+    ``"files"``. A ``url`` file keeps its URL; a ``raw`` file is described by
+    its ``size`` and ``sha256`` instead of its bytes, so snapshots stay small.
+    With ``json_text=True`` a text-only reply that is a JSON object is used as
+    the output directly.
 
     Usage:
         adapter = A2AAdapter(
@@ -192,6 +198,7 @@ class A2AAdapter(AgentAdapter):
         output: dict[str, Any] = {}
         texts: list[str] = []
         loose: list[Any] = []
+        files: list[dict[str, Any]] = []
         for part in parts:
             if "text" in part:
                 texts.append(part["text"])
@@ -206,11 +213,13 @@ class A2AAdapter(AgentAdapter):
                         self._agent_id, f"data parts disagree on key(s) {sorted(clash)}"
                     )
                 output.update(data)
+            elif "raw" in part or "url" in part:
+                files.append(self._file(part))
             else:
-                raise AdapterError(self._agent_id, "file parts (raw/url) are not supported")
+                raise AdapterError(self._agent_id, f"unknown part with keys {sorted(part)}")
 
         text = "\n".join(texts) if texts else None
-        if text is not None and not output and not loose and self._json_text:
+        if text is not None and not output and not loose and not files and self._json_text:
             try:
                 parsed = json.loads(text)
             except ValueError:
@@ -221,7 +230,25 @@ class A2AAdapter(AgentAdapter):
             self._put(output, "data", loose[0] if len(loose) == 1 else loose)
         if text is not None:
             self._put(output, "text", text)
+        if files:
+            self._put(output, "files", files)
         return output, text
+
+    def _file(self, part: dict[str, Any]) -> dict[str, Any]:
+        entry: dict[str, Any] = {}
+        for key in ("filename", "mediaType"):
+            if key in part:
+                entry[key] = part[key]
+        if "url" in part:
+            entry["url"] = part["url"]
+            return entry
+        try:
+            content = base64.b64decode(part["raw"], validate=True)
+        except (binascii.Error, TypeError, ValueError) as e:
+            raise AdapterError(self._agent_id, f"file part has invalid base64 'raw': {e}") from e
+        entry["size"] = len(content)
+        entry["sha256"] = hashlib.sha256(content).hexdigest()
+        return entry
 
     def _put(self, output: dict[str, Any], key: str, value: Any) -> None:
         if key in output:
