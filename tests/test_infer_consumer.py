@@ -66,6 +66,70 @@ class TestAnalyzeConsumer:
         assert any(message in w for w in warnings), warnings
         assert all("line 2" in w or "line 3" in w for w in warnings)
 
+    def test_nested_reads(self, tmp_path: Path) -> None:
+        path = _write(
+            tmp_path,
+            "def agent(d):\n"
+            "    tier = d['customer']['tier']\n"
+            "    plan = d.get('billing', {}).get('plan')\n"
+            "    vip = 'vip' in d['customer']\n"
+            "    return tier, plan, vip\n",
+        )
+        reads = analyze_consumer(path, "agent")
+        assert [(r.name, r.line, r.strict) for r in reads.reads] == [
+            ("customer.tier", 2, (True, True)),
+            ("billing.plan", 3, (False, False)),
+            ("customer.vip", 4, (True, False)),
+        ]
+        assert reads.warnings == []
+
+    def test_reads_through_alias(self, tmp_path: Path) -> None:
+        path = _write(
+            tmp_path,
+            "def agent(d):\n"
+            "    customer = d['customer']\n"
+            "    tier = customer.get('tier')\n"
+            "    return tier.lower()\n",
+        )
+        reads = analyze_consumer(path, "agent")
+        assert [(r.name, r.strict) for r in reads.reads] == [
+            ("customer", (True,)),
+            ("customer.tier", (True, False)),
+        ]
+        assert reads.warnings == []
+
+    def test_rebound_alias_is_not_followed(self, tmp_path: Path) -> None:
+        path = _write(
+            tmp_path,
+            "def agent(d):\n    c = d['customer']\n    c = {}\n    return c['tier']\n",
+        )
+        assert analyze_consumer(path, "agent").fields == ["customer"]
+
+    @pytest.mark.parametrize(
+        ("body", "message"),
+        [
+            ("c = d['customer']\n    x = c['tier']\n    return helper(c)", "'customer' is used"),
+            ("return d['customer'].items()", "'customer' calls .items()"),
+            ("return d['customer'][key]", "'customer' reads a non-literal key"),
+        ],
+    )
+    def test_untracked_nested_use_warns(self, tmp_path: Path, body: str, message: str) -> None:
+        path = _write(tmp_path, f"def agent(d, key='k'):\n    {body}\n")
+        warnings = analyze_consumer(path, "agent").warnings
+        assert any(message in w for w in warnings), warnings
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "t = d['tier']\n    return helper(t)",
+            "return d['priority'].lower()",
+            "return d['tags'][0]",
+        ],
+    )
+    def test_leaf_values_do_not_warn(self, tmp_path: Path, body: str) -> None:
+        path = _write(tmp_path, f"def agent(d):\n    {body}\n")
+        assert analyze_consumer(path, "agent").warnings == []
+
     def test_function_not_found(self, tmp_path: Path) -> None:
         path = _write(tmp_path, "def other(d):\n    pass\n")
         with pytest.raises(ConfigError, match="not found"):
