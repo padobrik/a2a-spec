@@ -109,7 +109,7 @@ def _app() -> Starlette:
                 url=f"{BASE}/a2a/jsonrpc", protocol_binding="JSONRPC", protocol_version="1.0"
             )
         ],
-        capabilities=AgentCapabilities(),
+        capabilities=AgentCapabilities(streaming=True),
         default_input_modes=["application/json", "text/plain"],
         default_output_modes=["application/json", "text/plain"],
         skills=[AgentSkill(id="triage", name="Triage", description="Classify", tags=["support"])],
@@ -173,3 +173,27 @@ class TestA2AInterop:
         assert snapshot.output_data["category"] == "billing"
         assert snapshot.metadata["agent_version"] == "2.4.0"
         assert store.load("triage-agent", "billing").output_data == snapshot.output_data
+
+
+class TestA2AInteropStreaming:
+    """The same agent through SendStreamingMessage and the SDK's SSE responses."""
+
+    async def test_data_round_trip(self) -> None:
+        resp = await _adapter(streaming=True).call({"message": "I was charged twice"})
+        assert resp.output == {
+            "category": "billing",
+            "confidence": 0.9,
+            "text": "Classified: I was charged twice",
+        }
+        assert resp.metadata is not None and resp.metadata["task_id"]
+
+    async def test_failed_task(self) -> None:
+        with pytest.raises(AdapterError, match="task ended in TASK_STATE_FAILED: model down"):
+            await _adapter(streaming=True).call({"message": "please fail"})
+
+    async def test_file_parts(self) -> None:
+        resp = await _adapter(streaming=True).call({"message": "send my receipt"})
+        assert [f.get("filename", f.get("url")) for f in resp.output["files"]] == [
+            "receipt.pdf",
+            "https://files.test/r.png",
+        ]
