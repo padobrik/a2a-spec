@@ -36,10 +36,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-semantic = [
-    "sentence-transformers>=3.0,<6.0",
-    "numpy>=1.26,<3.0",
-]
 typescript = [
     "tree-sitter>=0.23,<1.0",
     "tree-sitter-typescript>=0.23,<1.0",
@@ -56,7 +52,7 @@ dev = [
     "a2a-sdk[http-server]>=1.0,<2.0",
 ]
 all = [
-    "agent-handshake[semantic,typescript,dev]",
+    "agent-handshake[typescript,dev]",
 ]
 
 [project.scripts]
@@ -120,9 +116,3 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 
-[[tool.mypy.overrides]]
-module = [
-    "sentence_transformers",
-    "numpy",
-]
-ignore_missing_imports = true
