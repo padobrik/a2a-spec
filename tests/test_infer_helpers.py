@@ -138,6 +138,18 @@ class TestTypeScriptHelpers:
         result = _analyze(tmp_path, code, suffix=".ts")
         assert _names(result) == ["draft", "draft.notes", "intro", "title"]
 
+    def test_method_of_the_consumer_class_only(self, tmp_path: Path) -> None:
+        code = (
+            "class Other {\n  review(x) { return x.other; }\n}\n"
+            "class M {\n"
+            "  run(state) { return this.review(state); }\n"
+            "  review(s) { return s.title; }\n"
+            "}\n"
+        )
+        result = _analyze(tmp_path, code, suffix=".ts")
+        assert _names(result) == ["title"]
+        assert result.warnings == []
+
     def test_items_given_to_a_method(self, tmp_path: Path) -> None:
         code = (
             "class M {\n"

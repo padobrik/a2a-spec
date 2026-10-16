@@ -41,7 +41,7 @@ _MAX_HELPER_DEPTH = 3
 
 @dataclass(frozen=True)
 class TsScope:
-    """Where helper functions are looked up: the functions and methods of the file."""
+    """Where helpers are looked up: the file's functions, and the class's methods as ``this.x``."""
 
     module: TsModule
     helpers: dict[str, Node]
@@ -291,7 +291,7 @@ class ReadVisitor:
             callee.type == "member_expression"
             and node_text(callee.child_by_field_name("object") or callee) == "this"
         ):
-            name = node_key(callee) or ""
+            name = f"this.{node_key(callee) or ''}"
         else:
             return None
         helper = scope.helpers.get(name)
