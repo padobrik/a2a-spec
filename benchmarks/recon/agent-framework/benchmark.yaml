@@ -1,0 +1,109 @@
+project: Microsoft Agent Framework (switch_case_edge_group.py)
+repository: https://github.com/microsoft/agent-framework
+commit: 9127b89781a10f78a2748320cc26dfb9327eb487
+cases:
+  - id: l1-spam-agent-run
+    links: [L1]
+    producer: store_email
+    consumer: spam_detection_agent
+    source: python/packages/core/agent_framework/_workflows/_agent_executor.py:run
+    note: AgentExecutor.run is the framework handler that receives the AgentExecutorRequest; the payload is chat text.
+    expected:
+      - path: messages
+        at: python/packages/core/agent_framework/_workflows/_agent_executor.py:389
+      - path: should_respond
+        at: python/packages/core/agent_framework/_workflows/_agent_executor.py:391
+  - id: l2-to-detection-result
+    links: [L2]
+    producer: spam_detection_agent
+    consumer: to_detection_result
+    source: python/samples/03-workflows/control-flow/switch_case_edge_group.py:to_detection_result
+    note: spam_decision and reason are inside the JSON string in agent_response.text, parsed by DetectionResultAgent.model_validate_json.
+    expected:
+      - path: agent_response.text
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:115
+      - path: spam_decision
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:117
+      - path: reason
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:117
+  - id: l3-submit-to-email-assistant
+    links: [L3]
+    producer: to_detection_result
+    consumer: submit_to_email_assistant
+    source: python/samples/03-workflows/control-flow/switch_case_edge_group.py:submit_to_email_assistant
+    expected:
+      - path: spam_decision
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:123
+      - path: email_id
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:127
+  - id: l4-handle-spam
+    links: [L4]
+    producer: to_detection_result
+    consumer: handle_spam
+    source: python/samples/03-workflows/control-flow/switch_case_edge_group.py:handle_spam
+    expected:
+      - path: spam_decision
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:143
+      - path: reason
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:144
+  - id: l5-handle-uncertain
+    links: [L5]
+    producer: to_detection_result
+    consumer: handle_uncertain
+    source: python/samples/03-workflows/control-flow/switch_case_edge_group.py:handle_uncertain
+    expected:
+      - path: spam_decision
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:152
+      - path: email_id
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:153
+      - path: reason
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:155
+  - id: l6-assistant-agent-run
+    links: [L6]
+    producer: submit_to_email_assistant
+    consumer: email_assistant_agent
+    source: python/packages/core/agent_framework/_workflows/_agent_executor.py:run
+    note: Same framework handler as l1-spam-agent-run, with a different agent instance and producer.
+    expected:
+      - path: messages
+        at: python/packages/core/agent_framework/_workflows/_agent_executor.py:389
+      - path: should_respond
+        at: python/packages/core/agent_framework/_workflows/_agent_executor.py:391
+  - id: l7-finalize-and-send
+    links: [L7]
+    producer: email_assistant_agent
+    consumer: finalize_and_send
+    source: python/samples/03-workflows/control-flow/switch_case_edge_group.py:finalize_and_send
+    note: response is inside the JSON string in agent_response.text, parsed by EmailResponse.model_validate_json.
+    expected:
+      - path: agent_response.text
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:136
+      - path: response
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:137
+  - id: l8-state-current-email-id
+    links: [L8]
+    producer: store_email
+    consumer: to_detection_result
+    source: python/samples/03-workflows/control-flow/switch_case_edge_group.py:to_detection_result
+    note: Shared workflow state, set at line 104 and read with ctx.get_state on the second parameter.
+    expected:
+      - path: current_email_id
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:116
+  - id: l9-state-email-submit
+    links: [L9]
+    producer: store_email
+    consumer: submit_to_email_assistant
+    source: python/samples/03-workflows/control-flow/switch_case_edge_group.py:submit_to_email_assistant
+    note: Shared workflow state key email:<id> holds the Email dataclass (set at line 103, get at line 127).
+    expected:
+      - path: email_content
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:129
+  - id: l10-state-email-uncertain
+    links: [L10]
+    producer: store_email
+    consumer: handle_uncertain
+    source: python/samples/03-workflows/control-flow/switch_case_edge_group.py:handle_uncertain
+    note: Shared workflow state key email:<id> (get at line 153), read with getattr and a default.
+    expected:
+      - path: email_content
+        at: python/samples/03-workflows/control-flow/switch_case_edge_group.py:155
