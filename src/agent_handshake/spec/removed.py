@@ -1,0 +1,32 @@
+"""Migration errors for spec content that was removed.
+
+An old spec that still uses a removed rule must fail to load with a message
+that says what to use instead, so it never passes silently.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+REMOVED_IN = "0.9"
+
+_REMOVED_VALIDATORS = {
+    "agent_handshake.policy.builtin.no_pii_in_output": (
+        "Use a regex policy rule with your own patterns, or a custom validator."
+    ),
+    "agent_handshake.policy.builtin.output_not_empty": (
+        "List the fields the consumer needs in structural.required instead."
+    ),
+}
+
+
+def removed_content(spec_data: dict[str, Any]) -> str | None:
+    """The migration message for the first removed item in a raw spec, or None."""
+    for rule in spec_data.get("policy") or []:
+        validator = rule.get("validator") if isinstance(rule, dict) else None
+        if validator in _REMOVED_VALIDATORS:
+            return (
+                f"Validator '{validator}' was removed in {REMOVED_IN}. "
+                f"{_REMOVED_VALIDATORS[validator]} See CHANGELOG.md."
+            )
+    return None

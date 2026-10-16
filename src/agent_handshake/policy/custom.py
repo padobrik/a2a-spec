@@ -51,15 +51,3 @@ def load_custom_validator(dotted_path: str) -> Any:
         raise ConfigError(f"Validator '{dotted_path}' is not callable (got {type(func).__name__})")
 
     return func
-
-
-def register_builtin_validators(engine: Any) -> None:
-    """Register all built-in policy validators with a PolicyEngine.
-
-    Args:
-        engine: A PolicyEngine instance.
-    """
-    from agent_handshake.policy.builtin import no_pii_in_output, output_not_empty
-
-    engine.register_validator("agent_handshake.policy.builtin.no_pii_in_output", no_pii_in_output)
-    engine.register_validator("agent_handshake.policy.builtin.output_not_empty", output_not_empty)

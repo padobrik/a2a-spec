@@ -9,6 +9,7 @@ import yaml
 from pydantic import ValidationError
 
 from agent_handshake.exceptions import ConfigError
+from agent_handshake.spec.removed import removed_content
 from agent_handshake.spec.schema import Spec
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,11 @@ def load_spec(path: str | Path) -> Spec:
         raise ConfigError(
             f"Spec file {path} must have a top-level 'spec' key. Got keys: {list(raw.keys())}"
         )
+
+    if isinstance(spec_data, dict):
+        removed = removed_content(spec_data)
+        if removed is not None:
+            raise ConfigError(f"{path}: {removed}")
 
     try:
         spec = Spec.model_validate(spec_data)

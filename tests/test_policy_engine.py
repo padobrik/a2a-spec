@@ -76,13 +76,6 @@ class TestPolicyEngine:
         assert "Could not import module 'broken_checks'" in result.detail
         assert "bad config" in result.detail
 
-    def test_builtin_validator_by_dotted_path(self) -> None:
-        engine = PolicyEngine()
-        path = "agent_handshake.policy.builtin.output_not_empty"
-        rules = [PolicyRule(rule="not_empty", method="custom", validator=path)]
-        assert engine.evaluate({"summary": "Charged twice."}, {}, rules)[0].passed
-        assert engine.evaluate({}, {}, rules)[0].detail == "Output is empty"
-
     def test_custom_validator_path_without_module(self) -> None:
         engine = PolicyEngine()
         rules = [PolicyRule(rule="bad", method="custom", validator="check")]
