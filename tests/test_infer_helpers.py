@@ -201,4 +201,6 @@ def test_items_end_to_end(tmp_path: Path) -> None:
     rated = rate_for_consumers(results, [spec])
     removed = next(r for r in rated if r.field == "searches")
     assert removed.severity == DriftSeverity.HIGH
-    assert removed.explanation.endswith("search reads it at " + f"{tmp_path / 'consumer.py'}:2")
+    # Specs keep POSIX paths, so they read the same on every OS.
+    consumer = (tmp_path / "consumer.py").as_posix()
+    assert removed.explanation.endswith(f"search reads it at {consumer}:2")
