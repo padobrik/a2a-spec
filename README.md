@@ -310,7 +310,7 @@ A spec can have two types of rules:
 | Rule type | What it finds | How |
 |---|---|---|
 | `structural` | A missing field, a wrong type, a value out of range | JSON Schema |
-| `policy` | Text that must not occur, for example a card number | Regular expressions or your own function |
+| `policy` | Text that must not occur, for example an internal ticket ID | Regular expressions or your own function |
 
 ```yaml
 spec:
@@ -324,9 +324,9 @@ spec:
     properties:
       category: {type: string, enum: [billing, general]}
   policy:
-    - rule: no_card_numbers
+    - rule: no_internal_ticket_ids
       method: regex
-      patterns: ['\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b']
+      patterns: ['\bINT-\d{6}\b']
 ```
 
 See [Writing specs](docs/writing-specs.md) for all options.
