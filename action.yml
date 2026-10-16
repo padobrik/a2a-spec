@@ -27,7 +27,7 @@ inputs:
 
 outputs:
   test-exit-code:
-    description: Exit code of handshake test (0 when every contract passed). Empty when that step did not run, for example because the installation failed.
+    description: Exit code of handshake test (0 when every contract passed, 1 when one failed, 2 for a configuration or input error). Empty when that step did not run, for example because the installation failed.
     value: ${{ steps.test.outputs.exit-code }}
 
 runs:

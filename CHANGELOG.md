@@ -16,6 +16,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a newer version fails with a message to upgrade agent-handshake.
 
 ### Changed
+- Exit codes are the same in every command: `0` everything passed, `1` a
+  check found a problem (a broken contract, high-severity drift in `diff`,
+  an out-of-date inferred spec, a failed agent call), `2` a configuration or
+  input error. When both happen, the code is `2`. Before, `diff` exited 2 on
+  drift and most configuration errors exited 1.
+- `handshake test` treats a spec whose producer has no snapshots, a missing
+  adapter in `--live`, and an empty specs directory as input errors (exit 2)
+  instead of warnings or a pass. `diff` with no snapshots exits 2 instead of 0.
 - `handshake test` and the pytest plugin check every snapshot file of a
   producer. Before, only the newest file of each scenario was checked.
 - `handshake record` keeps a snapshot file as it is when the input, the

@@ -100,5 +100,5 @@ async def test_triage(handshake_check):
   sending `X`, or renamed it. The consumer would get a missing value.
 - `structural: [X] ...` — `X` has the wrong type or value.
 - `policy RULE: Pattern matched in field 'X'` — forbidden content such as PII.
-- `handshake diff` exits 2 — high-severity drift or a deleted snapshot; read the
+- `handshake diff` exits 1 — high-severity drift or a deleted snapshot; read the
   report before re-recording anything.
