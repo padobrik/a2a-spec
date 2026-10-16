@@ -38,7 +38,7 @@ def load_custom_validator(dotted_path: str) -> Any:
 
     try:
         module = importlib.import_module(module_path)
-    except ImportError as e:
+    except Exception as e:  # importing runs the user's module, which can raise anything
         raise ConfigError(
             f"Could not import module '{module_path}' for validator '{dotted_path}': {e}"
         ) from e

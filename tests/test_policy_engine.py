@@ -65,6 +65,16 @@ class TestPolicyEngine:
         failed = engine.evaluate({"reply": "We will refund you."}, {}, rules)[0]
         assert not failed.passed and failed.detail == "reply promises a refund"
 
+    def test_validator_module_that_raises_on_import(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.syspath_prepend(str(tmp_path))
+        (tmp_path / "broken_checks.py").write_text("raise ValueError('bad config')\n")
+        engine = PolicyEngine()
+        rules = [PolicyRule(rule="r", method="custom", validator="broken_checks.check")]
+        result = engine.evaluate({}, {}, rules)[0]
+        assert not result.passed
+        assert "Could not import module 'broken_checks'" in result.detail
+        assert "bad config" in result.detail
+
     def test_builtin_validator_by_dotted_path(self) -> None:
         engine = PolicyEngine()
         path = "agent_handshake.policy.builtin.output_not_empty"
