@@ -61,6 +61,18 @@ class TestCheckInferredSpec:
         result = check_inferred_spec(_spec(src, [], []))
         assert any("is used as a whole" in w for w in result.warnings)
 
+    def test_unknown_keys_not_in_spec_fails(self, tmp_path: Path) -> None:
+        src = _consumer(tmp_path, "return data['category'], data[key]")
+        result = check_inferred_spec(_spec(src, ["category"], ["category"]))
+        assert result.failures == [
+            "run reads keys handshake infer cannot name, "
+            "but the spec does not set reads_unknown_keys"
+        ]
+        flagged = _spec(src, ["category"], ["category"]).model_copy(
+            update={"reads_unknown_keys": True}
+        )
+        assert check_inferred_spec(flagged).passed
+
     def test_not_inferred(self) -> None:
         with pytest.raises(ValueError, match="was not inferred"):
             check_inferred_spec(_spec(None, [], []))

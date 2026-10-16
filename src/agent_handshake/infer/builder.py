@@ -52,7 +52,7 @@ def infer_spec(
     read_at: dict[str, list[int]] = {}
     fields = _object_schema((), outputs, reads, producer, consumer, header, warnings, read_at)
 
-    data = {
+    data: dict[str, Any] = {
         "name": name or f"{producer}-to-{consumer}",
         "version": "1.0",
         "producer": producer,
@@ -60,11 +60,13 @@ def infer_spec(
         "description": f"Fields {consumer} reads from {producer} (inferred)",
         "inferred_from": reads.source,
         "read_at": read_at,
-        "structural": {
-            "type": "object",
-            "required": fields.get("required", []),
-            "properties": fields["properties"],
-        },
+    }
+    if reads.warnings:
+        data["reads_unknown_keys"] = True
+    data["structural"] = {
+        "type": "object",
+        "required": fields.get("required", []),
+        "properties": fields["properties"],
     }
     return InferredSpec(data=data, header=header, warnings=warnings)
 

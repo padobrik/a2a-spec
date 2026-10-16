@@ -93,6 +93,15 @@ class TestRateForConsumers:
         rated = _rate({k: v for k, v in OLD.items() if k != "customer"}, specs)
         assert rated["customer"][0] == DriftSeverity.HIGH
 
+    def test_unknown_reads_keep_the_rating_of_unnamed_fields(self) -> None:
+        spec = _spec().model_copy(update={"reads_unknown_keys": True})
+        rated = _rate({k: v for k, v in OLD.items() if k != "summary"}, [spec])
+        assert rated["summary"] == (
+            DriftSeverity.HIGH,
+            "Field 'summary' was removed; no consumer spec names it, "
+            "but resolution also reads keys handshake infer cannot name",
+        )
+
     def test_no_specs_keeps_structural_rating(self) -> None:
         rated = _rate({k: v for k, v in OLD.items() if k != "summary"}, [])
         assert rated["summary"][0] == DriftSeverity.HIGH

@@ -2,7 +2,8 @@
 
 Without a spec a removed field is HIGH, because some consumer may read it.
 With specs we know: a removed or retyped field that a spec names breaks that
-consumer (HIGH, shown as FAIL), and a change to a field no spec names is INFO.
+consumer (HIGH, shown as FAIL), and a change to a field no spec names is INFO,
+unless a spec says its consumer also reads keys infer cannot name.
 """
 
 from __future__ import annotations
@@ -25,11 +26,22 @@ def rate_for_consumers(results: list[DiffResult], specs: list[Spec]) -> list[Dif
     if not specs:
         return results
     named = [(spec, {".".join(p) for p in field_paths(spec_schema(spec))}) for spec in specs]
+    unknown = sorted({spec.consumer for spec in specs if spec.reads_unknown_keys})
     rated: list[DiffResult] = []
     for result in results:
         readers = [spec for spec, paths in named if _names(paths, result.field)]
         change = result.structural.change_type if result.structural else ""
-        if not readers:
+        if not readers and unknown:
+            rated.append(
+                replace(
+                    result,
+                    explanation=(
+                        f"{result.explanation}; no consumer spec names it, but "
+                        f"{', '.join(unknown)} also reads keys handshake infer cannot name"
+                    ),
+                )
+            )
+        elif not readers:
             rated.append(
                 replace(
                     result,

@@ -85,6 +85,11 @@ class TestInferSpec:
         reads = _reads(("category", 1, True), warnings=["line 5: 'data' is used as a whole"])
         spec = infer_spec("triage", "res", reads, SNAPS)
         assert spec.warnings == ["line 5: 'data' is used as a whole"]
+        assert spec.data["reads_unknown_keys"] is True
+
+    def test_reads_unknown_keys_only_with_consumer_warnings(self) -> None:
+        spec = infer_spec("triage", "res", _reads(("category", 1, True)), SNAPS)
+        assert "reads_unknown_keys" not in spec.data
 
     def test_yaml_loads_as_spec_and_catches_rename(self) -> None:
         reads = _reads(("category", 3, False), ("confidence", 4, True))
