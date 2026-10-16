@@ -208,13 +208,15 @@ class TestCliTestFormats:
         assert "### triage-to-resolution / renamed" in result.stdout
         assert "Spec:" not in result.stdout
 
-    def test_github_annotations(self, tmp_path) -> None:
+    def test_github_annotations(self, tmp_path, monkeypatch) -> None:
+        monkeypatch.delenv("GITHUB_WORKSPACE", raising=False)
         config = _struct_project(tmp_path, OUTPUTS)
         result = runner.invoke(app, ["test", "--config", str(config), "--format", "github"])
         assert result.exit_code == 1
         lines = [line for line in result.stdout.splitlines() if line.startswith("::error")]
         assert len(lines) == 1
-        spec_path = tmp_path / "specs" / "triage.yaml"
+        # Workflow command properties escape ':' and ',' (a Windows drive letter has one).
+        spec_path = str(tmp_path / "specs" / "triage.yaml").replace(":", "%3A")
         assert lines[0].startswith(
             f"::error file={spec_path},line=1,title=agent-handshake triage-to-resolution::"
         )
