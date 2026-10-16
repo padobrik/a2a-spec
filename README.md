@@ -276,7 +276,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: padobrik/a2a-spec@v0.5.0
+      - uses: padobrik/a2a-spec@v0.6.0
 ```
 
 The action has these inputs: `package` (for example `a2a-spec[semantic]`), `working-directory`, `config`, `check-inferred` and `args`.
