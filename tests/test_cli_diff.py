@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from typer.testing import CliRunner
 
 from agent_handshake.cli.main import app
@@ -13,7 +15,8 @@ class TestCliDiff:
     def test_diff_help(self) -> None:
         result = runner.invoke(app, ["diff", "--help"])
         assert result.exit_code == 0
-        assert "--base" in result.output
+        # Rich adds colour codes on CI runners; compare the plain text.
+        assert "--base" in re.sub(r"\x1b\[[0-9;]*m", "", result.output)
 
     def test_diff_no_snapshots(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
