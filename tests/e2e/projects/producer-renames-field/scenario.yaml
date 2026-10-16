@@ -12,6 +12,9 @@ steps:
   - run: handshake test --format markdown
     exit: 1
     output: ["question"]
+  - run: handshake test --format json
+    exit: 1
+    output: ['"failed": 1', '"scenario": "question"', "'priority' is a required property"]
   - run: pytest --handshake handshake/specs
     exit: 1
     output: ["1 failed, 1 passed", "'priority' is a required property"]

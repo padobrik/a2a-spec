@@ -299,7 +299,7 @@ jobs:
       - run: handshake test --format github
 ```
 
-`--format github` shows each failure as an annotation in the pull request. For JUnit XML, use `--format junit > results.xml`.
+`--format github` shows each failure as an annotation in the pull request. For JUnit XML, use `--format junit > results.xml`. For machine-readable JSON (one object with a summary and one entry per checked output), use `--format json > results.json`.
 
 ## Write a spec by hand
 

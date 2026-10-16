@@ -63,9 +63,10 @@ pytest plugin.
 | GitHub | `--format github` | Console output plus GitHub Actions annotations |
 | Markdown | `--format markdown` | Only a Markdown report on stdout, for example for a PR comment |
 | JUnit XML | `--format junit` | Only JUnit XML on stdout |
+| JSON | `--format json` | Only a JSON object on stdout: a summary and one entry per checked output, for scripts and CI jobs |
 
-With `markdown` and `junit`, warnings go to stderr, so you can redirect stdout
-to a file.
+With `markdown`, `junit` and `json`, warnings go to stderr, so you can
+redirect stdout to a file.
 
 ## Exit codes
 

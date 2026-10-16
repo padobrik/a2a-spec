@@ -130,6 +130,22 @@ class TestCliTestFormats:
         result = runner.invoke(app, ["test", "--config", str(config), "--format", "html"])
         assert result.exit_code == 2
 
+    def test_json_is_machine_readable(self, tmp_path) -> None:
+        import json
+
+        config = _struct_project(tmp_path, OUTPUTS)
+        result = runner.invoke(app, ["test", "--config", str(config), "--format", "json"])
+        assert result.exit_code == 1
+        report = json.loads(result.stdout)
+        assert report["project"] == "demo"
+        assert report["summary"] == {"total": 2, "passed": 1, "failed": 1}
+        by_scenario = {r["scenario"]: r for r in report["results"]}
+        assert by_scenario["billing"]["passed"] is True
+        assert by_scenario["renamed"]["passed"] is False
+        assert any(
+            "'category' is a required property" in e for e in by_scenario["renamed"]["errors"]
+        )
+
 
 LIVE_ADAPTERS = """
 from agent_handshake import FunctionAdapter
