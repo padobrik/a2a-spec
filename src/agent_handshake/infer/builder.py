@@ -138,7 +138,9 @@ def _object_schema(
         missing = sorted(scenario for scenario, obj in dicts if key not in obj)
 
         # When the parent itself was never sent, the error about it covers this key.
-        if (dicts or not parent) and not present:
+        # A parent that was sent but never as an object cannot carry the key either.
+        never = (objects or not parent) and not present
+        if never:
             never_sent.append(
                 (
                     label,
@@ -152,7 +154,8 @@ def _object_schema(
                 f"but missing in: {', '.join(missing)}"
             )
 
-        if strict or (present and not missing):
+        # A never-sent key is an error, or optional when --allow-missing names it.
+        if not never and (strict or (present and not missing)):
             required.append(key)
         status = "required" if key in required else "optional"
         header.append(f"  {label}: {status}, read at line {lines}")

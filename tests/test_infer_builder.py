@@ -82,6 +82,13 @@ class TestInferSpec:
             "allowed by --allow-missing"
         ]
 
+    def test_allowed_missing_strict_read_is_not_required(self) -> None:
+        reads = _reads(("issue_type", 4, True))
+        spec = infer_spec("triage", "res", reads, SNAPS, allow_missing=["issue_type"])
+        assert spec.missing == []
+        assert spec.data["structural"]["required"] == []
+        assert spec.header[1:] == ["  issue_type: optional, read at line 4"]
+
     def test_allow_missing_for_a_sent_field_warns(self) -> None:
         reads = _reads(("category", 4, False))
         spec = infer_spec("triage", "res", reads, SNAPS, allow_missing=["category"])
@@ -158,6 +165,13 @@ class TestInferNestedSpec:
     def test_strict_nested_read_missing_warns(self) -> None:
         spec = infer_spec("triage", "res", _reads(("customer.vip", 5, True)), NESTED)
         assert spec.warnings == ["'customer.vip' is read with [] by res (line 5) but missing in: b"]
+
+    def test_child_of_a_non_object_parent_fails(self) -> None:
+        snaps = [_snap("a", {"customer": "text"}), _snap("b", {"customer": "more"})]
+        spec = infer_spec("triage", "res", _reads(("customer.tier", 3, False)), snaps)
+        assert spec.missing == [
+            "'customer.tier' is read by res (line 3) but triage never sent it in any snapshot"
+        ]
 
     def test_never_sent_parent_fails_once(self) -> None:
         spec = infer_spec("triage", "res", _reads(("account.owner.id", 6, False)), NESTED)
