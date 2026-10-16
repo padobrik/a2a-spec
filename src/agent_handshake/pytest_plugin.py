@@ -69,6 +69,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
     group.addoption("--handshake-config", help="Path to handshake.yaml (implies --handshake).")
     parser.addini("handshake_config", "Path to handshake.yaml; setting it enables the plugin.")
+    parser.addini(
+        "handshake_enabled",
+        "Set to false to keep the plugin off even when handshake.yaml is in the rootdir.",
+        type="bool",
+        default=True,
+    )
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -80,15 +86,37 @@ def pytest_configure(config: pytest.Config) -> None:
         config_path = config.getini("handshake_config")
         if config.inipath is not None:
             root = config.inipath.parent
-    enabled = config.getoption("--handshake") or config_path is not None
-    if not enabled:
+    explicit = config.getoption("--handshake") or config_path is not None
+    # A handshake.yaml in the rootdir turns the plugin on without any flag.
+    auto = (config.rootpath / "handshake.yaml").exists() and config.getini("handshake_enabled")
+    if not explicit and not auto:
         config.stash[_STATE] = None
         return
+    if not explicit:
+        root = config.rootpath
     resolved = (root / config_path) if config_path else None
     if resolved is None:
         default = root / "handshake.yaml"
         resolved = default if default.exists() else None
-    config.stash[_STATE] = _A2AState(root, resolved)
+    state = _A2AState(root, resolved)
+    config.stash[_STATE] = state
+    _collect_specs_dir(config, state.specs_dir)
+
+
+def _collect_specs_dir(config: pytest.Config, specs_dir: Path) -> None:
+    """Add the specs directory to the run when pytest would not reach it.
+
+    Paths named on the command line are left alone; with testpaths or no
+    paths, the specs are collected too unless an argument already covers them.
+    """
+    if config.args_source == pytest.Config.ArgsSource.ARGS or not specs_dir.is_dir():
+        return
+    base = config.invocation_params.dir
+    for arg in config.args:
+        path = (base / arg.split("::", 1)[0]).resolve()
+        if path == specs_dir or path in specs_dir.parents:
+            return
+    config.args.append(str(specs_dir))
 
 
 def pytest_collect_file(file_path: Path, parent: pytest.Collector) -> pytest.Collector | None:
@@ -215,7 +243,20 @@ class MissingSnapshots(pytest.Item):
         self.spec = spec
 
     def runtest(self) -> None:
-        pytest.skip(f"no snapshots for '{self.spec.producer}'; run 'handshake record'")
+        # Nothing to check is a failure, not a skip: a skip would let the spec pass unnoticed.
+        raise MissingSnapshotsError(
+            f"No snapshots for '{self.spec.producer}', the producer of spec "
+            f"'{self.spec.name}'. Record them with 'handshake record'."
+        )
+
+    def repr_failure(self, excinfo: pytest.ExceptionInfo[BaseException], style: Any = None) -> str:
+        if isinstance(excinfo.value, MissingSnapshotsError):
+            return str(excinfo.value)
+        return str(super().repr_failure(excinfo, style=style))
+
+
+class MissingSnapshotsError(AssertionError):
+    """A spec's producer has no snapshots to check."""
 
 
 class ContractViolationError(AssertionError):
@@ -241,8 +282,8 @@ def handshake_check(request: pytest.FixtureRequest) -> Callable[..., SpecCheck]:
     state = request.config.stash.get(_STATE, None)
     if state is None:
         pytest.fail(
-            "handshake_check needs the agent-handshake plugin enabled "
-            "(--handshake or handshake_config)"
+            "handshake_check needs the agent-handshake plugin enabled: put handshake.yaml "
+            "in the rootdir, or pass --handshake or --handshake-config"
         )
     specs = {s.name: s for s in load_all_specs(state.specs_dir)}
     checker = SpecChecker()
