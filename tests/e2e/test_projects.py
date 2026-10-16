@@ -122,6 +122,7 @@ def test_scenario(project: Path, tmp_path: Path) -> None:
         assert proc.returncode == expected_exit, (
             f"{where} exited {proc.returncode}, expected {expected_exit}:\n{output}"
         )
+        assert "Traceback" not in output, f"{where} printed a traceback:\n{output}"
         for text in step.get("output", []):
             assert text in output, f"{where}: missing {text!r} in:\n{output}"
         for text in step.get("not_output", []):
