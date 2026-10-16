@@ -167,7 +167,7 @@ PASS triage-agent-to-resolution-agent / question
 **9. Commit the files.**
 
 ```bash
-git add handshake.yaml agent_handshake agents
+git add handshake.yaml handshake agents
 git commit -m "test: add agent contracts"
 ```
 
