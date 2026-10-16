@@ -17,6 +17,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   read per item, and an OpenAI Agents SDK `RunResult.final_output` is the
   output. When no parameter fits the producer, `infer` exits 2 instead of
   writing a spec with another agent's fields.
+- `handshake infer` follows helper functions in the same file that get the
+  data (up to three levels, methods through `self.` / `this.` included), list
+  items (loops, comprehensions, array callbacks, copies such as `slice`,
+  items by index), and values taken with `or`, `??` or a conditional. A field
+  of list items is written `searches[].query`, and the spec gets an array
+  schema with `items`. These reads gave a warning in 0.9.1.
 
 ## [0.9.1] - 2026-10-17
 

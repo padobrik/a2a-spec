@@ -83,6 +83,11 @@ command shows a `WARN` line, and the spec lists it under `allow_missing`.
 `--check` accepts a `data["key"]` read of such a field, and its
 "Regenerate" command repeats the flags.
 
+The analysis follows helper functions in the same file that get the data
+(up to three levels, methods through `self.` / `this.` included), list items
+(`searches[].query`; the spec gets an array schema with `items`) and values
+taken with `or`, `??` or a conditional.
+
 The parameter that holds the producer's output is chosen by its type
 (Pydantic, `TypedDict`, dataclass; TypeScript `interface`, `type` or Zod
 schema), with the producer's snapshot keys deciding between several typed
