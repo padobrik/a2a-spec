@@ -117,6 +117,8 @@ def print_pipeline_trace(trace: PipelineTrace) -> None:
         console.print(f"    {step_label} {step.agent_id} ({step.latency_ms:.0f}ms)")
         for error in step.spec_errors:
             console.print(f"        [red]{error}[/red]")
+        if step.semantic_skipped:
+            console.print("        [yellow]semantic SKIPPED[/yellow]")
 
 
 def print_summary(

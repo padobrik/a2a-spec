@@ -17,8 +17,11 @@ from a2a_spec.pipeline.dag import build_dag
 from a2a_spec.pipeline.executor import PipelineExecutor
 from a2a_spec.project import load_adapters
 from a2a_spec.reporting.console import print_pipeline_trace, print_summary
+from a2a_spec.semantic.embeddings import EmbeddingModel
+from a2a_spec.semantic.engine import SemanticEngine
 from a2a_spec.snapshot.replay import ReplayEngine
 from a2a_spec.snapshot.store import SnapshotStore
+from a2a_spec.spec.checker import SpecChecker
 from a2a_spec.spec.registry import SpecRegistry
 
 console = Console()
@@ -63,11 +66,17 @@ def pipeline_test(
         "-c",
         help="Path to config file.",
     ),
+    semantic: bool = typer.Option(
+        True,
+        "--semantic/--no-semantic",
+        help="Evaluate semantic rules (requires the 'semantic' extra).",
+    ),
 ) -> None:
     """Test a pipeline definition.
 
-    Executes the pipeline DAG in replay or live mode and validates
-    each agent's output against applicable specs.
+    Executes the pipeline DAG in replay or live mode and checks each
+    agent's output against the structural, policy and semantic rules of
+    the specs where that agent is the producer.
     """
     try:
         config = load_config(config_path)
@@ -106,11 +115,18 @@ def pipeline_test(
             console.print(f"[red]Cannot run live: {e}[/red]")
             raise typer.Exit(1) from None
 
+    semantic = semantic and config.semantic.enabled
+    checker = SpecChecker(
+        semantic_engine=SemanticEngine(model=EmbeddingModel(config.semantic.model))
+        if semantic
+        else None
+    )
     executor = PipelineExecutor(
         dag=dag,
         replay_engine=replay_engine,
         adapters=adapters,
         spec_registry=spec_registry,
+        checker=checker,
     )
 
     test_cases = pipeline_spec.get("test_cases", [])
@@ -141,6 +157,10 @@ def pipeline_test(
             console.print(f"\n  [red]FAIL[/red] Pipeline: {dag.name} / {tc['name']}: {e}")
             failed += 1
             continue
+        except ImportError as e:
+            console.print(f"[red]{e}[/red]")
+            console.print("[red]Or pass --no-semantic to skip semantic rules.[/red]")
+            raise typer.Exit(1) from None
 
         print_pipeline_trace(trace)
 

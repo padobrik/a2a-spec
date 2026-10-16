@@ -11,8 +11,8 @@ from a2a_spec.exceptions import PipelineExecutionError
 from a2a_spec.pipeline.dag import PipelineDAG
 from a2a_spec.pipeline.trace import AgentTraceStep, PipelineTrace
 from a2a_spec.snapshot.replay import ReplayEngine
+from a2a_spec.spec.checker import SpecChecker
 from a2a_spec.spec.registry import SpecRegistry
-from a2a_spec.spec.validator import validate_output
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,9 @@ class PipelineExecutor:
     - "replay": Uses stored snapshots (deterministic, no LLM calls)
     - "live": Calls actual agents through adapters
 
-    At each step, the output is validated against any applicable spec.
+    At each step, the output is checked against every spec where the agent
+    is the producer: structural and policy rules, and semantic rules when
+    ``checker`` has a semantic engine.
     """
 
     def __init__(
@@ -33,11 +35,13 @@ class PipelineExecutor:
         adapters: dict[str, AgentAdapter] | None = None,
         replay_engine: ReplayEngine | None = None,
         spec_registry: SpecRegistry | None = None,
+        checker: SpecChecker | None = None,
     ) -> None:
         self.dag = dag
         self.adapters = adapters or {}
         self.replay = replay_engine
         self.specs = spec_registry
+        self.checker = checker or SpecChecker()
 
     async def execute(
         self,
@@ -54,6 +58,10 @@ class PipelineExecutor:
 
         Returns:
             PipelineTrace with full execution details.
+
+        Raises:
+            PipelineExecutionError: If an agent cannot be called.
+            ImportError: If semantic rules need the missing ``semantic`` extra.
         """
         logger.info("Executing pipeline '%s' in %s mode", self.dag.name, mode)
         trace = PipelineTrace(
@@ -102,12 +110,14 @@ class PipelineExecutor:
             # Validate against specs
             spec_passed: bool | None = None
             spec_errors: list[str] = []
+            semantic_skipped = False
             if self.specs:
                 for spec in self.specs.get_by_producer(agent_id):
-                    result = validate_output(output, spec)
+                    result = self.checker.check(spec, output, agent_input)
+                    semantic_skipped = semantic_skipped or result.semantic_skipped
                     if not result.passed:
                         spec_passed = False
-                        spec_errors.extend(result.errors)
+                        spec_errors.extend(f"{spec.name}: {e}" for e in result.failures())
                     elif spec_passed is None:
                         spec_passed = True
 
@@ -119,6 +129,7 @@ class PipelineExecutor:
                     latency_ms=latency,
                     spec_passed=spec_passed,
                     spec_errors=spec_errors,
+                    semantic_skipped=semantic_skipped,
                 )
             )
 
