@@ -51,3 +51,17 @@ def node_text(node: Node) -> str:
 
 def node_line(node: Node) -> int:
     return node.start_point[0] + 1
+
+
+def parameters(fn: Node) -> list[tuple[Node, Node | None]]:
+    """Each parameter's pattern and type, skipping a TypeScript ``this`` parameter."""
+    single = fn.child_by_field_name("parameter")  # x => ...
+    if single is not None:
+        return [(single, None)]
+    found: list[tuple[Node, Node | None]] = []
+    params = fn.child_by_field_name("parameters")
+    for param in params.named_children if params is not None else []:
+        pattern = param.child_by_field_name("pattern") if "parameter" in param.type else param
+        if pattern is not None and not (pattern.type == "this" or node_text(pattern) == "this"):
+            found.append((pattern, param.child_by_field_name("type")))
+    return found

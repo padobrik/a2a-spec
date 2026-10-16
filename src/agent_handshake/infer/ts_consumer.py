@@ -21,7 +21,7 @@ from agent_handshake.exceptions import ConfigError
 from agent_handshake.infer.consumer import ConsumerReads
 from agent_handshake.infer.shapes import Annotation, choose_param, no_matching_param
 from agent_handshake.infer.ts_reads import ReadVisitor
-from agent_handshake.infer.ts_syntax import first_error, node_line, node_text
+from agent_handshake.infer.ts_syntax import first_error, node_line, node_text, parameters
 from agent_handshake.infer.ts_types import TsModule
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ def analyze_ts_consumer(
         raise ConfigError(f"Function '{function}' is defined more than once in {path} ({lines})")
     fn = matches[0]
 
-    params = _parameters(fn)
+    params = parameters(fn)
     if not params:
         raise ConfigError(f"Function '{function}' in {path} takes no input parameter")
     module = TsModule(path, tree.root_node, parser)
@@ -129,17 +129,3 @@ def _functions(root: Node) -> list[tuple[str, Node]]:
             found.append((node_text(name), target))
         stack.extend(reversed(node.named_children))
     return sorted(found, key=lambda item: item[1].start_byte)
-
-
-def _parameters(fn: Node) -> list[tuple[Node, Node | None]]:
-    """Each parameter's pattern and type, skipping a TypeScript ``this`` parameter."""
-    single = fn.child_by_field_name("parameter")  # x => ...
-    if single is not None:
-        return [(single, None)]
-    found: list[tuple[Node, Node | None]] = []
-    params = fn.child_by_field_name("parameters")
-    for param in params.named_children if params is not None else []:
-        pattern = param.child_by_field_name("pattern") if "parameter" in param.type else param
-        if pattern is not None and not (pattern.type == "this" or node_text(pattern) == "this"):
-            found.append((pattern, param.child_by_field_name("type")))
-    return found
