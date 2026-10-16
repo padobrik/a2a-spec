@@ -6,6 +6,7 @@ from agent_handshake.adapters.a2a_adapter import A2AAdapter
 from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
 from agent_handshake.adapters.function_adapter import FunctionAdapter
 from agent_handshake.adapters.http_adapter import HTTPAdapter
+from agent_handshake.api import CheckResult, SnapshotResult, check, load_snapshots
 from agent_handshake.config.loader import load_config
 from agent_handshake.config.settings import HandshakeConfig
 from agent_handshake.diff.engine import DiffEngine, DiffResult, DriftSeverity
@@ -26,6 +27,11 @@ from agent_handshake.spec.schema import PolicyRule, Spec, StructuralSpec
 from agent_handshake.spec.validator import validate_output
 
 __all__ = [
+    # Core API
+    "CheckResult",
+    "SnapshotResult",
+    "check",
+    "load_snapshots",
     "__version__",
     # Spec
     "Spec",
