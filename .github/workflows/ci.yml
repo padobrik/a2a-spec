@@ -39,13 +39,13 @@ jobs:
         run: mypy src/
 
       - name: Test with coverage
-        run: pytest tests/ -v --tb=short --cov=a2a_spec --cov-report=term-missing
+        run: pytest tests/ -v --tb=short --cov=agent_handshake --cov-report=term-missing
 
       - name: Verify clean import (no optional deps)
         run: |
           pip install -e "."
-          python -c "import a2a_spec; print(a2a_spec.__version__)"
-          python -c "from a2a_spec import load_spec, validate_output, FunctionAdapter, SnapshotStore"
+          python -c "import agent_handshake; print(agent_handshake.__version__)"
+          python -c "from agent_handshake import load_spec, validate_output, FunctionAdapter, SnapshotStore"
 
       - name: Verify no unsafe yaml.load
         run: |
@@ -67,5 +67,5 @@ jobs:
         with:
           package: ${{ github.workspace }}
           working-directory: examples/customer_support
-          config: a2a_spec/a2a-spec.yaml
+          config: handshake/handshake.yaml
           args: --no-semantic

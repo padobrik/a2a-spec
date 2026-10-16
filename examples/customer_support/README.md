@@ -1,6 +1,6 @@
 # Customer Support Pipeline Example
 
-This example demonstrates a complete a2a-spec workflow with a two-agent customer support pipeline:
+This example demonstrates a complete agent-handshake workflow with a two-agent customer support pipeline:
 
 1. **Triage Agent** — Classifies incoming support tickets by category and priority
 2. **Resolution Agent** — Takes the triage output and generates a resolution
@@ -12,8 +12,8 @@ customer_support/
 ├── agents/
 │   ├── triage.py          # Triage agent implementation
 │   └── resolution.py      # Resolution agent implementation
-├── a2a_spec/
-│   ├── a2a-spec.yaml      # Project config
+├── handshake/
+│   ├── handshake.yaml      # Project config
 │   ├── specs/
 │   │   └── triage-to-resolution.yaml
 │   ├── snapshots/
@@ -41,13 +41,13 @@ The spec `triage-to-resolution.yaml` defines what the resolution agent expects f
 
 ### Step 2: Create adapters
 
-Adapters wrap your agents so a2a-spec can call them. See `adapters/triage_adapter.py` for an example.
+Adapters wrap your agents so agent-handshake can call them. See `adapters/triage_adapter.py` for an example.
 
 ### Step 3: Record snapshots
 
 ```bash
 # From the customer_support directory:
-a2aspec record --config a2a_spec/a2a-spec.yaml
+handshake record --config handshake/handshake.yaml
 ```
 
 This calls the live agents and saves their outputs as JSON snapshots.
@@ -55,7 +55,7 @@ This calls the live agents and saves their outputs as JSON snapshots.
 ### Step 4: Test in CI (replay mode)
 
 ```bash
-a2aspec test --replay --config a2a_spec/a2a-spec.yaml
+handshake test --replay --config handshake/handshake.yaml
 ```
 
 This validates the saved snapshots against the specs with zero LLM calls.
@@ -65,6 +65,6 @@ This validates the saved snapshots against the specs with zero LLM calls.
 After changing a prompt or model:
 
 ```bash
-a2aspec record   # Re-record with new prompt
-a2aspec diff     # Compare new vs old outputs
+handshake record   # Re-record with new prompt
+handshake diff     # Compare new vs old outputs
 ```

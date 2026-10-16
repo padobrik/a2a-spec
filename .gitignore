@@ -138,14 +138,14 @@ celerybeat-schedule
 celerybeat.pid
 
 # ========================
-# a2a-spec specific
+# agent-handshake specific
 # ========================
 
 # Generated reports (not committed)
-a2a_spec/reports/
+handshake/reports/
 *.junit.xml
 report.md
 
 # NOTE: Snapshots ARE committed to git!
 # They are your test baselines for deterministic replay.
-# Do NOT add a2a_spec/snapshots/ to .gitignore.
+# Do NOT add handshake/snapshots/ to .gitignore.

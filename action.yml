@@ -1,5 +1,5 @@
-name: a2a-spec contract tests
-description: Test agent-to-agent contracts with a2a-spec. Runs a2aspec infer --check and a2aspec test with pull request annotations.
+name: agent-handshake contract tests
+description: Test agent-to-agent contracts with agent-handshake. Runs handshake infer --check and handshake test with pull request annotations.
 author: padobrik
 branding:
   icon: check-circle
@@ -7,22 +7,22 @@ branding:
 
 inputs:
   package:
-    description: pip requirement to install, for example "a2a-spec[semantic]==0.6.0".
-    default: a2a-spec
+    description: pip requirement to install, for example "agent-handshake[semantic]==0.6.0".
+    default: agent-handshake
   python-version:
     description: Python version to use.
     default: "3.12"
   working-directory:
-    description: Directory that contains the a2a-spec project.
+    description: Directory that contains the agent-handshake project.
     default: .
   config:
-    description: Path to a2a-spec.yaml, relative to working-directory. Empty uses the default lookup.
+    description: Path to handshake.yaml, relative to working-directory. Empty uses the default lookup.
     default: ""
   check-inferred:
-    description: Run a2aspec infer --check before the tests ("true" or "false").
+    description: Run handshake infer --check before the tests ("true" or "false").
     default: "true"
   args:
-    description: Extra arguments for a2aspec test, for example "--no-semantic".
+    description: Extra arguments for handshake test, for example "--no-semantic".
     default: ""
 
 runs:
@@ -32,7 +32,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Install a2a-spec
+    - name: Install agent-handshake
       shell: bash
       env:
         PACKAGE: ${{ inputs.package }}
@@ -44,7 +44,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         CONFIG: ${{ inputs.config }}
-      run: a2aspec infer --check ${CONFIG:+--config "$CONFIG"}
+      run: handshake infer --check ${CONFIG:+--config "$CONFIG"}
 
     - name: Test contracts
       shell: bash
@@ -53,4 +53,4 @@ runs:
         CONFIG: ${{ inputs.config }}
         ARGS: ${{ inputs.args }}
       # ARGS is split into words on purpose so it can carry several flags.
-      run: a2aspec test --format github ${CONFIG:+--config "$CONFIG"} $ARGS
+      run: handshake test --format github ${CONFIG:+--config "$CONFIG"} $ARGS

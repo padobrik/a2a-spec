@@ -10,7 +10,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: a2a-spec version
+      label: agent-handshake version
       placeholder: "0.6.0"
     validations:
       required: true

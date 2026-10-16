@@ -29,7 +29,7 @@ jobs:
       - name: Verify tag matches __version__
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          VER=$(python -c "import a2a_spec; print(a2a_spec.__version__)")
+          VER=$(python -c "import agent_handshake; print(agent_handshake.__version__)")
           if [ "$TAG" != "$VER" ]; then
             echo "Tag $TAG != __version__ $VER" && exit 1
           fi

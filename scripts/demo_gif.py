@@ -51,13 +51,13 @@ STEPS = [
     Step('grep -n "input_data.get" agents/resolution.py'),
     Step("# infer the contract from the consumer's code", comment=True),
     Step(
-        "a2aspec infer -p triage-agent -C resolution-agent \\\n"
+        "handshake infer -p triage-agent -C resolution-agent \\\n"
         "    --source agents/resolution.py:resolution_agent"
     ),
     Step("pytest -q"),
     Step('# simulate a prompt change: triage-agent now says "urgency"', comment=True),
     Step('sed -i.bak \'s/"priority"/"urgency"/\' agents/triage.py'),
-    Step("a2aspec record --scenario billing_overcharge"),
+    Step("handshake record --scenario billing_overcharge"),
     Step("pytest -v --no-header -k billing", expect_exit=1),
     Step("# the hand-written spec passed; the inferred contract caught it", comment=True),
 ]
@@ -67,11 +67,13 @@ def prepare(workdir: Path) -> None:
     """Copy the example and enable the pytest plugin (setup, not shown)."""
     shutil.copytree(EXAMPLE, workdir)
     shutil.rmtree(workdir / "tests")
-    config = (workdir / "a2a_spec" / "a2a-spec.yaml").read_text()
+    config = (workdir / "handshake" / "handshake.yaml").read_text()
     # Semantic rules are not part of this story; skip loading the model.
-    (workdir / "a2a-spec.yaml").write_text(config.replace("enabled: true", "enabled: false"))
+    (workdir / "handshake.yaml").write_text(config.replace("enabled: true", "enabled: false"))
     (workdir / "pyproject.toml").write_text(
-        '[tool.pytest.ini_options]\na2a_config = "a2a-spec.yaml"\ntestpaths = ["a2a_spec/specs"]\n'
+        "[tool.pytest.ini_options]\n"
+        'handshake_config = "handshake.yaml"\n'
+        'testpaths = ["handshake/specs"]\n'
     )
 
 
@@ -128,7 +130,7 @@ class Renderer:
         for i, color in enumerate([(255, 95, 86), (255, 189, 46), (39, 201, 63)]):
             x = PAD + i * 20
             draw.ellipse([x, 10, x + 11, 21], fill=color)
-        title = "a2a-spec: inferred contracts"
+        title = "agent-handshake: inferred contracts"
         draw.text(
             ((self.width - self.font.getlength(title)) / 2, 7), title, font=self.font, fill=GRAY
         )
