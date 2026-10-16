@@ -1,9 +1,9 @@
-"""pytest plugin: run a2a-spec contracts as ordinary pytest tests.
+"""pytest plugin: run agent-handshake contracts as ordinary pytest tests.
 
-Enable it with ``--a2a`` or by setting ``a2a_config`` in the pytest ini
+Enable it with ``--handshake`` or by setting ``handshake_config`` in the pytest ini
 options. Every spec YAML under the configured ``specs_dir`` then becomes a
 test file with one test per recorded producer snapshot, and the
-``a2a_check`` fixture validates live outputs inside your own tests.
+``handshake_check`` fixture validates live outputs inside your own tests.
 """
 
 from __future__ import annotations
@@ -15,17 +15,17 @@ from typing import Any
 
 import pytest
 
-from a2a_spec.config.loader import load_config
-from a2a_spec.config.settings import A2ASpecConfig
-from a2a_spec.exceptions import ConfigError
-from a2a_spec.infer.check import check_inferred_spec
-from a2a_spec.project import load_scenarios
-from a2a_spec.semantic.embeddings import EmbeddingModel
-from a2a_spec.semantic.engine import SemanticEngine
-from a2a_spec.snapshot.store import SnapshotStore
-from a2a_spec.spec.checker import SpecCheck, SpecChecker
-from a2a_spec.spec.loader import load_all_specs, load_spec
-from a2a_spec.spec.schema import Spec
+from agent_handshake.config.loader import DEFAULT_CONFIG_NAMES, LEGACY_CONFIG_NAMES, load_config
+from agent_handshake.config.settings import HandshakeConfig
+from agent_handshake.exceptions import ConfigError
+from agent_handshake.infer.check import check_inferred_spec
+from agent_handshake.project import load_scenarios
+from agent_handshake.semantic.embeddings import EmbeddingModel
+from agent_handshake.semantic.engine import SemanticEngine
+from agent_handshake.snapshot.store import SnapshotStore
+from agent_handshake.spec.checker import SpecCheck, SpecChecker
+from agent_handshake.spec.loader import load_all_specs, load_spec
+from agent_handshake.spec.schema import Spec
 
 _STATE = pytest.StashKey["_A2AState | None"]()
 
@@ -33,7 +33,7 @@ _STATE = pytest.StashKey["_A2AState | None"]()
 class _A2AState:
     def __init__(self, root: Path, config_path: Path | None, semantic: bool) -> None:
         self.root = root
-        self.config: A2ASpecConfig = load_config(config_path)
+        self.config: HandshakeConfig = load_config(config_path)
         self.specs_dir = self._resolve(self.config.specs_dir)
         self.store = SnapshotStore(self._resolve(self.config.storage.path))
         scenarios_config = self.config.model_copy(
@@ -54,33 +54,43 @@ class _A2AState:
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    group = parser.getgroup("a2a-spec")
-    group.addoption("--a2a", action="store_true", help="Run a2a-spec contracts as tests.")
-    group.addoption("--a2a-config", help="Path to a2a-spec.yaml (implies --a2a).")
+    group = parser.getgroup("agent-handshake")
+    # The --a2a* names and a2a_config are from before the rename to agent-handshake.
     group.addoption(
-        "--a2a-no-semantic", action="store_true", help="Skip semantic rules in contracts."
+        "--handshake", "--a2a", action="store_true", help="Run agent-handshake contracts as tests."
     )
-    parser.addini("a2a_config", "Path to a2a-spec.yaml; setting it enables the plugin.")
+    group.addoption(
+        "--handshake-config", "--a2a-config", help="Path to handshake.yaml (implies --handshake)."
+    )
+    group.addoption(
+        "--handshake-no-semantic",
+        "--a2a-no-semantic",
+        action="store_true",
+        help="Skip semantic rules in contracts.",
+    )
+    parser.addini("handshake_config", "Path to handshake.yaml; setting it enables the plugin.")
+    parser.addini("a2a_config", "Old name of handshake_config.")
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    # Relative paths follow the same rule as the a2aspec CLI (the working
+    # Relative paths follow the same rule as the handshake CLI (the working
     # directory), except an ini setting, which is relative to its ini file.
     root = config.invocation_params.dir
-    config_path = config.getoption("--a2a-config")
-    if config_path is None and config.getini("a2a_config"):
-        config_path = config.getini("a2a_config")
+    config_path = config.getoption("--handshake-config")
+    ini_path = config.getini("handshake_config") or config.getini("a2a_config")
+    if config_path is None and ini_path:
+        config_path = ini_path
         if config.inipath is not None:
             root = config.inipath.parent
-    enabled = config.getoption("--a2a") or config_path is not None
+    enabled = config.getoption("--handshake") or config_path is not None
     if not enabled:
         config.stash[_STATE] = None
         return
     resolved = (root / config_path) if config_path else None
     if resolved is None:
-        default = root / "a2a-spec.yaml"
-        resolved = default if default.exists() else None
-    semantic = not config.getoption("--a2a-no-semantic")
+        defaults = [root / name for name in DEFAULT_CONFIG_NAMES + LEGACY_CONFIG_NAMES]
+        resolved = next((p for p in defaults if p.exists()), None)
+    semantic = not config.getoption("--handshake-no-semantic")
     config.stash[_STATE] = _A2AState(root, resolved, semantic)
 
 
@@ -149,7 +159,7 @@ class ConsumerCodeItem(pytest.Item):
         if not result.passed:
             lines = [f"spec '{self.spec.name}' is out of date with {self.spec.inferred_from}:"]
             lines += [f"  {failure}" for failure in result.failures]
-            lines.append("  Regenerate it with 'a2aspec infer ... --force'.")
+            lines.append("  Regenerate it with 'handshake infer ... --force'.")
             raise SpecOutOfDateError("\n".join(lines))
 
     def repr_failure(self, excinfo: pytest.ExceptionInfo[BaseException], style: Any = None) -> str:
@@ -173,7 +183,7 @@ class MissingSnapshots(pytest.Item):
         self.spec = spec
 
     def runtest(self) -> None:
-        pytest.skip(f"no snapshots for '{self.spec.producer}'; run 'a2aspec record'")
+        pytest.skip(f"no snapshots for '{self.spec.producer}'; run 'handshake record'")
 
 
 class ContractViolationError(AssertionError):
@@ -187,18 +197,21 @@ class ContractViolationError(AssertionError):
 
 
 @pytest.fixture
-def a2a_check(request: pytest.FixtureRequest) -> Callable[..., SpecCheck]:
+def handshake_check(request: pytest.FixtureRequest) -> Callable[..., SpecCheck]:
     """Validate an output against a spec by name; fails the test on violation.
 
     Usage::
 
-        def test_triage(a2a_check):
+        def test_triage(handshake_check):
             output = run_triage({"message": "charged twice"})
-            a2a_check("triage-to-resolution", output, {"message": "charged twice"})
+            handshake_check("triage-to-resolution", output, {"message": "charged twice"})
     """
     state = request.config.stash.get(_STATE, None)
     if state is None:
-        pytest.fail("a2a_check needs the a2a-spec plugin enabled (--a2a or a2a_config)")
+        pytest.fail(
+            "handshake_check needs the agent-handshake plugin enabled "
+            "(--handshake or handshake_config)"
+        )
     specs = {s.name: s for s in load_all_specs(state.specs_dir)}
 
     def check(
@@ -212,3 +225,9 @@ def a2a_check(request: pytest.FixtureRequest) -> Callable[..., SpecCheck]:
         return result
 
     return check
+
+
+@pytest.fixture
+def a2a_check(handshake_check: Callable[..., SpecCheck]) -> Callable[..., SpecCheck]:
+    """Old name of ``handshake_check``."""
+    return handshake_check
