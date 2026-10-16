@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from agent_handshake.infer.consumer import ConsumerReads
+from agent_handshake.infer.paths import ITEMS, dotted
 from agent_handshake.snapshot.store import Snapshot
 
 
@@ -119,7 +120,8 @@ def _object_schema(
     to ``never_sent`` as (dotted path, message).
 
     ``objects`` holds the value at ``parent`` in each snapshot that has it,
-    by scenario. Only dict values can carry keys.
+    by scenario (for list items, every item of the list). Only dict values
+    can carry keys.
     """
     depth = len(parent)
     keys = list(
@@ -136,9 +138,9 @@ def _object_schema(
         below = [r for r in reads.reads if r.path[: depth + 1] == path]
         strict = any(r.strict[depth] for r in below)
         lines = ", ".join(str(n) for n in sorted({r.line for r in below}))
-        label = ".".join(path)
+        label = dotted(path)
         present = [(scenario, obj[key]) for scenario, obj in dicts if key in obj]
-        missing = sorted(scenario for scenario, obj in dicts if key not in obj)
+        missing = sorted({scenario for scenario, obj in dicts if key not in obj})
 
         # When the parent itself was never sent, the error about it covers this key.
         # A parent that was sent but never as an object cannot carry the key either.
@@ -165,7 +167,28 @@ def _object_schema(
         read_at[label] = sorted({r.line for r in below})
 
         schema = _schema_for([value for _, value in present])
-        if any(len(r.path) > depth + 1 for r in below):
+        deeper = [r for r in below if len(r.path) > depth + 1]
+        if deeper and all(r.path[depth + 1] == ITEMS for r in deeper):
+            # The consumer reads the items of this list: describe one item.
+            items = [(s, item) for s, value in present if isinstance(value, list) for item in value]
+            item_schema: dict[str, Any] = {}
+            if any(len(r.path) > depth + 2 for r in deeper):
+                item_schema = {"type": "object"}
+            item_schema.update(
+                _object_schema(
+                    (*path, ITEMS),
+                    items,
+                    reads,
+                    producer,
+                    consumer,
+                    header,
+                    warnings,
+                    read_at,
+                    never_sent,
+                )
+            )
+            schema = {"type": "array", "items": item_schema}
+        elif deeper:
             schema = schema or {"type": "object"}
             schema.update(
                 _object_schema(

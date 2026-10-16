@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from agent_handshake.diff.engine import OUTPUT_FIELD, DiffResult, DriftSeverity
+from agent_handshake.infer.paths import dotted
 from agent_handshake.spec.fields import field_paths, spec_schema
 from agent_handshake.spec.schema import Spec
 
@@ -25,7 +26,7 @@ def rate_for_consumers(results: list[DiffResult], specs: list[Spec]) -> list[Dif
     """
     if not specs:
         return results
-    named = [(spec, {".".join(p) for p in field_paths(spec_schema(spec))}) for spec in specs]
+    named = [(spec, {dotted(p) for p in field_paths(spec_schema(spec))}) for spec in specs]
     unknown = sorted({spec.consumer for spec in specs if spec.reads_unknown_keys})
     rated: list[DiffResult] = []
     for result in results:
@@ -67,18 +68,18 @@ def rate_for_consumers(results: list[DiffResult], specs: list[Spec]) -> list[Dif
 
 def _names(paths: set[str], field: str) -> bool:
     """True when the spec names ``field`` or something below it."""
-    return field in paths or any(p.startswith(f"{field}.") for p in paths)
+    return field in paths or any(_below(p, field) for p in paths)
+
+
+def _below(path: str, field: str) -> bool:
+    """``path`` is ``field`` or lies under it (``a.b`` and ``a[].b`` under ``a``)."""
+    return path == field or path.startswith((f"{field}.", f"{field}[]"))
 
 
 def _reader(spec: Spec, field: str) -> str:
     """Who reads ``field`` and where, as far as the spec says."""
     lines = sorted(
-        {
-            line
-            for path, found in spec.read_at.items()
-            if path == field or path.startswith(f"{field}.")
-            for line in found
-        }
+        {line for path, found in spec.read_at.items() if _below(path, field) for line in found}
     )
     if spec.inferred_from and lines:
         source = spec.inferred_from.rsplit(":", 1)[0]

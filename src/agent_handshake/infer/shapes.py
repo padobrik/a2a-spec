@@ -6,6 +6,8 @@ from collections.abc import Callable, Collection, Sequence
 from dataclasses import dataclass, field
 from typing import Protocol, TypeVar
 
+from agent_handshake.infer.paths import ITEMS, dotted
+
 T = TypeVar("T")
 
 
@@ -116,11 +118,13 @@ def undeclared(reads: Sequence[Read], shape: TypeShape | None) -> list[str]:
     for read in reads:
         current = shape
         for depth, key in enumerate(read.path):
+            if key == ITEMS:
+                continue  # the item type was taken with the list field
             if current is None or not current.fields:
                 break
             declared = current.fields.get(key)
             if declared is None:
-                label = ".".join(read.path[: depth + 1])
+                label = dotted(read.path[: depth + 1])
                 if label not in reported:
                     reported.add(label)
                     warnings.append(
