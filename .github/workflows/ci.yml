@@ -69,3 +69,11 @@ jobs:
           working-directory: examples/customer_support
           config: handshake/handshake.yaml
           args: --no-semantic
+
+      # Replays the recorded model output: no API key and no model SDK needed.
+      - name: Run the repository action on the LLM example
+        uses: ./
+        with:
+          package: ${{ github.workspace }}
+          working-directory: examples/llm_support
+          args: --no-semantic

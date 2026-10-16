@@ -17,6 +17,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   server-sent events, applies status and artifact updates to the task, and
   returns the same output as without streaming. The Agent Card must declare
   `capabilities.streaming`.
+- `examples/llm_support`: a triage agent that calls a hosted model with
+  structured output, a plain-code consumer, snapshots recorded from the real
+  model, an inferred contract and a hand-written spec with semantic and
+  policy rules. CI replays it with the GitHub Action.
 
 ## [0.7.0] - 2026-10-16
 
