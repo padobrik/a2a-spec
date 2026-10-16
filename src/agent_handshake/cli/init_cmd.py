@@ -7,6 +7,8 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from agent_handshake.config.loader import DEFAULT_CONFIG_NAMES
+
 console = Console()
 
 CONFIG_TEMPLATE = """# agent-handshake configuration
@@ -137,16 +139,17 @@ def init_command(
         d.mkdir(parents=True, exist_ok=True)
         console.print(f"  [dim]Created[/dim] {d.relative_to(root)}/")
 
-    # Write config
-    config_path = root / "handshake.yaml"
-    if not config_path.exists():
-        config_path.write_text(
+    # Write config, unless the project has one under any default name: the
+    # loader would otherwise pick the new file over the existing one.
+    existing = next((n for n in DEFAULT_CONFIG_NAMES if (root / n).exists()), None)
+    if existing is None:
+        (root / "handshake.yaml").write_text(
             CONFIG_TEMPLATE.format(project_name=project_name),
             encoding="utf-8",
         )
         console.print("  [green]Created[/green] handshake.yaml")
     else:
-        console.print("  [yellow]Exists[/yellow]  handshake.yaml")
+        console.print(f"  [yellow]Exists[/yellow]  {existing}")
 
     # Write example spec
     example_spec_path = a2a_dir / "specs" / "example-spec.yaml"
