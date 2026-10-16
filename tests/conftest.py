@@ -6,11 +6,27 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from typer.testing import CliRunner
 
 from agent_handshake.adapters.base import AgentAdapter, AgentMetadata, AgentResponse
 from agent_handshake.snapshot.fingerprint import Fingerprint
 from agent_handshake.snapshot.store import Snapshot, SnapshotStore
 from agent_handshake.spec.schema import PolicyRule, Spec, StructuralSpec
+
+
+@pytest.fixture(autouse=True)
+def _cli_never_crashes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A CLI call ends in an exit code and a message, never in a traceback."""
+    invoke = CliRunner.invoke
+
+    def checked(self: CliRunner, *args: Any, **kwargs: Any) -> Any:
+        result = invoke(self, *args, **kwargs)
+        crashed = result.exception is not None and not isinstance(result.exception, SystemExit)
+        assert not crashed, f"CLI raised {result.exception!r}:\n{result.output}"
+        assert "Traceback" not in result.output, result.output
+        return result
+
+    monkeypatch.setattr(CliRunner, "invoke", checked)
 
 
 @pytest.fixture
