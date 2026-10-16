@@ -80,6 +80,17 @@ class TestPythonHelpers:
         result = _analyze(tmp_path, code)
         assert _names(result) == ["next"]
 
+    def test_parameter_that_shadows_a_function_is_not_followed(self, tmp_path: Path) -> None:
+        code = (
+            "def render(x):\n    return x['secret']\n\n\n"
+            "def run(data, render):\n    return render(data)\n"
+        )
+        result = _analyze(tmp_path, code)
+        assert result.reads == []
+        assert result.warnings == [
+            "line 6: 'data' is used as a whole; the inferred contract may be incomplete"
+        ]
+
     def test_unknown_function_still_warns(self, tmp_path: Path) -> None:
         result = _analyze(tmp_path, "def run(d):\n    return helper(d)\n")
         assert result.warnings == [
@@ -163,6 +174,17 @@ class TestTypeScriptHelpers:
         result = _analyze(tmp_path, code, suffix=".ts")
         assert _names(result) == ["searches", "searches[].query", "searches[].reason"]
         assert result.warnings == []
+
+    def test_parameter_that_shadows_a_function_is_not_followed(self, tmp_path: Path) -> None:
+        code = (
+            "function render(x) { return x.secret; }\n"
+            "function run(data, render) {\n  return render(data);\n}\n"
+        )
+        result = _analyze(tmp_path, code, suffix=".ts")
+        assert result.reads == []
+        assert result.warnings == [
+            "line 3: 'data' is used as a whole; the inferred contract may be incomplete"
+        ]
 
     def test_item_given_twice_warns_once(self, tmp_path: Path) -> None:
         code = "function run(d) {\n  for (const r of d.rs) { send(r, r); }\n}\n"

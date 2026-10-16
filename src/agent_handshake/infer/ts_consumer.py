@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 from agent_handshake.exceptions import ConfigError
 from agent_handshake.infer.consumer import ConsumerReads
 from agent_handshake.infer.shapes import Annotation, choose_param, no_matching_param
-from agent_handshake.infer.ts_reads import ReadVisitor, TsScope
+from agent_handshake.infer.ts_reads import ReadVisitor, TsScope, bound_names
 from agent_handshake.infer.ts_syntax import first_error, node_line, node_text, parameters
 from agent_handshake.infer.ts_types import TsModule
 
@@ -78,7 +78,7 @@ def analyze_ts_consumer(
         raise ConfigError(f"Function '{function}' in {path} takes no input parameter")
     module = TsModule(path, tree.root_node, parser)
     body = fn.child_by_field_name("body")
-    scope = TsScope(module, _helpers(tree.root_node, fn))
+    scope = TsScope(module, _helpers(tree.root_node, fn), local=bound_names(fn))
 
     def visit(pattern: Node, annotation: Annotation) -> ReadVisitor:
         if pattern.type == "identifier":

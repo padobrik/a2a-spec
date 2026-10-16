@@ -47,6 +47,29 @@ class TsScope:
     helpers: dict[str, Node]
     depth: int = 0
     active: frozenset[str] = frozenset()
+    # Names the visited function binds itself; a call to one is not a file-level helper.
+    local: frozenset[str] = frozenset()
+
+
+def bound_names(fn: Node) -> frozenset[str]:
+    """Parameters, declared variables and nested function names inside ``fn``."""
+    names: set[str] = set()
+    stack = [fn]
+    while stack:
+        node = stack.pop()
+        target = None
+        if node.type in ("required_parameter", "optional_parameter"):
+            target = node.child_by_field_name("pattern")
+        elif node.type in ("variable_declarator", "function_declaration"):
+            target = node.child_by_field_name("name")
+        elif node.type == "arrow_function":
+            target = node.child_by_field_name("parameter")
+        elif node.type == "formal_parameters":
+            names.update(node_text(c) for c in node.named_children if c.type == "identifier")
+        if target is not None and target.type == "identifier":
+            names.add(node_text(target))
+        stack.extend(node.named_children)
+    return frozenset(names)
 
 
 class ReadVisitor:
@@ -287,6 +310,8 @@ class ReadVisitor:
             return None
         if callee.type == "identifier":
             name = node_text(callee)
+            if name in scope.local:
+                return None  # a parameter or local name, not the file's function
         elif (
             callee.type == "member_expression"
             and node_text(callee.child_by_field_name("object") or callee) == "this"
@@ -297,7 +322,9 @@ class ReadVisitor:
         helper = scope.helpers.get(name)
         if helper is None or name in scope.active:
             return None
-        inner = replace(scope, depth=scope.depth + 1, active=scope.active | {name})
+        inner = replace(
+            scope, depth=scope.depth + 1, active=scope.active | {name}, local=bound_names(helper)
+        )
         body = helper.child_by_field_name("body")
         followed: set[int] = set()
         for arg, (pattern, type_node) in zip(args.named_children, parameters(helper), strict=False):
