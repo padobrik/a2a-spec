@@ -65,7 +65,7 @@ class Snapshot:
         if not isinstance(data, dict):
             raise SnapshotFormatError(source, "must be a JSON object")
         version = data.get("schema_version")
-        if version is None:
+        if "schema_version" not in data:
             logger.warning(
                 "Snapshot %s has no schema_version; read as version 1. "
                 "Record it again with 'handshake record' to add it.",
@@ -73,6 +73,8 @@ class Snapshot:
             )
         elif not isinstance(version, int) or isinstance(version, bool):
             raise SnapshotFormatError(source, "has a schema_version that is not an integer")
+        elif version < 1:
+            raise SnapshotFormatError(source, f"has schema_version {version}; versions start at 1")
         elif version > SCHEMA_VERSION:
             raise SnapshotFormatError(
                 source,
@@ -130,6 +132,11 @@ def read_snapshot(path: Path) -> Snapshot:
     except (OSError, UnicodeDecodeError) as e:
         raise SnapshotFormatError(str(path), f"cannot be read ({e})") from e
     return parse_snapshot(text, str(path))
+
+
+def _canonical(value: Any) -> str:
+    """JSON text of a value with sorted keys; keeps the difference between JSON types."""
+    return json.dumps(value, sort_keys=True, ensure_ascii=False)
 
 
 class SnapshotStore:
@@ -211,7 +218,10 @@ class SnapshotStore:
             old = json.loads(filepath.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError, json.JSONDecodeError):
             return False
-        return isinstance(old, dict) and all(old.get(k) == data[k] for k in _CONTENT_FIELDS)
+        if not isinstance(old, dict):
+            return False
+        # Compare as JSON so that 1, 1.0 and true count as different values.
+        return all(_canonical(old.get(k)) == _canonical(data[k]) for k in _CONTENT_FIELDS)
 
     def load(self, agent_id: str, scenario: str) -> Snapshot:
         """Load the latest snapshot for an agent + scenario.
