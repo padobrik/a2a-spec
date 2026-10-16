@@ -8,10 +8,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from agent_handshake.exceptions import SnapshotNotFoundError
+from agent_handshake.exceptions import SnapshotFormatError, SnapshotNotFoundError
 from agent_handshake.snapshot.fingerprint import Fingerprint
 
 logger = logging.getLogger(__name__)
+
+# Version of the snapshot file format. Files written before the field existed
+# are read as version 1.
+SCHEMA_VERSION = 1
+
+# Fields that decide whether a snapshot file on disk is already up to date.
+_CONTENT_FIELDS = ("schema_version", "agent_id", "scenario", "input", "output")
 
 
 class Snapshot:
@@ -36,6 +43,7 @@ class Snapshot:
     def to_dict(self) -> dict[str, Any]:
         """Serialize the snapshot to a dict."""
         return {
+            "schema_version": SCHEMA_VERSION,
             "fingerprint": self.fingerprint.key,
             "agent_id": self.fingerprint.agent_id,
             "scenario": self.scenario,
@@ -46,8 +54,42 @@ class Snapshot:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> Snapshot:
-        """Deserialize a snapshot from a dict."""
+    def from_dict(cls, data: Any, source: str = "data") -> Snapshot:
+        """Deserialize a snapshot from a dict.
+
+        ``source`` names the file in error messages.
+
+        Raises:
+            SnapshotFormatError: If the data is not a snapshot of a supported version.
+        """
+        if not isinstance(data, dict):
+            raise SnapshotFormatError(source, "must be a JSON object")
+        version = data.get("schema_version")
+        if version is None:
+            logger.warning(
+                "Snapshot %s has no schema_version; read as version 1. "
+                "Record it again with 'handshake record' to add it.",
+                source,
+            )
+        elif not isinstance(version, int) or isinstance(version, bool):
+            raise SnapshotFormatError(source, "has a schema_version that is not an integer")
+        elif version > SCHEMA_VERSION:
+            raise SnapshotFormatError(
+                source,
+                f"has schema_version {version}, but this agent-handshake reads "
+                f"version {SCHEMA_VERSION}",
+                fix="Upgrade agent-handshake.",
+            )
+        for key, kind, name in (
+            ("agent_id", str, "a string"),
+            ("scenario", str, "a string"),
+            ("input", dict, "an object"),
+            ("output", dict, "an object"),
+        ):
+            if key not in data:
+                raise SnapshotFormatError(source, f"has no '{key}' field")
+            if not isinstance(data[key], kind):
+                raise SnapshotFormatError(source, f"has a '{key}' field that is not {name}")
         fp = Fingerprint(
             agent_id=data["agent_id"],
             input_hash=data.get("fingerprint", ""),
@@ -58,8 +100,36 @@ class Snapshot:
             input_data=data["input"],
             output_data=data["output"],
             timestamp=data.get("timestamp"),
-            metadata=data.get("metadata", {}),
+            metadata=data.get("metadata") or {},
         )
+
+
+def parse_snapshot(text: str, source: str) -> Snapshot:
+    """Parse snapshot JSON; ``source`` names the file in error messages.
+
+    Raises:
+        SnapshotFormatError: If the text is not valid snapshot JSON.
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise SnapshotFormatError(
+            source, f"is not valid JSON ({e.msg} at line {e.lineno}, column {e.colno})"
+        ) from e
+    return Snapshot.from_dict(data, source)
+
+
+def read_snapshot(path: Path) -> Snapshot:
+    """Read a snapshot file.
+
+    Raises:
+        SnapshotFormatError: If the file cannot be read or is not a valid snapshot.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        raise SnapshotFormatError(str(path), f"cannot be read ({e})") from e
+    return parse_snapshot(text, str(path))
 
 
 class SnapshotStore:
@@ -120,13 +190,28 @@ class SnapshotStore:
         filename = f"{snapshot.scenario}_{snapshot.fingerprint.key}.json"
         filepath = agent_dir / filename
 
-        filepath.write_text(
-            json.dumps(snapshot.to_dict(), indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        data = snapshot.to_dict()
+        if self._unchanged(filepath, data):
+            logger.info("Snapshot %s is unchanged; the file is kept as it is", filepath)
+            return filepath
+        filepath.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
         logger.debug("Saved snapshot to %s", filepath)
         logger.info("Saved snapshot for %s/%s", snapshot.fingerprint.agent_id, snapshot.scenario)
         return filepath
+
+    @staticmethod
+    def _unchanged(filepath: Path, data: dict[str, Any]) -> bool:
+        """True when the file already holds the same input, output and format version.
+
+        Then a new record keeps the file, so git shows no change.
+        """
+        if not filepath.exists():
+            return False
+        try:
+            old = json.loads(filepath.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return False
+        return isinstance(old, dict) and all(old.get(k) == data[k] for k in _CONTENT_FIELDS)
 
     def load(self, agent_id: str, scenario: str) -> Snapshot:
         """Load the latest snapshot for an agent + scenario.
@@ -140,6 +225,7 @@ class SnapshotStore:
 
         Raises:
             SnapshotNotFoundError: If no matching snapshot exists.
+            SnapshotFormatError: If the file is not a valid snapshot.
             ValueError: If agent_id or scenario contains unsafe characters.
         """
         self._validate_name(agent_id, "agent_id")
@@ -157,8 +243,7 @@ class SnapshotStore:
 
         # Use the most recent file if multiple exist
         latest = max(matches, key=lambda p: p.stat().st_mtime)
-        data = json.loads(latest.read_text(encoding="utf-8"))
-        return Snapshot.from_dict(data)
+        return read_snapshot(latest)
 
     def load_all(self, agent_id: str) -> list[Snapshot]:
         """Load all snapshots for an agent."""
@@ -168,8 +253,7 @@ class SnapshotStore:
 
         snapshots: list[Snapshot] = []
         for filepath in sorted(agent_dir.glob("*.json")):
-            data = json.loads(filepath.read_text(encoding="utf-8"))
-            snapshots.append(Snapshot.from_dict(data))
+            snapshots.append(read_snapshot(filepath))
         return snapshots
 
     def exists(self, agent_id: str, scenario: str) -> bool:

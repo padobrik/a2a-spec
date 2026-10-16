@@ -69,7 +69,7 @@ def main_callback(
             format="%(asctime)s %(name)s %(levelname)s %(message)s",
         )
     else:
-        logging.basicConfig(level=logging.WARNING)
+        logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
 
 def main() -> None:
