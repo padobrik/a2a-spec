@@ -173,9 +173,12 @@ def run(
 
 
 def report(scores: list[ProjectScore], verbose: bool) -> str:
-    lines = [f"{'project':<40} {'found':>6} {'total':>6} {'false':>6}"]
+    width = max([len("project"), *(len(p.name) for p in scores)])
+    lines = [f"{'project':<{width}} {'found':>6} {'total':>6} {'false':>6}"]
     for project in scores:
-        lines.append(f"{project.name:<40} {project.hits:>6} {project.total:>6} {project.false:>6}")
+        lines.append(
+            f"{project.name:<{width}} {project.hits:>6} {project.total:>6} {project.false:>6}"
+        )
         if verbose:
             for case in project.cases:
                 note = f"  ({case.error})" if case.error else ""
@@ -188,7 +191,7 @@ def report(scores: list[ProjectScore], verbose: bool) -> str:
     total = sum(p.total for p in scores)
     false = sum(p.false for p in scores)
     share = f"{100 * hits / total:.0f}%" if total else "-"
-    lines.append(f"{'total':<40} {hits:>6} {total:>6} {false:>6}   found {share}")
+    lines.append(f"{'total':<{width}} {hits:>6} {total:>6} {false:>6}   found {share}")
     return "\n".join(lines)
 
 
