@@ -24,10 +24,6 @@ A **diff** compares two agent outputs (typically old baseline vs. new recording)
 - Semantic drift (meaning has shifted beyond threshold)
 - Severity assessment (low/medium/high/critical)
 
-## Pipeline
-
-A **pipeline** is a DAG of agents where data flows from one to the next. agent-handshake can test entire pipelines, validating each agent's output against its spec and checking end-to-end invariants.
-
 ## Adapter
 
 An **adapter** wraps your agent so agent-handshake can call it. Adapters exist for plain async functions, HTTP endpoints, and A2A agents. Agents built with a framework are called from an async function.

@@ -88,20 +88,6 @@ Print the bundled agent skill, or install it as `DIR/agent-handshake/SKILL.md`.
 handshake skill [--dir DIR] [--force]
 ```
 
-## `handshake pipeline test`
-
-Test a pipeline DAG definition, validating each agent against specs.
-
-```bash
-handshake pipeline test PIPELINE_FILE [--scenario NAME] [--mode replay|live] [--no-semantic] [--config PATH]
-```
-
-`--mode replay` uses each agent's snapshot for the test case name; `--mode
-live` calls the agents in `ADAPTERS`. Each step is checked against the
-structural, policy and semantic rules of the specs where that agent is the
-producer. Semantic rules compare with the input the agent got in the
-pipeline. `--no-semantic` skips them, as in `handshake test`.
-
 ## Global Options
 
 - `--version, -v` — Show version and exit

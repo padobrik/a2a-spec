@@ -1,6 +1,6 @@
-# Customer Support Pipeline Example
+# Customer Support Example
 
-This example demonstrates a complete agent-handshake workflow with a two-agent customer support pipeline:
+This example demonstrates a complete agent-handshake workflow with two customer support agents:
 
 1. **Triage Agent** — Classifies incoming support tickets by category and priority
 2. **Resolution Agent** — Takes the triage output and generates a resolution

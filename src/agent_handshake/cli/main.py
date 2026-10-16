@@ -12,7 +12,6 @@ from rich.console import Console
 from agent_handshake.cli.diff_cmd import diff_command
 from agent_handshake.cli.infer_cmd import infer_command
 from agent_handshake.cli.init_cmd import init_command
-from agent_handshake.cli.pipeline_cmd import pipeline_app
 from agent_handshake.cli.record_cmd import record_command
 from agent_handshake.cli.skill_cmd import skill_command
 from agent_handshake.cli.test_cmd import test_command
@@ -34,7 +33,6 @@ app.command("test")(test_command)
 app.command("diff")(diff_command)
 app.command("infer")(infer_command)
 app.command("skill")(skill_command)
-app.add_typer(pipeline_app, name="pipeline")
 
 
 def version_callback(value: bool) -> None:
