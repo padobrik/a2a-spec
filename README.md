@@ -195,9 +195,11 @@ handshake diff
 
 ```
   triage-agent / double_charge:
-    FAIL priority: Field 'priority' was removed
-    LOW  urgency: Field 'urgency' was added
+    FAIL priority: Field 'priority' was removed; resolution-agent reads it at agents/resolution.py:2
+    INFO urgency: Field 'urgency' was added; no consumer spec reads it
 ```
+
+With a spec for the producer, `diff` shows which consumer reads a removed field and on which line. Changes to fields that no spec names are `INFO` and do not fail.
 
 **4. Run the tests.**
 
