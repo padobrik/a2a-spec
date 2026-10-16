@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from agent_handshake.infer.consumer import FieldRead
+from agent_handshake.infer.shapes import Annotation, undeclared
 from agent_handshake.infer.ts_syntax import (
     is_optional,
     node_key,
@@ -34,8 +35,14 @@ _ITEM_COPIES = frozenset({"slice", "filter", "concat", "toSorted", "toReversed",
 class ReadVisitor:
     """Records key chains rooted at the input parameter or at a local alias of it."""
 
-    def __init__(self, param: str | None) -> None:
+    def __init__(self, param: str | None, annotation: Annotation | None = None) -> None:
         self.param = param
+        annotation = annotation or Annotation()
+        # A list parameter holds one output per item; a framework result holds
+        # the output in one property (``runResult.finalOutput``).
+        self.items = annotation.items
+        self.wrapper = annotation.wrapper
+        self.shape = annotation.shape
         self.aliases: dict[str, Chain] = {}
         self.reads: list[FieldRead] = []
         self.warnings: list[str] = []
@@ -53,6 +60,11 @@ class ReadVisitor:
         for name, chain, line in self._whole_alias_uses:
             if name in self._mapping_aliases:
                 self._warn_at(line, chain, "is used as a whole")
+        self.warnings += undeclared(self.reads, self.shape)
+
+    def _is_param(self, node: Node) -> bool:
+        node = _unwrap(node)
+        return node.type == "identifier" and node_text(node) == self.param
 
     # -- resolving expressions to key chains ---------------------------------
 
@@ -63,11 +75,18 @@ class ReadVisitor:
         if node.type == "identifier":
             name = node_text(node)
             if name == self.param:
-                return (), ()
+                # A list of outputs or a framework result is not the output itself.
+                return None if self.items or self.wrapper else ((), ())
             return self.aliases.get(name)
         if node.type in ("member_expression", "subscript_expression"):
             key = node_key(node)
             obj = node.child_by_field_name("object")
+            if obj is not None and self._is_param(obj):
+                index = node.child_by_field_name("index")
+                if self.items and index is not None and index.type == "number":
+                    return (), ()  # an item of a list of outputs
+                if self.wrapper and key == self.wrapper:
+                    return (), ()
             if key is None or obj is None:
                 return None
             base = self._base(obj)
@@ -85,8 +104,13 @@ class ReadVisitor:
         return self.chain(node)
 
     def _list(self, node: Node) -> Chain | None:
-        """The input list an expression refers to, directly or as a copy of it."""
+        """The input list an expression refers to, directly or as a copy of it.
+
+        The parameter itself, when it is a list of outputs, is the empty chain.
+        """
         inner = _unwrap(node)
+        if self.items and self._is_param(inner):
+            return (), ()
         if inner.type == "identifier" and node_text(inner) in self._item_lists:
             return self._item_lists[node_text(inner)]
         chain = self.chain(inner)
@@ -118,7 +142,10 @@ class ReadVisitor:
             return
         name = node_text(target)
         self.aliases.pop(name, None)
-        if listed is not None:
+        if listed is not None and not listed[0]:
+            self.aliases[name] = listed  # each item is one output
+            self._untracked.pop(name, None)
+        elif listed is not None:
             self._untracked[name] = f"is an item of '{'.'.join(listed[0])}'"
         else:
             self._untracked.pop(name, None)

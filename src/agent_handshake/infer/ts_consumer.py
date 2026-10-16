@@ -13,13 +13,16 @@ fallback: ``data.customer.tier`` throws when ``customer`` is missing, while
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from agent_handshake.exceptions import ConfigError
 from agent_handshake.infer.consumer import ConsumerReads
+from agent_handshake.infer.shapes import Annotation, choose_param, no_matching_param
 from agent_handshake.infer.ts_reads import ReadVisitor
 from agent_handshake.infer.ts_syntax import first_error, node_line, node_text
+from agent_handshake.infer.ts_types import TsModule
 
 if TYPE_CHECKING:
     from tree_sitter import Node
@@ -30,8 +33,13 @@ TSX_SUFFIXES = frozenset({".tsx", ".js", ".jsx", ".mjs", ".cjs"})
 _FUNCTIONS = frozenset({"arrow_function", "function_expression", "function"})
 
 
-def analyze_ts_consumer(path: Path, function: str) -> ConsumerReads:
+def analyze_ts_consumer(
+    path: Path, function: str, keys: Collection[str] | None = None
+) -> ConsumerReads:
     """Find the input fields a TypeScript or JavaScript function reads.
+
+    The parameter that holds the producer's output is chosen by its type, as
+    for Python consumers (see ``analyze_consumer``).
 
     Raises:
         ConfigError: If the extra is missing, or the file or function cannot be
@@ -65,19 +73,30 @@ def analyze_ts_consumer(path: Path, function: str) -> ConsumerReads:
         raise ConfigError(f"Function '{function}' is defined more than once in {path} ({lines})")
     fn = matches[0]
 
-    pattern = _first_parameter(fn)
-    if pattern is None:
+    params = _parameters(fn)
+    if not params:
         raise ConfigError(f"Function '{function}' in {path} takes no input parameter")
-
-    if pattern.type == "identifier":
-        visitor = ReadVisitor(node_text(pattern))
-    else:
-        visitor = ReadVisitor(None)
-        visitor.destructure(pattern, ((), ()))
+    module = TsModule(path, tree.root_node, parser)
     body = fn.child_by_field_name("body")
-    if body is not None:
-        visitor.visit(body)
-    visitor.finish()
+
+    def visit(pattern: Node, annotation: Annotation) -> ReadVisitor:
+        if pattern.type == "identifier":
+            visitor = ReadVisitor(node_text(pattern), annotation)
+        else:
+            visitor = ReadVisitor(None)
+            visitor.destructure(pattern, ((), ()))
+        if body is not None:
+            visitor.visit(body)
+        visitor.finish()
+        return visitor
+
+    described = [(p, module.annotation(t)) for p, t in params]
+    chosen = choose_param(described, keys, lambda p, a: {r.path[0] for r in visit(p, a).reads})
+    if chosen is None:
+        names = [node_text(p) for p, _ in described]
+        raise ConfigError(no_matching_param(function, path, names, keys))
+    pattern, annotation = chosen
+    visitor = visit(pattern, annotation)
     return ConsumerReads(
         # POSIX separators, so a spec inferred on Windows checks on Linux and back.
         source=f"{path.as_posix()}:{function}",
@@ -112,14 +131,15 @@ def _functions(root: Node) -> list[tuple[str, Node]]:
     return sorted(found, key=lambda item: item[1].start_byte)
 
 
-def _first_parameter(fn: Node) -> Node | None:
-    """The pattern of the first parameter, skipping a TypeScript ``this`` parameter."""
+def _parameters(fn: Node) -> list[tuple[Node, Node | None]]:
+    """Each parameter's pattern and type, skipping a TypeScript ``this`` parameter."""
     single = fn.child_by_field_name("parameter")  # x => ...
     if single is not None:
-        return single
+        return [(single, None)]
+    found: list[tuple[Node, Node | None]] = []
     params = fn.child_by_field_name("parameters")
     for param in params.named_children if params is not None else []:
         pattern = param.child_by_field_name("pattern") if "parameter" in param.type else param
         if pattern is not None and not (pattern.type == "this" or node_text(pattern) == "this"):
-            return pattern
-    return None
+            found.append((pattern, param.child_by_field_name("type")))
+    return found

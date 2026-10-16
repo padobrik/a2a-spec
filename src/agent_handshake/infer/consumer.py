@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import logging
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -58,7 +59,9 @@ def parse_source_ref(ref: str) -> tuple[Path, str]:
     return Path(path), function
 
 
-def analyze_consumer(path: str | Path, function: str) -> ConsumerReads:
+def analyze_consumer(
+    path: str | Path, function: str, keys: Collection[str] | None = None
+) -> ConsumerReads:
     """Find the input fields a consumer function reads.
 
     The function's first parameter (after ``self``/``cls``) is treated as
@@ -77,7 +80,7 @@ def analyze_consumer(path: str | Path, function: str) -> ConsumerReads:
     if path.suffix in TS_LIKE_SUFFIXES:
         from agent_handshake.infer.ts_consumer import analyze_ts_consumer
 
-        return analyze_ts_consumer(path, function)
+        return analyze_ts_consumer(path, function, keys)
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     except SyntaxError as e:
