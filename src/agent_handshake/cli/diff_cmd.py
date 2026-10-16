@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from agent_handshake.cli.exit_codes import EXIT_FAILED, EXIT_INPUT
 from agent_handshake.config.loader import load_config
 from agent_handshake.diff.engine import DiffEngine, DriftSeverity
 from agent_handshake.exceptions import HandshakeError, SnapshotFormatError
@@ -47,7 +48,7 @@ def diff_command(
         config = load_config(config_path)
     except HandshakeError as e:
         console.print(f"[red]Config error: {e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     store = SnapshotStore(config.storage.path)
 
@@ -56,14 +57,14 @@ def diff_command(
     agents = [agent] if agent else store.list_agents()
 
     if not agents:
-        console.print("[yellow]No snapshots found. Run 'handshake record' first.[/yellow]")
-        raise typer.Exit(0)
+        console.print("[red]No snapshots found. Run 'handshake record' first.[/red]")
+        raise typer.Exit(EXIT_INPUT)
 
     try:
         baseline = GitBaseline(config.storage.path, base)
     except HandshakeError as e:
         console.print(f"[red]{e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     console.print("\n[bold]\\[diff][/bold] Diff Report\n")
 
@@ -105,7 +106,7 @@ def diff_command(
                     high_severity += 1
     except SnapshotFormatError as e:
         console.print(f"[red]{e}[/red]")
-        raise typer.Exit(2) from None
+        raise typer.Exit(EXIT_INPUT) from None
 
     console.print()
     if total_diffs == 0:
@@ -114,4 +115,4 @@ def diff_command(
         console.print(f"{total_diffs} differences | [red]{high_severity} high/critical[/red]")
 
     if high_severity > 0:
-        raise typer.Exit(2)
+        raise typer.Exit(EXIT_FAILED)

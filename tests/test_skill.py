@@ -93,7 +93,7 @@ class TestSkillCommand:
         target.parent.mkdir()
         target.write_text("custom")
         result = runner.invoke(app, ["skill", "--dir", str(tmp_path)])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert target.read_text() == "custom"
         result = runner.invoke(app, ["skill", "--dir", str(tmp_path), "--force"])
         assert result.exit_code == 0

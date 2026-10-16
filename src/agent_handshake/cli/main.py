@@ -10,6 +10,7 @@ import typer
 from rich.console import Console
 
 from agent_handshake.cli.diff_cmd import diff_command
+from agent_handshake.cli.exit_codes import EXIT_INPUT
 from agent_handshake.cli.infer_cmd import infer_command
 from agent_handshake.cli.init_cmd import init_command
 from agent_handshake.cli.record_cmd import record_command
@@ -88,11 +89,11 @@ def main() -> None:
         if "--debug" in sys.argv or "-d" in sys.argv:
             console.print("\n[dim]Traceback:[/dim]")
             traceback.print_exc()
-        sys.exit(1)
+        sys.exit(EXIT_INPUT)
     except SystemExit:
         raise
     except Exception as e:  # noqa: BLE001  # last resort: report any bug with its traceback
         console.print(f"\n[red]Unexpected error:[/red] {e}")
         console.print("[dim]This is a bug. Please report it with the traceback below.[/dim]\n")
         traceback.print_exc()
-        sys.exit(2)
+        sys.exit(EXIT_INPUT)

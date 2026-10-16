@@ -8,6 +8,8 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from agent_handshake.cli.exit_codes import EXIT_INPUT
+
 console = Console(stderr=True)
 
 SKILL_NAME = "agent-handshake"
@@ -40,7 +42,7 @@ def skill_command(
     target = Path(dir) / SKILL_NAME / "SKILL.md"
     if target.exists() and not force:
         console.print(f"[red]{target} already exists. Pass --force to overwrite.[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(EXIT_INPUT)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(text, encoding="utf-8")
     console.print(f"[green]Wrote {target}[/green]")

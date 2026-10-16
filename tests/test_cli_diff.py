@@ -25,7 +25,7 @@ class TestCliDiff:
             f'project_name: test\nstorage:\n  path: "{(tmp_path / "empty_snaps").as_posix()}"'
         )
         result = runner.invoke(app, ["diff", "--config", str(config)])
-        assert result.exit_code == 0
+        assert result.exit_code == 2
 
     def test_diff_invalid_config(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
@@ -92,7 +92,7 @@ class TestCliDiffGitBaseline:
         repo = _repo(tmp_path, monkeypatch)
         _write_snapshot(repo, "billing", {"summary": "duplicate charge"})
         result = runner.invoke(app, ["diff"])
-        assert result.exit_code == 2, result.output
+        assert result.exit_code == 1, result.output
         assert "triage-agent / billing" in result.output
         assert "category" in result.output
         assert "No differences detected" not in result.output
@@ -116,7 +116,7 @@ class TestCliDiffGitBaseline:
         (repo / "snapshots" / "triage-agent" / "billing_abc123.json").unlink()
         _write_snapshot(repo, "shipping", {"category": "shipping"})
         result = runner.invoke(app, ["diff"])
-        assert result.exit_code == 2, result.output
+        assert result.exit_code == 1, result.output
         assert "GONE triage-agent / billing_abc123.json: deleted since HEAD" in _flat(result.output)
 
     def test_base_revision(self, tmp_path, monkeypatch) -> None:
@@ -131,7 +131,7 @@ class TestCliDiffGitBaseline:
     def test_unknown_revision(self, tmp_path, monkeypatch) -> None:
         _repo(tmp_path, monkeypatch)
         result = runner.invoke(app, ["diff", "--base", "nope"])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "Unknown git revision 'nope'" in _flat(result.output)
 
     def test_not_a_git_repo(self, tmp_path, monkeypatch) -> None:
@@ -141,7 +141,7 @@ class TestCliDiffGitBaseline:
         _write_snapshot(tmp_path, "billing", {"category": "billing"})
         monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
         result = runner.invoke(app, ["diff"])
-        assert result.exit_code == 1
+        assert result.exit_code == 2
         assert "not in a git repository" in _flat(result.output)
 
     def test_added_field_does_not_fail(self, tmp_path, monkeypatch) -> None:
