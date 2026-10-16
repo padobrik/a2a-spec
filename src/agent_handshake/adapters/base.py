@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
+from agent_handshake.output import AgentOutput
+
 
 @dataclass
 class AgentMetadata:
@@ -22,7 +24,7 @@ class AgentMetadata:
 class AgentResponse:
     """Structured response from an agent call."""
 
-    output: dict[str, Any]
+    output: AgentOutput
     raw_text: str | None = None
     tool_calls: list[dict[str, Any]] | None = None
     token_usage: dict[str, int] | None = None
@@ -56,7 +58,7 @@ class AgentAdapter(ABC):
             input_data: Arbitrary dict passed to the agent.
 
         Returns:
-            AgentResponse with at minimum the output dict populated.
+            AgentResponse with at minimum the output (a dict or text) populated.
 
         Raises:
             AdapterError: If the agent call fails.

@@ -6,6 +6,7 @@ from typing import Any
 
 import jsonschema
 
+from agent_handshake.output import AgentOutput
 from agent_handshake.spec.schema import Spec, StructuralSpec
 
 
@@ -36,7 +37,7 @@ class ValidationResult:
         )
 
 
-def validate_structural(output: dict[str, Any], structural: StructuralSpec) -> ValidationResult:
+def validate_structural(output: AgentOutput, structural: StructuralSpec) -> ValidationResult:
     """Validate output against JSON Schema structural spec.
 
     Args:
@@ -47,6 +48,9 @@ def validate_structural(output: dict[str, Any], structural: StructuralSpec) -> V
         ValidationResult with any errors found.
     """
     result = ValidationResult()
+    if isinstance(output, str) and structural.type == "object":
+        result.add_error("[<root>] the output is text, but the spec expects an object")
+        return result
 
     # Build JSON Schema from StructuralSpec
     schema: dict[str, Any] = {
@@ -67,7 +71,7 @@ def validate_structural(output: dict[str, Any], structural: StructuralSpec) -> V
     return result
 
 
-def validate_output(output: dict[str, Any], spec: Spec) -> ValidationResult:
+def validate_output(output: AgentOutput, spec: Spec) -> ValidationResult:
     """Validate an agent output against a full spec.
 
     This runs structural validation. Policy rules are checked by

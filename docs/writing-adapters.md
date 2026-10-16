@@ -95,8 +95,13 @@ async def triage(data: dict) -> dict:
 adapter = FunctionAdapter(fn=triage, agent_id="triage-agent", version="1.0.0")
 ```
 
-The function must return a dict. If the framework returns a model object,
-convert it first, for example with `result.model_dump()`.
+The function must return a dict or a string. If the framework returns a model
+object, convert it first, for example with `result.model_dump()`.
+
+An agent that returns plain text is recorded with the text as `output`. Its
+spec can check the text with `structural: {type: string}` and `regex` policy
+rules. A spec that expects an object fails on a text snapshot with "the output
+is text, but the spec expects an object"; other specs still run.
 
 ## Custom Adapters
 

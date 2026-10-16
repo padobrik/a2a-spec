@@ -38,12 +38,19 @@ class TestFunctionAdapter:
         assert resp.latency_ms >= 0
 
     async def test_call_non_dict_raises(self) -> None:
-        async def bad_agent(data: dict) -> str:  # type: ignore
-            return "not a dict"
+        async def bad_agent(data: dict) -> list:  # type: ignore
+            return ["not a dict"]
 
         adapter = FunctionAdapter(fn=bad_agent, agent_id="test", version="1.0")
-        with pytest.raises(AdapterError, match="dict"):
+        with pytest.raises(AdapterError, match="a dict or a str, got list"):
             await adapter.call({})
+
+    async def test_call_returning_text(self) -> None:
+        async def text_agent(data: dict) -> str:
+            return "plain text"
+
+        adapter = FunctionAdapter(fn=text_agent, agent_id="test", version="1.0")
+        assert (await adapter.call({})).output == "plain text"
 
     async def test_call_exception_wrapped(self) -> None:
         async def failing_agent(data: dict) -> dict:

@@ -74,10 +74,10 @@ class FunctionAdapter(AgentAdapter):
 
         latency = (time.monotonic() - start) * 1000
 
-        if not isinstance(result, dict):
+        if not isinstance(result, dict | str):
             raise AdapterError(
                 self._agent_id,
-                f"Agent must return dict, got {type(result).__name__}",
+                f"Agent must return a dict or a str, got {type(result).__name__}",
             )
 
         return AgentResponse(output=result, latency_ms=latency)

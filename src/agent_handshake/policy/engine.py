@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from agent_handshake.exceptions import ConfigError
+from agent_handshake.output import AgentOutput
 from agent_handshake.policy.custom import load_custom_validator
 from agent_handshake.spec.schema import PolicyRule
 
@@ -49,7 +50,7 @@ class PolicyEngine:
 
     def evaluate(
         self,
-        output: dict[str, Any],
+        output: AgentOutput,
         input_data: dict[str, Any],
         rules: list[PolicyRule],
     ) -> list[PolicyResult]:
@@ -83,28 +84,30 @@ class PolicyEngine:
 
         return results
 
-    def _check_regex(self, output: dict[str, Any], rule: PolicyRule) -> PolicyResult:
+    def _check_regex(self, output: AgentOutput, rule: PolicyRule) -> PolicyResult:
         """Check that no output string matches forbidden patterns."""
         if not rule.patterns:
             return PolicyResult(rule_name=rule.rule, passed=True)
 
         compiled = [re.compile(p) for p in rule.patterns]
 
-        for key, value in self._flatten_strings(output):
+        texts = [("", output)] if isinstance(output, str) else self._flatten_strings(output)
+        for key, value in texts:
             for pattern in compiled:
                 match = pattern.search(value)
                 if match:
+                    where = f"field '{key}'" if key else "the text output"
                     return PolicyResult(
                         rule_name=rule.rule,
                         passed=False,
-                        detail=f"Pattern matched in field '{key}': '{match.group()}'",
+                        detail=f"Pattern matched in {where}: '{match.group()}'",
                     )
 
         return PolicyResult(rule_name=rule.rule, passed=True)
 
     def _check_custom(
         self,
-        output: dict[str, Any],
+        output: AgentOutput,
         input_data: dict[str, Any],
         rule: PolicyRule,
     ) -> PolicyResult:
