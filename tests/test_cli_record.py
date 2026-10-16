@@ -26,8 +26,8 @@ class TestCliRecord:
         (scenarios / "test.yaml").write_text("test_suite:\n  name: test\nscenarios: []")
         config = tmp_path / "handshake.yaml"
         config.write_text(
-            f'project_name: test\nscenarios_dir: "{scenarios}"\n'
-            f'storage:\n  path: "{tmp_path / "snaps"}"'
+            f'project_name: test\nscenarios_dir: "{scenarios.as_posix()}"\n'
+            f'storage:\n  path: "{(tmp_path / "snaps").as_posix()}"'
         )
         result = runner.invoke(app, ["record", "--config", str(config)])
         assert result.exit_code != 0

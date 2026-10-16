@@ -27,7 +27,7 @@ class TestCliTest:
         specs = tmp_path / "specs"
         specs.mkdir()
         config = tmp_path / "handshake.yaml"
-        config.write_text(f'project_name: test\nspecs_dir: "{specs}"')
+        config.write_text(f'project_name: test\nspecs_dir: "{specs.as_posix()}"')
         result = runner.invoke(app, ["test", "--config", str(config)])
         assert result.exit_code == 0
 
@@ -87,7 +87,8 @@ def _project(tmp_path, summary: str):
     )
     config = tmp_path / "handshake.yaml"
     config.write_text(
-        f'project_name: test\nspecs_dir: "{specs}"\nstorage:\n  path: "{tmp_path / "snapshots"}"'
+        f'project_name: test\nspecs_dir: "{specs.as_posix()}"\n'
+        f'storage:\n  path: "{(tmp_path / "snapshots").as_posix()}"'
     )
     return config
 
@@ -174,7 +175,8 @@ def _struct_project(tmp_path, outputs: dict[str, dict]):
         )
     config = tmp_path / "handshake.yaml"
     config.write_text(
-        f'project_name: demo\nspecs_dir: "{specs}"\nstorage:\n  path: "{tmp_path / "snapshots"}"\n'
+        f'project_name: demo\nspecs_dir: "{specs.as_posix()}"\n'
+        f'storage:\n  path: "{(tmp_path / "snapshots").as_posix()}"\n'
     )
     return config
 
@@ -321,7 +323,7 @@ class TestCliTestExpectations:
             f"      triage-agent: {{category: {expected}}}\n"
         )
         config = tmp_path / "handshake.yaml"
-        config.write_text(config.read_text() + f'scenarios_dir: "{d}"\n')
+        config.write_text(config.read_text() + f'scenarios_dir: "{d.as_posix()}"\n')
 
     def test_replay_expectation_mismatch_fails(self, tmp_path) -> None:
         config = _struct_project(tmp_path, {"billing": {"category": "general"}})
