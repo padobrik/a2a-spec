@@ -17,7 +17,7 @@ import pytest
 
 from agent_handshake.config.loader import load_config
 from agent_handshake.config.settings import HandshakeConfig
-from agent_handshake.exceptions import ConfigError
+from agent_handshake.exceptions import ConfigError, SnapshotFormatError
 from agent_handshake.infer.check import check_inferred_spec
 from agent_handshake.project import load_scenarios
 from agent_handshake.snapshot.store import SnapshotStore
@@ -126,7 +126,8 @@ class SnapshotItem(pytest.Item):
             raise ContractViolationError(result)
 
     def repr_failure(self, excinfo: pytest.ExceptionInfo[BaseException], style: Any = None) -> str:
-        if isinstance(excinfo.value, ContractViolationError):
+        # A broken snapshot file is reported by its message, not a traceback.
+        if isinstance(excinfo.value, ContractViolationError | SnapshotFormatError):
             return str(excinfo.value)
         return str(super().repr_failure(excinfo, style=style))
 

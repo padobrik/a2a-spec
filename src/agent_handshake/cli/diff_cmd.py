@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import typer
@@ -10,10 +9,10 @@ from rich.console import Console
 
 from agent_handshake.config.loader import load_config
 from agent_handshake.diff.engine import DiffEngine, DriftSeverity
-from agent_handshake.exceptions import HandshakeError
+from agent_handshake.exceptions import HandshakeError, SnapshotFormatError
 from agent_handshake.reporting.console import print_diff_results
 from agent_handshake.snapshot.baseline import GitBaseline
-from agent_handshake.snapshot.store import Snapshot, SnapshotStore
+from agent_handshake.snapshot.store import SnapshotStore, read_snapshot
 
 console = Console()
 
@@ -71,34 +70,42 @@ def diff_command(
     total_diffs = 0
     high_severity = 0
 
-    for agent_id in agents:
-        agent_dir = Path(config.storage.path) / agent_id
-        current = sorted(agent_dir.glob("*.json")) if agent_dir.exists() else []
+    try:
+        for agent_id in agents:
+            agent_dir = Path(config.storage.path) / agent_id
+            current = sorted(agent_dir.glob("*.json")) if agent_dir.exists() else []
 
-        for path in current:
-            new = Snapshot.from_dict(json.loads(path.read_text(encoding="utf-8")))
-            old = baseline.load(path)
-            if old is None:
-                console.print(f"  [yellow]NEW [/yellow] {agent_id} / {new.scenario}: not in {base}")
-                total_diffs += 1
-                continue
-            if old.output_data == new.output_data:
-                continue
+            for path in current:
+                new = read_snapshot(path)
+                old = baseline.load(path)
+                if old is None:
+                    console.print(
+                        f"  [yellow]NEW [/yellow] {agent_id} / {new.scenario}: not in {base}"
+                    )
+                    total_diffs += 1
+                    continue
+                if old.output_data == new.output_data:
+                    continue
 
-            results = engine.diff(old.output_data, new.output_data)
-            print_diff_results(agent_id, new.scenario, results)
+                results = engine.diff(old.output_data, new.output_data)
+                print_diff_results(agent_id, new.scenario, results)
 
-            total_diffs += len(results)
-            high_severity += sum(
-                1 for r in results if r.severity in (DriftSeverity.HIGH, DriftSeverity.CRITICAL)
-            )
+                total_diffs += len(results)
+                high_severity += sum(
+                    1 for r in results if r.severity in (DriftSeverity.HIGH, DriftSeverity.CRITICAL)
+                )
 
-        present = {p.resolve() for p in current}
-        for path in baseline.files(agent_dir):
-            if path.resolve() not in present:
-                console.print(f"  [red]GONE[/red] {agent_id} / {path.name}: deleted since {base}")
-                total_diffs += 1
-                high_severity += 1
+            present = {p.resolve() for p in current}
+            for path in baseline.files(agent_dir):
+                if path.resolve() not in present:
+                    console.print(
+                        f"  [red]GONE[/red] {agent_id} / {path.name}: deleted since {base}"
+                    )
+                    total_diffs += 1
+                    high_severity += 1
+    except SnapshotFormatError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(2) from None
 
     console.print()
     if total_diffs == 0:

@@ -175,3 +175,12 @@ class TestPytestPlugin:
         result.stdout.fnmatch_lines(
             ["*expectation: expected 'category' = 'shipping', got 'billing'*"]
         )
+
+
+def test_broken_snapshot_fails_with_its_path(project: pytest.Pytester) -> None:
+    broken = project.path / "handshake" / "snapshots" / "triage-agent" / "billing_abc123.json"
+    broken.write_text("{not json")
+    result = project.runpytest("--handshake", "handshake/specs")
+    result.assert_outcomes(failed=1)
+    result.stdout.fnmatch_lines(["*Snapshot *billing_abc123.json is not valid JSON*"])
+    result.stdout.no_fnmatch_line("*Traceback*")
