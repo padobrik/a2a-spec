@@ -30,4 +30,4 @@ A **pipeline** is a DAG of agents where data flows from one to the next. agent-h
 
 ## Adapter
 
-An **adapter** wraps your agent so agent-handshake can call it. Adapters exist for plain async functions, HTTP endpoints, and LangChain runnables.
+An **adapter** wraps your agent so agent-handshake can call it. Adapters exist for plain async functions, HTTP endpoints, and A2A agents. Agents built with a framework are called from an async function.

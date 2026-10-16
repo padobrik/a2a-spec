@@ -9,7 +9,7 @@ src/agent_handshake/
 ├── snapshot/     # Record and replay engine
 ├── diff/         # Structural + semantic comparison
 ├── pipeline/     # DAG builder and executor
-├── adapters/     # Agent wrappers (function, HTTP, LangChain)
+├── adapters/     # Agent wrappers (function, HTTP, A2A)
 ├── policy/       # Policy enforcement engine
 ├── semantic/     # Embedding model interface
 ├── reporting/    # Console, Markdown, JUnit output

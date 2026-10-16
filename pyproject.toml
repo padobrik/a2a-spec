@@ -40,9 +40,6 @@ semantic = [
     "sentence-transformers>=3.0,<6.0",
     "numpy>=1.26,<3.0",
 ]
-langchain = [
-    "langchain-core>=0.2,<2.0",
-]
 typescript = [
     "tree-sitter>=0.23,<1.0",
     "tree-sitter-typescript>=0.23,<1.0",
@@ -59,7 +56,7 @@ dev = [
     "a2a-sdk[http-server]>=1.0,<2.0",
 ]
 all = [
-    "agent-handshake[semantic,langchain,typescript,dev]",
+    "agent-handshake[semantic,typescript,dev]",
 ]
 
 [project.scripts]
@@ -127,6 +124,5 @@ warn_unused_configs = true
 module = [
     "sentence_transformers",
     "numpy",
-    "langchain_core.*",
 ]
 ignore_missing_imports = true
