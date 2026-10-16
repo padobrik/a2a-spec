@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "agent_id": "spam_detection_agent",
+  "scenario": "uncertain",
+  "input": {
+    "messages": [
+      {
+        "role": "user",
+        "contents": [
+          "Subject: Action Required: Verify Your Account\n\nDear Valued Customer,\n\nWe have detected unusual activity on your account and need to verify your identity to ensure your security.\n\nTo maintain access to your account, please login to your account and complete the verification process.\n\nAccount Details:\n- User: johndoe@contoso.com\n- Last Login: 08/15/2025\n- Location: Seattle, WA\n- Device: Mobile\n\nThis is an automated security measure. If you believe this email was sent in error, please contact our support team immediately.\n\nBest regards,\nSecurity Team\nCustomer Service Department"
+        ]
+      }
+    ],
+    "should_respond": true
+  },
+  "output": {
+    "executor_id": "spam_detection_agent",
+    "agent_response": {
+      "text": "{\"spam_decision\": \"Uncertain\", \"reason\": \"Account verification notice with no link; it could be a real security alert or phishing.\"}"
+    },
+    "full_conversation": [
+      {
+        "role": "user",
+        "contents": [
+          "Subject: Action Required: Verify Your Account\n\nDear Valued Customer,\n\nWe have detected unusual activity on your account and need to verify your identity to ensure your security.\n\nTo maintain access to your account, please login to your account and complete the verification process.\n\nAccount Details:\n- User: johndoe@contoso.com\n- Last Login: 08/15/2025\n- Location: Seattle, WA\n- Device: Mobile\n\nThis is an automated security measure. If you believe this email was sent in error, please contact our support team immediately.\n\nBest regards,\nSecurity Team\nCustomer Service Department"
+        ]
+      },
+      {
+        "role": "assistant",
+        "contents": [
+          "{\"spam_decision\": \"Uncertain\", \"reason\": \"Account verification notice with no link; it could be a real security alert or phishing.\"}"
+        ]
+      }
+    ]
+  }
+}

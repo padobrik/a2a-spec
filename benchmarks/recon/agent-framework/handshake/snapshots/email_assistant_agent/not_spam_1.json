@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "agent_id": "email_assistant_agent",
+  "scenario": "not_spam",
+  "input": {
+    "messages": [
+      {
+        "role": "user",
+        "contents": [
+          "Subject: Team Meeting Follow-up - Action Items\n\nHi Sarah,\n\nI wanted to follow up on our team meeting this morning and share the action items we discussed:\n\n1. Update the project timeline by Friday\n2. Schedule client presentation for next week\n3. Review the budget allocation for Q4\n\nPlease let me know if you have any questions or if I missed anything from our discussion.\n\nBest regards,\nAlex Johnson\nProject Manager\nTech Solutions Inc.\nalex.johnson@techsolutions.com\n(555) 123-4567"
+        ]
+      }
+    ],
+    "should_respond": true
+  },
+  "output": {
+    "executor_id": "email_assistant_agent",
+    "agent_response": {
+      "text": "{\"response\": \"Hi Alex, thanks for the summary. I will update the timeline by Friday and send times for the client presentation. Best, Sarah\"}"
+    },
+    "full_conversation": [
+      {
+        "role": "user",
+        "contents": [
+          "Subject: Team Meeting Follow-up - Action Items\n\nHi Sarah,\n\nI wanted to follow up on our team meeting this morning and share the action items we discussed:\n\n1. Update the project timeline by Friday\n2. Schedule client presentation for next week\n3. Review the budget allocation for Q4\n\nPlease let me know if you have any questions or if I missed anything from our discussion.\n\nBest regards,\nAlex Johnson\nProject Manager\nTech Solutions Inc.\nalex.johnson@techsolutions.com\n(555) 123-4567"
+        ]
+      },
+      {
+        "role": "assistant",
+        "contents": [
+          "{\"response\": \"Hi Alex, thanks for the summary. I will update the timeline by Friday and send times for the client presentation. Best, Sarah\"}"
+        ]
+      }
+    ]
+  }
+}
