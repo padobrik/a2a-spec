@@ -1,4 +1,4 @@
-"""a2aspec record — record live agent outputs as snapshots."""
+"""handshake record — record live agent outputs as snapshots."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from a2a_spec.config.loader import load_config
-from a2a_spec.exceptions import A2ASpecError
-from a2a_spec.project import load_adapters, load_scenarios
-from a2a_spec.snapshot.recorder import Recorder
-from a2a_spec.snapshot.store import SnapshotStore
+from agent_handshake.config.loader import load_config
+from agent_handshake.exceptions import HandshakeError
+from agent_handshake.project import load_adapters, load_scenarios
+from agent_handshake.snapshot.recorder import Recorder
+from agent_handshake.snapshot.store import SnapshotStore
 
 console = Console()
 
@@ -53,14 +53,14 @@ def record_command(
     """
     try:
         config = load_config(config_path)
-    except A2ASpecError as e:
+    except HandshakeError as e:
         console.print(f"[red]Config error: {e}[/red]")
         raise typer.Exit(1) from None
 
     try:
         scenarios = load_scenarios(config, suite)
-    except A2ASpecError as e:
-        console.print(f"[red]{e}[/red]\nRun 'a2aspec init' first.")
+    except HandshakeError as e:
+        console.print(f"[red]{e}[/red]\nRun 'handshake init' first.")
         raise typer.Exit(1) from None
 
     console.print("\n[bold]\\[record][/bold] Recording snapshots...\n")
@@ -78,7 +78,7 @@ def record_command(
     if not adapters:
         console.print("[yellow]No adapters found. Create adapters first.[/yellow]")
         console.print(
-            "See: https://github.com/padobrik/a2a-spec/blob/main/docs/writing-adapters.md"
+            "See: https://github.com/padobrik/agent-handshake/blob/main/docs/writing-adapters.md"
         )
         raise typer.Exit(1)
 

@@ -1,4 +1,4 @@
-"""a2aspec diff — compare current outputs against baselines."""
+"""handshake diff — compare current outputs against baselines."""
 
 from __future__ import annotations
 
@@ -8,12 +8,12 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from a2a_spec.config.loader import load_config
-from a2a_spec.diff.engine import DiffEngine, DriftSeverity
-from a2a_spec.exceptions import A2ASpecError
-from a2a_spec.reporting.console import print_diff_results
-from a2a_spec.snapshot.baseline import GitBaseline
-from a2a_spec.snapshot.store import Snapshot, SnapshotStore
+from agent_handshake.config.loader import load_config
+from agent_handshake.diff.engine import DiffEngine, DriftSeverity
+from agent_handshake.exceptions import HandshakeError
+from agent_handshake.reporting.console import print_diff_results
+from agent_handshake.snapshot.baseline import GitBaseline
+from agent_handshake.snapshot.store import Snapshot, SnapshotStore
 
 console = Console()
 
@@ -46,13 +46,13 @@ def diff_command(
 ) -> None:
     """Compare recorded snapshots against their committed baseline.
 
-    'a2aspec record' overwrites snapshot files in place; this shows the
+    'handshake record' overwrites snapshot files in place; this shows the
     structural and semantic differences from the version at --base, plus
     scenarios added or deleted since then.
     """
     try:
         config = load_config(config_path)
-    except A2ASpecError as e:
+    except HandshakeError as e:
         console.print(f"[red]Config error: {e}[/red]")
         raise typer.Exit(1) from None
 
@@ -64,14 +64,14 @@ def diff_command(
         try:
             import sentence_transformers  # noqa: F401
 
-            from a2a_spec.semantic.embeddings import EmbeddingModel
+            from agent_handshake.semantic.embeddings import EmbeddingModel
 
             semantic_model = EmbeddingModel(config.semantic.model)
         except ImportError:
             console.print(
                 "[yellow]sentence-transformers not installed. "
                 "Using token overlap for comparison. "
-                "Install with: pip install a2a-spec\\[semantic][/yellow]\n"
+                "Install with: pip install agent-handshake\\[semantic][/yellow]\n"
             )
 
     engine = DiffEngine(semantic_model=semantic_model)
@@ -79,12 +79,12 @@ def diff_command(
     agents = [agent] if agent else store.list_agents()
 
     if not agents:
-        console.print("[yellow]No snapshots found. Run 'a2aspec record' first.[/yellow]")
+        console.print("[yellow]No snapshots found. Run 'handshake record' first.[/yellow]")
         raise typer.Exit(0)
 
     try:
         baseline = GitBaseline(config.storage.path, base)
-    except A2ASpecError as e:
+    except HandshakeError as e:
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(1) from None
 

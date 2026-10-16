@@ -1,4 +1,4 @@
-"""a2aspec test — run spec validation."""
+"""handshake test — run spec validation."""
 
 from __future__ import annotations
 
@@ -14,20 +14,20 @@ from typing import Annotated, Any
 import typer
 from rich.console import Console
 
-from a2a_spec.config.loader import load_config
-from a2a_spec.exceptions import A2ASpecError, ConfigError, SnapshotNotFoundError
-from a2a_spec.project import Scenario, load_adapters, load_scenarios
-from a2a_spec.reporting.console import print_summary, print_validation_result
-from a2a_spec.reporting.github import format_github_annotation
-from a2a_spec.reporting.junit import generate_junit_xml
-from a2a_spec.reporting.markdown import generate_report
-from a2a_spec.semantic.embeddings import EmbeddingModel
-from a2a_spec.semantic.engine import SemanticEngine
-from a2a_spec.snapshot.replay import ReplayEngine
-from a2a_spec.snapshot.store import SnapshotStore
-from a2a_spec.spec.checker import SpecChecker
-from a2a_spec.spec.loader import load_spec_files
-from a2a_spec.spec.schema import Spec
+from agent_handshake.config.loader import load_config
+from agent_handshake.exceptions import ConfigError, HandshakeError, SnapshotNotFoundError
+from agent_handshake.project import Scenario, load_adapters, load_scenarios
+from agent_handshake.reporting.console import print_summary, print_validation_result
+from agent_handshake.reporting.github import format_github_annotation
+from agent_handshake.reporting.junit import generate_junit_xml
+from agent_handshake.reporting.markdown import generate_report
+from agent_handshake.semantic.embeddings import EmbeddingModel
+from agent_handshake.semantic.engine import SemanticEngine
+from agent_handshake.snapshot.replay import ReplayEngine
+from agent_handshake.snapshot.store import SnapshotStore
+from agent_handshake.spec.checker import SpecChecker
+from agent_handshake.spec.loader import load_spec_files
+from agent_handshake.spec.schema import Spec
 
 console = Console()
 
@@ -44,7 +44,7 @@ class Case:
 
 
 class OutputFormat(StrEnum):
-    """Report formats for a2aspec test."""
+    """Report formats for handshake test."""
 
     CONSOLE = "console"
     MARKDOWN = "markdown"
@@ -104,19 +104,19 @@ def test_command(
 
     try:
         config = load_config(config_path)
-    except A2ASpecError as e:
+    except HandshakeError as e:
         out.print(f"[red]Config error: {e}[/red]")
         raise typer.Exit(1) from None
 
     _specs_dir = specs_dir or config.specs_dir
     try:
         spec_files = load_spec_files(_specs_dir)
-    except A2ASpecError as e:
+    except HandshakeError as e:
         out.print(f"[red]Error loading specs: {e}[/red]")
         raise typer.Exit(1) from None
 
     if not spec_files:
-        out.print("[yellow]No spec files found. Run 'a2aspec init' first.[/yellow]")
+        out.print("[yellow]No spec files found. Run 'handshake init' first.[/yellow]")
         raise typer.Exit(0)
 
     store = SnapshotStore(config.storage.path)
@@ -148,14 +148,14 @@ def test_command(
 
     mode_label = "[blue]replay[/blue]" if replay else "[yellow]live[/yellow]"
     if not report_only:
-        out.print(f"\n[bold]a2a-spec[/bold] running tests ({mode_label} mode)\n")
+        out.print(f"\n[bold]agent-handshake[/bold] running tests ({mode_label} mode)\n")
 
     for spec_path, spec in spec_files:
         if replay:
             if not store.list_scenarios(spec.producer):
                 out.print(
                     f"  [yellow]WARN: No snapshots for '{spec.producer}'. "
-                    f"Run 'a2aspec record' first.[/yellow]"
+                    f"Run 'handshake record' first.[/yellow]"
                 )
                 continue
             cases = _replay_cases(spec, store, replay_engine, by_name)
@@ -208,7 +208,7 @@ def test_command(
                                 line=1,
                                 level="error",
                                 message=f"{scenario}: {error}",
-                                title=f"a2a-spec {spec.name}",
+                                title=f"agent-handshake {spec.name}",
                             )
                         )
             records.append(

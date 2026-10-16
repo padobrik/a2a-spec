@@ -1,1 +1,1 @@
-"""CLI commands for a2a-spec."""
+"""CLI commands for agent-handshake."""

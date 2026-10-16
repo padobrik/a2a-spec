@@ -1,4 +1,4 @@
-"""a2aspec skill — export the bundled agent skill."""
+"""handshake skill — export the bundled agent skill."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ from rich.console import Console
 
 console = Console(stderr=True)
 
-SKILL_NAME = "a2a-spec"
+SKILL_NAME = "agent-handshake"
 
 
 def skill_text() -> str:
-    """Return the SKILL.md bundled with this version of a2a-spec."""
-    return (files("a2a_spec") / "skill" / "SKILL.md").read_text(encoding="utf-8")
+    """Return the SKILL.md bundled with this version of agent-handshake."""
+    return (files("agent_handshake") / "skill" / "SKILL.md").read_text(encoding="utf-8")
 
 
 def skill_command(
@@ -23,11 +23,12 @@ def skill_command(
         None,
         "--dir",
         "-d",
-        help="Skills directory to install into, as <dir>/a2a-spec/SKILL.md. Default: print it.",
+        help="Skills directory to install into, as <dir>/agent-handshake/SKILL.md. "
+        "Default: print it.",
     ),
     force: bool = typer.Option(False, "--force", help="Overwrite an existing SKILL.md."),
 ) -> None:
-    """Export the agent skill that teaches coding agents the a2a-spec workflow.
+    """Export the agent skill that teaches coding agents the agent-handshake workflow.
 
     The skill matches the installed CLI version; re-export it after upgrading.
     """

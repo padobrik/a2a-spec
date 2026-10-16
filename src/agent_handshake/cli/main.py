@@ -1,4 +1,4 @@
-"""a2a-spec CLI entry point."""
+"""agent-handshake CLI entry point."""
 
 from __future__ import annotations
 
@@ -9,20 +9,20 @@ import traceback
 import typer
 from rich.console import Console
 
-from a2a_spec.cli.diff_cmd import diff_command
-from a2a_spec.cli.infer_cmd import infer_command
-from a2a_spec.cli.init_cmd import init_command
-from a2a_spec.cli.pipeline_cmd import pipeline_app
-from a2a_spec.cli.record_cmd import record_command
-from a2a_spec.cli.skill_cmd import skill_command
-from a2a_spec.cli.test_cmd import test_command
-from a2a_spec.exceptions import A2ASpecError
+from agent_handshake.cli.diff_cmd import diff_command
+from agent_handshake.cli.infer_cmd import infer_command
+from agent_handshake.cli.init_cmd import init_command
+from agent_handshake.cli.pipeline_cmd import pipeline_app
+from agent_handshake.cli.record_cmd import record_command
+from agent_handshake.cli.skill_cmd import skill_command
+from agent_handshake.cli.test_cmd import test_command
+from agent_handshake.exceptions import HandshakeError
 
 console = Console()
 
 app = typer.Typer(
-    name="a2aspec",
-    help="a2a-spec — The open specification for agent-to-agent interactions.",
+    name="handshake",
+    help="agent-handshake — The open specification for agent-to-agent interactions.",
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode="rich",
@@ -40,9 +40,9 @@ app.add_typer(pipeline_app, name="pipeline")
 def version_callback(value: bool) -> None:
     """Print version and exit."""
     if value:
-        from a2a_spec import __version__
+        from agent_handshake import __version__
 
-        typer.echo(f"a2a-spec {__version__}")
+        typer.echo(f"agent-handshake {__version__}")
         raise typer.Exit()
 
 
@@ -64,7 +64,7 @@ def main_callback(
         is_eager=False,
     ),
 ) -> None:
-    """a2a-spec — The open specification for agent-to-agent interactions."""
+    """agent-handshake — The open specification for agent-to-agent interactions."""
     if debug:
         logging.basicConfig(
             level=logging.DEBUG,
@@ -77,7 +77,7 @@ def main_callback(
 def main() -> None:
     """CLI entry point with top-level error handling.
 
-    Catches A2ASpecError for user-friendly messages, KeyboardInterrupt
+    Catches HandshakeError for user-friendly messages, KeyboardInterrupt
     for clean exits, and unexpected exceptions for bug reporting.
     """
     try:
@@ -85,7 +85,7 @@ def main() -> None:
     except KeyboardInterrupt:
         console.print("\n[dim]Interrupted.[/dim]")
         sys.exit(130)
-    except A2ASpecError as e:
+    except HandshakeError as e:
         console.print(f"\n[red]Error:[/red] {e}")
         if "--debug" in sys.argv or "-d" in sys.argv:
             console.print("\n[dim]Traceback:[/dim]")
