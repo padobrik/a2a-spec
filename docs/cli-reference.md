@@ -13,11 +13,21 @@ a2aspec init [DIRECTORY] [--name NAME]
 Record live agent outputs as snapshots by calling agents through adapters.
 
 ```bash
-a2aspec record [--suite PATH] [--scenario NAME] [--config PATH]
+a2aspec record [--suite PATH] [--scenario NAME] [--agent ID]... [--config PATH]
 ```
 
 `--suite` records only the scenarios in one file; `--scenario` records one
-scenario by name.
+scenario by name; `--agent` records only the given agents from `ADAPTERS`
+(repeat it for several). A scenario with an `agents` list is recorded only
+for those agents, and `a2aspec test --live` calls only those agents with it:
+
+```yaml
+scenarios:
+  - name: double_charge
+    input:
+      message: "I was charged twice."
+    agents: [triage-agent]
+```
 
 ## `a2aspec test`
 
