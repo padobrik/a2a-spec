@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-from a2a_spec.diff.semantic import SemanticComparison, compute_similarity
-from a2a_spec.diff.structural import FieldDiff, structural_diff
+from agent_handshake.diff.semantic import SemanticComparison, compute_similarity
+from agent_handshake.diff.structural import FieldDiff, structural_diff
 
 logger = logging.getLogger(__name__)
 

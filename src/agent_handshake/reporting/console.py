@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from rich.console import Console
 
-from a2a_spec.diff.engine import DiffResult, DriftSeverity
-from a2a_spec.pipeline.trace import PipelineTrace
-from a2a_spec.policy.engine import PolicyResult
-from a2a_spec.semantic.engine import SemanticResult
-from a2a_spec.spec.validator import ValidationResult
+from agent_handshake.diff.engine import DiffResult, DriftSeverity
+from agent_handshake.pipeline.trace import PipelineTrace
+from agent_handshake.policy.engine import PolicyResult
+from agent_handshake.semantic.engine import SemanticResult
+from agent_handshake.spec.validator import ValidationResult
 
 console = Console()
 

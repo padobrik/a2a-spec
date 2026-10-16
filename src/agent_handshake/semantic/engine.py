@@ -6,8 +6,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from a2a_spec.semantic.similarity import cosine_similarity
-from a2a_spec.spec.schema import SemanticMethod, SemanticRule
+from agent_handshake.semantic.similarity import cosine_similarity
+from agent_handshake.spec.schema import SemanticMethod, SemanticRule
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ class SemanticEngine:
 
     def _encoder(self) -> Encoder:
         if self._model is None:
-            from a2a_spec.semantic.embeddings import EmbeddingModel
+            from agent_handshake.semantic.embeddings import EmbeddingModel
 
             self._model = EmbeddingModel()
         return self._model

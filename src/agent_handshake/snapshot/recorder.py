@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from a2a_spec.adapters.base import AgentAdapter
-from a2a_spec.snapshot.fingerprint import Fingerprint
-from a2a_spec.snapshot.store import Snapshot, SnapshotStore
+from agent_handshake.adapters.base import AgentAdapter
+from agent_handshake.snapshot.fingerprint import Fingerprint
+from agent_handshake.snapshot.store import Snapshot, SnapshotStore
 
 
 class Recorder:

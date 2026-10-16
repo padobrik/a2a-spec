@@ -1,4 +1,4 @@
-"""Load and parse a2a-spec YAML files."""
+"""Load and parse agent-handshake YAML files."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from a2a_spec.exceptions import ConfigError
-from a2a_spec.spec.schema import Spec
+from agent_handshake.exceptions import ConfigError
+from agent_handshake.spec.schema import Spec
 
 logger = logging.getLogger(__name__)
 

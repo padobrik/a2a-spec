@@ -9,7 +9,7 @@ from typing import Any
 
 def generate_junit_xml(
     results: list[dict[str, Any]],
-    suite_name: str = "a2a-spec",
+    suite_name: str = "agent-handshake",
 ) -> str:
     """Generate JUnit XML from test results.
 
@@ -40,7 +40,7 @@ def generate_junit_xml(
             "testcase",
             {
                 "name": r.get("name", "unnamed"),
-                "classname": r.get("spec_name", "a2a-spec"),
+                "classname": r.get("spec_name", "agent-handshake"),
                 "time": str(r.get("duration_ms", 0) / 1000),
             },
         )

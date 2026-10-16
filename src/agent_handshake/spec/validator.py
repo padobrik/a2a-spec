@@ -6,7 +6,7 @@ from typing import Any
 
 import jsonschema
 
-from a2a_spec.spec.schema import Spec, StructuralSpec
+from agent_handshake.spec.schema import Spec, StructuralSpec
 
 
 class ValidationResult:

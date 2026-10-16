@@ -1,1 +1,1 @@
-"""Internal utilities for a2a-spec. Not part of the public API."""
+"""Internal utilities for agent-handshake. Not part of the public API."""

@@ -1,13 +1,17 @@
-"""All custom exceptions for a2a-spec."""
+"""All custom exceptions for agent-handshake."""
 
 from __future__ import annotations
 
 
-class A2ASpecError(Exception):
-    """Base exception for all a2a-spec errors."""
+class HandshakeError(Exception):
+    """Base exception for all agent-handshake errors."""
 
 
-class SpecValidationError(A2ASpecError):
+# Name before the rename to agent-handshake.
+A2ASpecError = HandshakeError
+
+
+class SpecValidationError(HandshakeError):
     """Raised when an agent output fails spec validation."""
 
     def __init__(self, spec_name: str, errors: list[str]) -> None:
@@ -17,7 +21,7 @@ class SpecValidationError(A2ASpecError):
         super().__init__(msg)
 
 
-class SnapshotNotFoundError(A2ASpecError):
+class SnapshotNotFoundError(HandshakeError):
     """Raised when a required snapshot does not exist."""
 
     def __init__(self, agent_id: str, scenario: str) -> None:
@@ -25,11 +29,11 @@ class SnapshotNotFoundError(A2ASpecError):
         self.scenario = scenario
         super().__init__(
             f"No snapshot found for agent '{agent_id}', scenario '{scenario}'. "
-            f"Run 'a2aspec record' first."
+            f"Run 'handshake record' first."
         )
 
 
-class SnapshotMismatchError(A2ASpecError):
+class SnapshotMismatchError(HandshakeError):
     """Raised when a snapshot fingerprint does not match current config."""
 
     def __init__(self, agent_id: str, expected_hash: str, actual_hash: str) -> None:
@@ -39,11 +43,11 @@ class SnapshotMismatchError(A2ASpecError):
         super().__init__(
             f"Snapshot fingerprint mismatch for '{agent_id}'. "
             f"Expected: {expected_hash}, Got: {actual_hash}. "
-            f"Prompt or config may have changed. Run 'a2aspec record' to update."
+            f"Prompt or config may have changed. Run 'handshake record' to update."
         )
 
 
-class SemanticDriftError(A2ASpecError):
+class SemanticDriftError(HandshakeError):
     """Raised when semantic drift exceeds threshold."""
 
     def __init__(self, field: str, similarity: float, threshold: float) -> None:
@@ -56,7 +60,7 @@ class SemanticDriftError(A2ASpecError):
         )
 
 
-class PolicyViolationError(A2ASpecError):
+class PolicyViolationError(HandshakeError):
     """Raised when a policy rule is violated."""
 
     def __init__(self, rule_name: str, detail: str) -> None:
@@ -65,7 +69,7 @@ class PolicyViolationError(A2ASpecError):
         super().__init__(f"Policy violation [{rule_name}]: {detail}")
 
 
-class PipelineExecutionError(A2ASpecError):
+class PipelineExecutionError(HandshakeError):
     """Raised when a pipeline execution fails."""
 
     def __init__(self, agent_id: str, cause: Exception) -> None:
@@ -74,7 +78,7 @@ class PipelineExecutionError(A2ASpecError):
         super().__init__(f"Pipeline failed at agent '{agent_id}': {cause}")
 
 
-class AdapterError(A2ASpecError):
+class AdapterError(HandshakeError):
     """Raised when an agent adapter fails."""
 
     def __init__(self, agent_id: str, detail: str) -> None:
@@ -83,5 +87,5 @@ class AdapterError(A2ASpecError):
         super().__init__(f"Adapter error for '{agent_id}': {detail}")
 
 
-class ConfigError(A2ASpecError):
+class ConfigError(HandshakeError):
     """Raised when configuration is invalid or missing."""

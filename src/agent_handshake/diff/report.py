@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from a2a_spec.diff.engine import DiffResult, DriftSeverity
+from agent_handshake.diff.engine import DiffResult, DriftSeverity
 
 SEVERITY_ICONS: dict[DriftSeverity, str] = {
     DriftSeverity.NONE: "✓",

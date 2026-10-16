@@ -7,8 +7,8 @@ import logging
 import subprocess
 from pathlib import Path
 
-from a2a_spec.exceptions import ConfigError
-from a2a_spec.snapshot.store import Snapshot
+from agent_handshake.exceptions import ConfigError
+from agent_handshake.snapshot.store import Snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class GitBaseline:
     """Snapshots as they were at a git revision.
 
-    ``a2aspec record`` overwrites snapshot files in place, so the baseline
+    ``handshake record`` overwrites snapshot files in place, so the baseline
     for a diff is the committed version of the same file, not another file
     in the working tree.
     """
@@ -29,7 +29,7 @@ class GitBaseline:
         except ConfigError as e:
             raise ConfigError(
                 f"Snapshots in {self.store_dir} are not in a git repository. "
-                "'a2aspec diff' compares recorded snapshots against their committed "
+                "'handshake diff' compares recorded snapshots against their committed "
                 "version; commit them first."
             ) from e
         self.root = Path(top.strip()).resolve()
@@ -69,7 +69,7 @@ class GitBaseline:
                 check=False,
             )
         except FileNotFoundError as e:
-            raise ConfigError("git is required for 'a2aspec diff'") from e
+            raise ConfigError("git is required for 'handshake diff'") from e
         if proc.returncode != 0:
             detail = proc.stderr.strip() or f"git {args[0]} failed"
             logger.debug("git %s failed: %s", " ".join(args), detail)

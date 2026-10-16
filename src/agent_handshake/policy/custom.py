@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-from a2a_spec.exceptions import ConfigError
+from agent_handshake.exceptions import ConfigError
 
 
 def load_custom_validator(dotted_path: str) -> Any:
@@ -51,7 +51,7 @@ def register_builtin_validators(engine: Any) -> None:
     Args:
         engine: A PolicyEngine instance.
     """
-    from a2a_spec.policy.builtin import no_pii_in_output, output_not_empty
+    from agent_handshake.policy.builtin import no_pii_in_output, output_not_empty
 
-    engine.register_validator("a2a_spec.policy.builtin.no_pii_in_output", no_pii_in_output)
-    engine.register_validator("a2a_spec.policy.builtin.output_not_empty", output_not_empty)
+    engine.register_validator("agent_handshake.policy.builtin.no_pii_in_output", no_pii_in_output)
+    engine.register_validator("agent_handshake.policy.builtin.output_not_empty", output_not_empty)

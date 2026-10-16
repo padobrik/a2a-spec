@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from a2a_spec.diff.engine import DiffResult, DriftSeverity
-from a2a_spec.spec.validator import ValidationResult
+from agent_handshake.diff.engine import DiffResult, DriftSeverity
+from agent_handshake.spec.validator import ValidationResult
 
 
 def format_github_annotation(
@@ -11,7 +11,7 @@ def format_github_annotation(
     line: int,
     level: str,
     message: str,
-    title: str = "a2a-spec",
+    title: str = "agent-handshake",
 ) -> str:
     """Format a single GitHub Actions annotation.
 
@@ -61,7 +61,7 @@ def generate_annotations(
     for error in validation.errors:
         annotations.append(
             format_github_annotation(
-                file=f"a2a_spec/specs/{spec_name}.yaml",
+                file=f"handshake/specs/{spec_name}.yaml",
                 line=1,
                 level="error",
                 message=f"Spec validation failed: {error}",
@@ -71,7 +71,7 @@ def generate_annotations(
     for warning in validation.warnings:
         annotations.append(
             format_github_annotation(
-                file=f"a2a_spec/specs/{spec_name}.yaml",
+                file=f"handshake/specs/{spec_name}.yaml",
                 line=1,
                 level="warning",
                 message=f"Spec warning: {warning}",
@@ -87,7 +87,7 @@ def generate_annotations(
             )
             annotations.append(
                 format_github_annotation(
-                    file=f"a2a_spec/specs/{spec_name}.yaml",
+                    file=f"handshake/specs/{spec_name}.yaml",
                     line=1,
                     level=level,
                     message=f"[{dr.severity.value}] {dr.field}: {dr.explanation}",

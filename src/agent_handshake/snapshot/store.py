@@ -8,8 +8,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from a2a_spec.exceptions import SnapshotNotFoundError
-from a2a_spec.snapshot.fingerprint import Fingerprint
+from agent_handshake.exceptions import SnapshotNotFoundError
+from agent_handshake.snapshot.fingerprint import Fingerprint
 
 logger = logging.getLogger(__name__)
 

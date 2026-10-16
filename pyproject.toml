@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "a2a-spec"
+name = "agent-handshake"
 version = "0.6.0"
-description = "The open specification for testing, validating, and guaranteeing agent-to-agent interactions."
+description = "Contract tests for agent handoffs: record what one agent returns, infer what the next one reads, and check it in CI without LLM calls."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11"
@@ -55,23 +55,25 @@ dev = [
     "a2a-sdk[http-server]>=1.0,<2.0",
 ]
 all = [
-    "a2a-spec[semantic,langchain,dev]",
+    "agent-handshake[semantic,langchain,dev]",
 ]
 
 [project.scripts]
-a2aspec = "a2a_spec.cli.main:main"
+handshake = "agent_handshake.cli.main:main"
+# Name before the rename to agent-handshake; kept so existing scripts keep working.
+a2aspec = "agent_handshake.cli.main:main"
 
 [project.entry-points.pytest11]
-a2a_spec = "a2a_spec.pytest_plugin"
+agent_handshake = "agent_handshake.pytest_plugin"
 
 [project.urls]
-Homepage = "https://github.com/padobrik/a2a-spec"
-Documentation = "https://github.com/padobrik/a2a-spec/tree/main/docs"
-Repository = "https://github.com/padobrik/a2a-spec"
-Issues = "https://github.com/padobrik/a2a-spec/issues"
+Homepage = "https://github.com/padobrik/agent-handshake"
+Documentation = "https://github.com/padobrik/agent-handshake/tree/main/docs"
+Repository = "https://github.com/padobrik/agent-handshake"
+Issues = "https://github.com/padobrik/agent-handshake/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/a2a_spec"]
+packages = ["src/agent_handshake"]
 
 [tool.ruff]
 target-version = "py311"
