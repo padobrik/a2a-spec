@@ -70,8 +70,8 @@ def validate_structural(output: dict[str, Any], structural: StructuralSpec) -> V
 def validate_output(output: dict[str, Any], spec: Spec) -> ValidationResult:
     """Validate an agent output against a full spec.
 
-    This runs structural validation. Semantic and policy validation
-    are handled by their respective engines.
+    This runs structural validation. Policy rules are checked by
+    PolicyEngine.
 
     Args:
         output: The agent output to validate.

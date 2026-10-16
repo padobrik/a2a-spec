@@ -34,7 +34,7 @@ scenarios:
 Run spec validation against snapshots (replay) or live agents.
 
 ```bash
-handshake test [--replay/--live] [--specs DIR] [--config PATH] [--format FORMAT] [--fail-fast] [--no-semantic]
+handshake test [--replay/--live] [--specs DIR] [--config PATH] [--format FORMAT] [--fail-fast]
 ```
 
 `--live` calls each spec's producer through `ADAPTERS` with every scenario
@@ -47,12 +47,11 @@ Actions annotations), `markdown` or `junit` (only the report on stdout).
 ## `handshake diff`
 
 Compare recorded snapshots against their committed version in git for
-structural and semantic drift. Reports scenarios added (`NEW`) or deleted
-(`GONE`) since the baseline. Exits 2 on high-severity drift or a deleted
-snapshot when `ci.fail_on_semantic_drift` is true.
+structural drift. Reports scenarios added (`NEW`) or deleted (`GONE`) since
+the baseline. Exits 2 on high-severity drift or a deleted snapshot.
 
 ```bash
-handshake diff [--agent NAME] [--base REF] [--threshold FLOAT] [--config PATH]
+handshake diff [--agent NAME] [--base REF] [--config PATH]
 ```
 
 ## `handshake infer`
