@@ -26,6 +26,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a newer version fails with a message to upgrade agent-handshake.
 
 ### Changed
+- Regenerate inferred specs with `handshake infer ... --force` to add
+  `read_at` and `reads_unknown_keys`. Until then `diff` cannot name the read
+  lines, and `infer --check` fails for a spec whose consumer reads keys the
+  analysis cannot name.
 - `handshake.yaml` rejects unknown settings, also inside `storage` and `ci`,
   and names the closest known one: `Unknown setting 'spec_dir'. Did you mean
   'specs_dir'?`. Before, a typo was ignored and the default was used.
