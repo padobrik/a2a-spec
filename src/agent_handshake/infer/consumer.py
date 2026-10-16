@@ -159,10 +159,16 @@ class _Scope:
 
 
 def _bound_names(fn: Function) -> frozenset[str]:
-    """Parameters, assigned names and nested definitions of ``fn``."""
-    names = {a.arg for a in ast.walk(fn.args) if isinstance(a, ast.arg)}
+    """Every name ``fn`` binds anywhere in its body, nested functions and lambdas included.
+
+    Collecting all of them, not per scope, errs on the safe side: a shadowed
+    helper is then left unfollowed and warns instead of adding wrong fields.
+    """
+    names: set[str] = set()
     for node in ast.walk(fn):
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+        if isinstance(node, ast.arg):
+            names.add(node.arg)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
             names.add(node.id)
         elif node is not fn and isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             names.add(node.name)

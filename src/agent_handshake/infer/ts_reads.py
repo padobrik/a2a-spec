@@ -52,7 +52,12 @@ class TsScope:
 
 
 def bound_names(fn: Node) -> frozenset[str]:
-    """Parameters, declared variables and nested function names inside ``fn``."""
+    """Every name ``fn`` binds anywhere in its body, callbacks included.
+
+    Parameters and variables, also inside destructuring patterns, and nested
+    function names. Collecting all of them, not per scope, errs on the safe
+    side: a shadowed helper is left unfollowed and warns.
+    """
     names: set[str] = set()
     stack = [fn]
     while stack:
@@ -66,10 +71,22 @@ def bound_names(fn: Node) -> frozenset[str]:
             target = node.child_by_field_name("parameter")
         elif node.type == "formal_parameters":
             names.update(node_text(c) for c in node.named_children if c.type == "identifier")
-        if target is not None and target.type == "identifier":
-            names.add(node_text(target))
+        if target is not None:
+            names.update(_pattern_names(target))
         stack.extend(node.named_children)
     return frozenset(names)
+
+
+def _pattern_names(pattern: Node) -> set[str]:
+    """The names a binding pattern introduces: ``x``, ``{ a, b: c }``, ``[d, ...e]``."""
+    if pattern.type in ("identifier", "shorthand_property_identifier_pattern"):
+        return {node_text(pattern)}
+    names: set[str] = set()
+    for child in pattern.named_children:
+        if pattern.type == "pair_pattern" and child == pattern.child_by_field_name("key"):
+            continue  # { key: name } binds name, not key
+        names |= _pattern_names(child)
+    return names
 
 
 class ReadVisitor:
