@@ -35,7 +35,8 @@ The script fetches each repository at its commit into `.cache/benchmarks/`
 
 - Paths are relative to the producer's output: `customer.tier`. Parents are
   listed as fields too, as in a spec. `searches[].query` is a field of each
-  item of the list `searches`.
+  item of the list `searches`. A found parent of an expected field (`a` for
+  `a.b`) is never false, even when the list does not name it.
 - A field counts once per case, wherever the consumer reads it: a key, `.get`,
   `in`, an attribute, `getattr(obj, "field", default)`, or a helper function
   that receives the data.

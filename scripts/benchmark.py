@@ -20,6 +20,7 @@ exit code.
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
@@ -53,7 +54,8 @@ class CaseScore:
 
     @property
     def false(self) -> frozenset[str]:
-        return self.found - self.expected
+        """Found fields not expected; a parent of an expected field is read with it."""
+        return self.found - self.expected - _parents(self.expected)
 
     @property
     def missed(self) -> frozenset[str]:
@@ -78,6 +80,15 @@ class ProjectScore:
         return sum(len(c.false) for c in self.cases)
 
 
+def _parents(paths: frozenset[str]) -> frozenset[str]:
+    """``a`` and ``a.b`` for ``a.b.c``; ``searches`` for ``searches[].query``."""
+    found: set[str] = set()
+    for path in paths:
+        parts = path.replace("[]", "").split(".")
+        found.update(".".join(parts[:n]) for n in range(1, len(parts)))
+    return frozenset(found)
+
+
 def dotted(path: tuple[str, ...]) -> str:
     """``("searches", "[]", "query")`` as ``searches[].query``; ``[]`` marks list items."""
     text = ""
@@ -86,9 +97,14 @@ def dotted(path: tuple[str, ...]) -> str:
     return text
 
 
-def field_paths(path: str | Path, function: str) -> frozenset[str]:
-    """Every field path the analysis finds, parents included, as in a spec."""
-    reads = analyze_consumer(path, function).reads
+def field_paths(
+    path: str | Path, function: str, keys: frozenset[str] | None = None
+) -> frozenset[str]:
+    """Every field path the analysis finds, parents included, as in a spec.
+
+    ``keys`` are the producer's output keys, as ``handshake infer`` passes them.
+    """
+    reads = analyze_consumer(path, function, keys).reads
     return frozenset(
         dotted(r.path[:n])
         for r in reads
@@ -97,7 +113,19 @@ def field_paths(path: str | Path, function: str) -> frozenset[str]:
     )
 
 
-def score_case(case: dict[str, Any], repo: Path) -> CaseScore:
+def producer_keys(project: Path, producer: str | None) -> frozenset[str]:
+    """The output keys of the producer's snapshots in the benchmark project."""
+    if not producer:
+        return frozenset()
+    keys: set[str] = set()
+    for path in sorted((project / "handshake" / "snapshots" / producer).glob("*.json")):
+        output = json.loads(path.read_text(encoding="utf-8")).get("output")
+        if isinstance(output, dict):
+            keys.update(output)
+    return frozenset(keys)
+
+
+def score_case(case: dict[str, Any], repo: Path, project: Path | None = None) -> CaseScore:
     """Run the analysis for one case; a case without a source finds nothing."""
     expected = frozenset(str(e["path"]) for e in case.get("expected") or [])
     source = case.get("source")
@@ -113,8 +141,9 @@ def score_case(case: dict[str, Any], repo: Path) -> CaseScore:
                 text = text.replace(old, new)
             target = Path(tmp) / target.name
             target.write_text(text, encoding="utf-8")
+        keys = producer_keys(project, case.get("producer")) if project else None
         try:
-            found = field_paths(target, function)
+            found = field_paths(target, function, keys)
         except HandshakeError as e:
             # Name the file as the benchmark does, not by a temporary or local path.
             error = str(e).replace(str(target), file).replace(str(repo) + "/", "")
@@ -167,7 +196,8 @@ def run(
         data = load(benchmarks / slug / "benchmark.yaml")
         repo = repo_dirs.get(slug) or checkout(slug, data["repository"], data["commit"], cache)
         project = ProjectScore(data["project"])
-        project.cases = [score_case(case, repo) for case in data["cases"]]
+        folder = benchmarks / slug
+        project.cases = [score_case(case, repo, folder) for case in data["cases"]]
         scores.append(project)
     return scores
 
