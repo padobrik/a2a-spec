@@ -26,8 +26,8 @@ A **diff** compares two agent outputs (typically old baseline vs. new recording)
 
 ## Pipeline
 
-A **pipeline** is a DAG of agents where data flows from one to the next. a2a-spec can test entire pipelines, validating each agent's output against its spec and checking end-to-end invariants.
+A **pipeline** is a DAG of agents where data flows from one to the next. agent-handshake can test entire pipelines, validating each agent's output against its spec and checking end-to-end invariants.
 
 ## Adapter
 
-An **adapter** wraps your agent so a2a-spec can call it. Adapters exist for plain async functions, HTTP endpoints, and LangChain runnables.
+An **adapter** wraps your agent so agent-handshake can call it. Adapters exist for plain async functions, HTTP endpoints, and LangChain runnables.

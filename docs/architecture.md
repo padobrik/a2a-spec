@@ -3,7 +3,7 @@
 ## Package Structure
 
 ```
-src/a2a_spec/
+src/agent_handshake/
 ├── cli/          # Typer CLI commands
 ├── spec/         # Spec schema, loading, validation
 ├── snapshot/     # Record and replay engine
@@ -23,11 +23,11 @@ src/a2a_spec/
 ```
 [Developer writes spec YAML]
         ↓
-[a2aspec record] → calls agents via adapters → saves snapshots to disk
+[handshake record] → calls agents via adapters → saves snapshots to disk
         ↓
 [Snapshots committed to git]
         ↓
-[a2aspec test --replay] → loads snapshots → validates against specs → reports results
+[handshake test --replay] → loads snapshots → validates against specs → reports results
         ↓
 [CI passes or fails]
 ```

@@ -2,7 +2,7 @@
 
 Assumptions made where the request or the code was ambiguous.
 
-## Semantic rules in `a2aspec test`
+## Semantic rules in `handshake test`
 
 - `embedding_similarity` compares `input[source_field]` from the snapshot with
   `output[target_field]`. Both fields are required; a rule without them fails
@@ -23,7 +23,7 @@ Assumptions made where the request or the code was ambiguous.
 - The pending dependabot PRs were reproduced on a branch instead of being
   merged on GitHub; the remote was not reachable from this environment.
 
-## `a2aspec infer`
+## `handshake infer`
 
 - The consumer is analyzed statically (no import, no execution). The first
   parameter after `self`/`cls` is taken to be the producer's output.
@@ -50,14 +50,14 @@ Assumptions made where the request or the code was ambiguous.
 ## pytest plugin
 
 - The plugin is installed with the package but stays inert unless enabled
-  (`--a2a`, `--a2a-config`, or `a2a_config` in the ini file), so installing
-  a2a-spec never changes an unrelated test suite.
+  (`--handshake`, `--handshake-config`, or `handshake_config` in the ini file), so installing
+  agent-handshake never changes an unrelated test suite.
 - Relative paths resolve like the CLI (working directory); a path set in the
   ini file resolves relative to that ini file.
 - A spec whose producer has no snapshots is reported as a skip, matching the
   CLI's warning rather than failing.
 
-## `a2aspec diff`
+## `handshake diff`
 
 - The baseline is the committed version of each snapshot file (`--base`,
   default `HEAD`), matching the README's "commit snapshots to git — they
@@ -68,8 +68,8 @@ Assumptions made where the request or the code was ambiguous.
 
 ## Agent skill
 
-- The skill lives in the package (`a2a_spec/skill/SKILL.md`) so its commands
-  always match the installed CLI; `a2aspec skill --dir` takes the skills
+- The skill lives in the package (`agent_handshake/skill/SKILL.md`) so its commands
+  always match the installed CLI; `handshake skill --dir` takes the skills
   directory explicitly instead of guessing a tool-specific default.
 
 ## A2A adapter
