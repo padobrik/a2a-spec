@@ -137,7 +137,8 @@ class TsModule:
                 continue
             optional = any(child.type == "?" for child in prop.children)
             type_node = prop.child_by_field_name("type")
-            inner = self.annotation(type_node) if type_node is not None else Annotation()
+            # depth + 1, so a type that refers to itself stops at _MAX_DEPTH.
+            inner = self._annotation(type_node, depth + 1) if type_node else Annotation()
             fields[string_value(key) or node_text(key)] = self._field(not optional, inner, depth)
         return TypeShape(name, fields)
 

@@ -149,6 +149,14 @@ class TestTypes:
             "line 5: 'extra' is not a field of Layout; the inferred contract may be incomplete"
         ]
 
+    def test_self_referential_model(self, tmp_path: Path) -> None:
+        body = (
+            "from pydantic import BaseModel\n\n\n"
+            "class Tree(BaseModel):\n    label: str\n    child: 'Tree'\n\n\n"
+            "def run(t: Tree):\n    return t.child.label\n"
+        )
+        assert _reads(tmp_path, body) == [("child.label", (True, True))]
+
     def test_undeclared_attribute_warns(self, tmp_path: Path) -> None:
         body = HEAD + "def run(v: Verdict):\n    return v.verified, v.score\n"
         assert _warnings(tmp_path, body) == [
@@ -210,6 +218,13 @@ class TestTypeScript:
             "  return String(runResult.finalOutput.summary) + runResult.state;\n}\n"
         )
         assert [r.name for r in _ts(tmp_path, body, {"summary"}).reads] == ["summary"]
+
+    def test_self_referential_type(self, tmp_path: Path) -> None:
+        body = (
+            "interface Tree { label: string; child: Tree; children: Tree[] }\n"
+            "function run(t: Tree) {\n  return t.child.label;\n}\n"
+        )
+        assert [r.name for r in _ts(tmp_path, body).reads] == ["child.label"]
 
     def test_no_matching_parameter_is_an_error(self, tmp_path: Path) -> None:
         body = "function run(d: Detection) {\n  return d.spam;\n}\n"
