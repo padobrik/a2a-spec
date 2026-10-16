@@ -389,7 +389,7 @@ This command writes `path/to/skills/a2a-spec/SKILL.md`. Export the skill again a
 
 ## Limits
 
-- `a2aspec infer` reads Python consumers only. It finds `data["key"]`, `data.get("key")` and `"key" in data` for top-level keys.
+- `a2aspec infer` reads Python consumers only. It finds `data["key"]`, `data.get("key")` and `"key" in data`, also in nested objects (`data["customer"]["tier"]`, `data.get("customer", {}).get("tier")`) and through a local name (`customer = data["customer"]`). It does not follow list items.
 - If the consumer gives its input to another function, `a2aspec infer` cannot follow it. The command then shows a `WARN` line. Add the missing fields to the spec by hand.
 - `a2aspec infer --check` checks only specs that contain `inferred_from`. Specs from a2a-spec 0.3 and earlier do not have it. Run `a2aspec infer` with `--force` again to add it.
 - `a2aspec diff` compares with the snapshots in git. Commit the snapshots before you use it.

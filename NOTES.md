@@ -27,8 +27,21 @@ Assumptions made where the request or the code was ambiguous.
 
 - The consumer is analyzed statically (no import, no execution). The first
   parameter after `self`/`cls` is taken to be the producer's output.
-- Only top-level string keys are tracked; nested reads (`data["a"]["b"]`)
-  contribute only the top-level field `a`.
+- Literal string keys are tracked through nested reads (`data["a"]["b"]`,
+  `data.get("a", {}).get("b")`, `"b" in data["a"]`) and through a local name
+  bound to a nested value (`a = data["a"]`). The binding is followed in
+  source order and dropped when the name is assigned something else; branches
+  and loops are not analyzed.
+- Using such a local name as a whole (`helper(a)`) warns only when the code
+  also reads keys from it: otherwise it most likely holds a leaf value such
+  as a string. For the same reason, method calls and integer indexes on a
+  nested value (`data["tier"].lower()`, `data["tags"][0]`) do not warn;
+  mapping methods (`.items()`, `.keys()`, ...) do.
+- A nested field is required when the consumer reads it with `[]`, or when
+  it is present in every snapshot that contains its parent. Its parent's own
+  required status is decided separately at its level.
+- List items (`data["items"][0]["sku"]`) are not followed; only `items` is
+  recorded.
 - A field read via `.get()` or `in` is required when every snapshot contains
   it, because a silent fallback is the failure the tool exists to catch.
 - `enum` constraints are not inferred: snapshots show which values were
