@@ -44,18 +44,22 @@ class _A2AState:
             self.scenarios = {sc.name: sc for sc in load_scenarios(scenarios_config)}
         except ConfigError:
             self.scenarios = {}
-        self._snapshots: list[Snapshot] | None = None
+        self._snapshots: dict[str, list[Snapshot]] = {}
 
-    def snapshots(self) -> list[Snapshot]:
-        """Every recorded snapshot, read once per session.
+    def snapshots_of(self, producer: str) -> list[Snapshot]:
+        """The snapshots of one producer, read once per session.
+
+        Each producer's directory is read on its own, so a broken file fails
+        only the specs of that producer.
 
         Raises:
-            SnapshotFormatError: If a snapshot file is not valid.
+            SnapshotFormatError: If a snapshot file of this producer is not valid.
         """
-        if self._snapshots is None:
-            base = self.store.base_dir
-            self._snapshots = load_snapshots(base) if base.exists() else []
-        return self._snapshots
+        if producer not in self._snapshots:
+            directory = self.store.base_dir / producer
+            found = load_snapshots(directory) if directory.is_dir() else []
+            self._snapshots[producer] = [s for s in found if s.fingerprint.agent_id == producer]
+        return self._snapshots[producer]
 
     def _resolve(self, path: str) -> Path:
         p = Path(path)
@@ -145,7 +149,7 @@ class SpecFile(pytest.File):
         if spec.inferred_from:
             yield ConsumerCodeItem.from_parent(self, name="consumer_code", spec=spec)
         try:
-            own = [s for s in state.snapshots() if s.fingerprint.agent_id == spec.producer]
+            own = state.snapshots_of(spec.producer)
         except SnapshotFormatError as e:
             yield BrokenSnapshotItem.from_parent(self, name="snapshots", error=e)
             return

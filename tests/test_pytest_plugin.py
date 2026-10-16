@@ -211,3 +211,11 @@ def test_broken_snapshot_fails_with_its_path(project: pytest.Pytester) -> None:
     result.assert_outcomes(failed=1)
     result.stdout.fnmatch_lines(["*Snapshot *billing_abc123.json is not valid JSON*"])
     result.stdout.no_fnmatch_line("*Traceback*")
+
+
+def test_broken_snapshot_of_another_producer_does_not_block(project: pytest.Pytester) -> None:
+    other = project.path / "handshake" / "snapshots" / "other-agent" / "x_1.json"
+    other.parent.mkdir(parents=True)
+    other.write_text("{not json")
+    result = project.runpytest("--handshake", "handshake/specs")
+    result.assert_outcomes(passed=1)
