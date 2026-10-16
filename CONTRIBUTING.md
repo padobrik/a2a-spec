@@ -45,6 +45,15 @@ pre-commit install
 4. Open a PR — the CI matrix (Python 3.11 / 3.12 / 3.13) must be green before merge.
 5. Keep PRs focused: one logical change per PR.
 
+## End-to-end scenarios
+
+`tests/e2e/projects/` holds small projects that run through the real `handshake` command:
+one directory per scenario, with a `scenario.yaml` listing the commands, the expected exit
+codes and the text the output or files must contain (see `tests/e2e/test_projects.py`).
+CI runs them with the development install and again against the built wheel. Add a
+scenario when a change affects what a user sees from the CLI, the pytest plugin or the
+GitHub Action.
+
 ## Commit style
 
 Use the imperative mood in the subject line (`add`, `fix`, `remove`, not `added`).
