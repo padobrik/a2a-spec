@@ -51,14 +51,19 @@ class TestScoreCase:
         score = benchmark.score_case(_case(expected=[{"path": "x"}]), repo)
         assert score.missed == {"x"}
         assert score.error is not None
-        assert "takes no input parameter" in score.error
-        assert str(tmp_path) not in score.error
+        assert score.error == "Function 'run' in agents/c.py takes no input parameter"
 
     def test_replace_renders_a_template_copy(self, tmp_path: Path) -> None:
         repo = _repo(tmp_path, "from {{pkg}}.x import y\n\n\n" + CONSUMER)
         case = _case(expected=[{"path": "task"}], replace=[["{{pkg}}", "pkg"]])
         assert benchmark.score_case(case, repo).hits == {"task"}
         assert "{{pkg}}" in (repo / "agents" / "c.py").read_text()
+
+    def test_error_on_a_rendered_copy_names_the_repo_file(self, tmp_path: Path) -> None:
+        repo = _repo(tmp_path, "def run():\n    return '{{pkg}}'\n")
+        case = _case(expected=[{"path": "x"}], replace=[["{{pkg}}", "pkg"]])
+        error = benchmark.score_case(case, repo).error
+        assert error == "Function 'run' in agents/c.py takes no input parameter"
 
 
 class TestReport:

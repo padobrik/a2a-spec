@@ -116,7 +116,9 @@ def score_case(case: dict[str, Any], repo: Path) -> CaseScore:
         try:
             found = field_paths(target, function)
         except HandshakeError as e:
-            return CaseScore(case["id"], expected, frozenset(), str(e).replace(str(repo), "<repo>"))
+            # Name the file as the benchmark does, not by a temporary or local path.
+            error = str(e).replace(str(target), file).replace(str(repo) + "/", "")
+            return CaseScore(case["id"], expected, frozenset(), error)
     return CaseScore(case["id"], expected, found)
 
 
