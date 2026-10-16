@@ -95,12 +95,19 @@ def pytest_collect_file(file_path: Path, parent: pytest.Collector) -> pytest.Col
     return SpecFile.from_parent(parent, path=file_path)
 
 
+def _enabled_state(config: pytest.Config) -> _A2AState:
+    """The plugin state; spec items exist only while the plugin is enabled."""
+    state = config.stash[_STATE]
+    if state is None:
+        raise RuntimeError("the agent-handshake plugin is not enabled")
+    return state
+
+
 class SpecFile(pytest.File):
     """A spec YAML file; yields one item per recorded producer snapshot."""
 
     def collect(self) -> Iterator[pytest.Item]:
-        state = self.config.stash[_STATE]
-        assert state is not None
+        state = _enabled_state(self.config)
         spec = load_spec(self.path)
         if spec.inferred_from:
             yield ConsumerCodeItem.from_parent(self, name="consumer_code", spec=spec)
@@ -119,8 +126,7 @@ class SnapshotItem(pytest.Item):
         self.spec = spec
 
     def runtest(self) -> None:
-        state = self.config.stash[_STATE]
-        assert state is not None
+        state = _enabled_state(self.config)
         snapshot = state.store.load(self.spec.producer, self.name)
         scenario = state.scenarios.get(self.name)
         expected = scenario.expectations.get(self.spec.producer) if scenario else None

@@ -93,7 +93,7 @@ def main() -> None:
         sys.exit(1)
     except SystemExit:
         raise
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # last resort: report any bug with its traceback
         console.print(f"\n[red]Unexpected error:[/red] {e}")
         console.print("[dim]This is a bug. Please report it with the traceback below.[/dim]\n")
         traceback.print_exc()

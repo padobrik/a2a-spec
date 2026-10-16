@@ -54,7 +54,7 @@ class PipelineDAG:
             ConfigError: If the graph contains a cycle.
         """
         agent_set = set(self.agents)
-        in_degree: dict[str, int] = {a: 0 for a in self.agents}
+        in_degree: dict[str, int] = dict.fromkeys(self.agents, 0)
         for edge in self.edges:
             if edge.to_agent in agent_set and edge.from_agent in agent_set:
                 in_degree[edge.to_agent] += 1

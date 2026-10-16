@@ -127,7 +127,7 @@ def test_command(
         try:
             adapters = load_adapters(config)
             scenarios = load_scenarios(config)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  # the user's adapters package can raise anything
             out.print(f"[red]Cannot run live: {e}[/red]")
             raise typer.Exit(1) from None
     else:
@@ -262,7 +262,7 @@ def _live_cases(spec: Spec, adapter: Any, scenarios: list[Scenario]) -> Iterator
         expected = sc.expectations.get(spec.producer)
         try:
             response = asyncio.run(adapter.call(sc.input))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  # a failing agent fails its case
             yield Case(sc.name, sc.input, error=f"agent call failed: {e}", expected=expected)
             continue
         yield Case(sc.name, sc.input, response.output, expected=expected)

@@ -71,7 +71,7 @@ def record_command(
     # Load adapters from user's project
     try:
         adapters = load_adapters(config)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  # the user's adapters package can raise anything
         console.print(f"[red]Failed to load adapters: {e}[/red]")
         raise typer.Exit(1) from None
 
@@ -113,7 +113,7 @@ def record_command(
                 asyncio.run(recorder.record(adapter, sc.name, sc.input))
                 console.print(f"    [green]PASS[/green] {agent_id} / {sc.name} recorded")
                 recorded += 1
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001  # a failing agent is reported per scenario
                 console.print(f"    [red]FAIL[/red] {agent_id} / {sc.name}: {e}")
                 errors += 1
 

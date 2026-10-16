@@ -82,17 +82,28 @@ target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "ANN", "B", "SIM"]
+select = [
+    "E", "F", "I", "N", "UP", "ANN", "B", "SIM",
+    "RUF",  # ruff-specific checks, including unused noqa comments
+    "S",    # security (bandit)
+    "BLE",  # blind except Exception
+    "PT",   # pytest style
+    "C4", "PIE", "PTH", "RET",
+]
 ignore = [
     "ANN401", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN206",
     # B904 removed: all re-raised exceptions now use 'from e' to preserve tracebacks
     "B905",   # zip() strict — not needed for guaranteed-same-length AST nodes
     "SIM108", # ternary operator — readability preference
     "SIM102", # nested if — readability preference
+    "RUF022", # unsorted __all__ — exports are grouped by topic on purpose
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ANN"]
+# Tests assert, run known commands and parse their own JUnit output.
+"tests/*" = ["ANN", "S101", "S603", "S607", "S314"]
+# Pytest style rules are for tests; src has a CLI command named test.
+"src/*" = ["PT"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
