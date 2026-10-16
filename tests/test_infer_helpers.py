@@ -98,6 +98,17 @@ class TestPythonHelpers:
         )
         assert _analyze(tmp_path, code).reads == []
 
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "    try:\n        pass\n    except OSError as render:\n        return render(data)\n",
+            "    match data:\n        case render:\n            return render(data)\n",
+        ],
+    )
+    def test_except_and_match_names_shadow_a_function(self, tmp_path: Path, body: str) -> None:
+        code = "def render(x):\n    return x['secret']\n\n\ndef run(data):\n" + body
+        assert _analyze(tmp_path, code).reads == []
+
     def test_unknown_function_still_warns(self, tmp_path: Path) -> None:
         result = _analyze(tmp_path, "def run(d):\n    return helper(d)\n")
         assert result.warnings == [
@@ -200,6 +211,8 @@ class TestTypeScriptHelpers:
             "function run(data, [render]) {\n  return render(data);\n}\n",
             "function run(data, fs) {\n  return fs.map(render => render(data));\n}\n",
             "function run(data, o) {\n  const { fn: render } = o;\n  return render(data);\n}\n",
+            "function run(data) {\n  try { go(); } catch (render) { return render(data); }\n}\n",
+            "function run(data, fs) {\n  for (const render of fs) { render(data); }\n}\n",
         ],
     )
     def test_bound_name_shadows_a_function(self, tmp_path: Path, run: str) -> None:
