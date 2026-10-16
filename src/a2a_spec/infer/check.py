@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from a2a_spec.infer.consumer import analyze_consumer, parse_source_ref
 from a2a_spec.spec.schema import Spec
@@ -37,26 +38,60 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
 
     path, function = parse_source_ref(spec.inferred_from)
     reads = analyze_consumer(path, function)
-    covered = set(spec.structural.properties) | set(spec.structural.required)
-    required = set(spec.structural.required)
+    root = {"required": spec.structural.required, "properties": spec.structural.properties}
 
     failures: list[str] = []
-    for name in reads.fields:
-        lines = ", ".join(str(r.line) for r in reads.reads if r.name == name)
-        strict = any(r.strict for r in reads.reads if r.name == name)
-        if name not in covered:
-            failures.append(
-                f"{function} reads '{name}' (line {lines}), which the spec does not cover"
-            )
-        elif strict and name not in required:
-            failures.append(
-                f"{function} reads '{name}' with [] (line {lines}), but the spec makes it optional"
-            )
+    reported: set[tuple[str, ...]] = set()
+    for read in reads.reads:
+        schema: Any = root
+        for depth, key in enumerate(read.path):
+            path_ = read.path[: depth + 1]
+            name = ".".join(path_)
+            below = [r for r in reads.reads if r.path[: depth + 1] == path_]
+            lines = ", ".join(str(n) for n in sorted({r.line for r in below}))
+            required = _list(schema, "required")
+            properties = _dict(schema, "properties")
+            if key not in properties and key not in required:
+                problem = f"{function} reads '{name}' (line {lines}), which the spec does not cover"
+            elif any(r.strict[depth] for r in below) and key not in required:
+                problem = (
+                    f"{function} reads '{name}' with [] (line {lines}), "
+                    "but the spec makes it optional"
+                )
+            else:
+                schema = properties.get(key, {})
+                continue
+            if path_ not in reported:
+                reported.add(path_)
+                failures.append(problem)
+            break
 
-    read = set(reads.fields)
+    read_paths = {r.path[:n] for r in reads.reads for n in range(1, len(r.path) + 1)}
     warnings = [
-        f"the spec covers '{name}', which {function} no longer reads"
-        for name in sorted(covered - read)
+        f"the spec covers '{'.'.join(p)}', which {function} no longer reads"
+        for p in _covered(root, ())
+        if p not in read_paths
     ]
     warnings += reads.warnings
     return FreshnessResult(spec=spec, failures=failures, warnings=warnings)
+
+
+def _covered(schema: Any, parent: tuple[str, ...]) -> list[tuple[str, ...]]:
+    """Every key path the spec names, parents before children."""
+    paths: list[tuple[str, ...]] = []
+    properties = _dict(schema, "properties")
+    for key in dict.fromkeys([*_list(schema, "required"), *properties]):
+        path = (*parent, key)
+        paths.append(path)
+        paths += _covered(properties.get(key), path)
+    return paths
+
+
+def _list(schema: Any, key: str) -> list[Any]:
+    value = schema.get(key) if isinstance(schema, dict) else None
+    return value if isinstance(value, list) else []
+
+
+def _dict(schema: Any, key: str) -> dict[str, Any]:
+    value = schema.get(key) if isinstance(schema, dict) else None
+    return value if isinstance(value, dict) else {}

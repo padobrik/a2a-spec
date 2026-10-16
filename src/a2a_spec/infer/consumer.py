@@ -14,15 +14,22 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class FieldRead:
-    """One read of a top-level input field.
+    """One read of an input field, possibly nested.
 
-    ``strict`` is True for ``data["key"]``, which raises when the key is
-    missing, and False for ``data.get("key")`` or ``"key" in data``.
+    ``path`` is the chain of keys from the input, for example
+    ``("customer", "tier")`` for ``data["customer"]["tier"]``. ``strict`` has
+    one flag per key: True for ``x["key"]``, which raises when the key is
+    missing, and False for ``x.get("key")`` or ``"key" in x``.
     """
 
-    name: str
+    path: tuple[str, ...]
     line: int
-    strict: bool
+    strict: tuple[bool, ...]
+
+    @property
+    def name(self) -> str:
+        """The dotted path, for messages: ``customer.tier``."""
+        return ".".join(self.path)
 
 
 @dataclass(frozen=True)
@@ -36,7 +43,7 @@ class ConsumerReads:
 
     @property
     def fields(self) -> list[str]:
-        """Field names in first-read order, without duplicates."""
+        """Dotted paths in first-read order, without duplicates."""
         return list(dict.fromkeys(r.name for r in self.reads))
 
 
@@ -110,7 +117,7 @@ class _ReadVisitor(ast.NodeVisitor):
         if self._is_param(node.value) and isinstance(node.ctx, ast.Load):
             key = node.slice
             if isinstance(key, ast.Constant) and isinstance(key.value, str):
-                self.reads.append(FieldRead(key.value, node.lineno, strict=True))
+                self.reads.append(FieldRead((key.value,), node.lineno, (True,)))
             else:
                 self._warn(node, "reads a non-literal key")
             self.visit(key)
@@ -123,7 +130,7 @@ class _ReadVisitor(ast.NodeVisitor):
             if func.attr == "get" and node.args:
                 key = node.args[0]
                 if isinstance(key, ast.Constant) and isinstance(key.value, str):
-                    self.reads.append(FieldRead(key.value, node.lineno, strict=False))
+                    self.reads.append(FieldRead((key.value,), node.lineno, (False,)))
                 else:
                     self._warn(node, "calls .get() with a non-literal key")
             else:
@@ -141,7 +148,7 @@ class _ReadVisitor(ast.NodeVisitor):
             and isinstance(node.left, ast.Constant)
             and isinstance(node.left.value, str)
         ):
-            self.reads.append(FieldRead(node.left.value, node.lineno, strict=False))
+            self.reads.append(FieldRead((node.left.value,), node.lineno, (False,)))
             return
         self.generic_visit(node)
 

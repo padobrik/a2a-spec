@@ -19,11 +19,20 @@ def _snap(scenario: str, output: dict[str, Any]) -> Snapshot:
     return Snapshot(fingerprint=fp, scenario=scenario, input_data={}, output_data=output)
 
 
-def _reads(*reads: tuple[str, int, bool], warnings: list[str] | None = None) -> ConsumerReads:
+def _strict(name: str, strict: bool | tuple[bool, ...]) -> tuple[bool, ...]:
+    """One flag per key; a single bool applies to the last key, the parents are strict."""
+    if isinstance(strict, tuple):
+        return strict
+    return (True,) * name.count(".") + (strict,)
+
+
+def _reads(
+    *reads: tuple[str, int, bool | tuple[bool, ...]], warnings: list[str] | None = None
+) -> ConsumerReads:
     return ConsumerReads(
         source="res.py:run",
         param="data",
-        reads=[FieldRead(n, line, strict) for n, line, strict in reads],
+        reads=[FieldRead(tuple(n.split(".")), line, _strict(n, s)) for n, line, s in reads],
         warnings=warnings or [],
     )
 
