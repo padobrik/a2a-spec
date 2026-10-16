@@ -16,6 +16,8 @@ class AgentTraceStep:
     latency_ms: float
     spec_passed: bool | None = None
     spec_errors: list[str] = field(default_factory=list)
+    # True when a spec for this agent has semantic rules that were not evaluated.
+    semantic_skipped: bool = False
 
 
 @dataclass

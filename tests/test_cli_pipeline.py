@@ -54,10 +54,10 @@ def _adapters(triage_output: str, with_triage: bool = True) -> str:
     )
 
 
-def _project(tmp_path: Path, adapters: str) -> None:
+def _project(tmp_path: Path, adapters: str, spec: str = SPEC) -> None:
     root = tmp_path / "a2a_spec"
     (root / "specs").mkdir(parents=True)
-    (root / "specs" / "t2r.yaml").write_text(SPEC)
+    (root / "specs" / "t2r.yaml").write_text(spec)
     (root / "adapters").mkdir()
     (root / "adapters" / "__init__.py").write_text(adapters)
     (tmp_path / "pipeline.yaml").write_text(PIPELINE)
@@ -122,3 +122,82 @@ class TestPipelineCli:
         _project(tmp_path, "ADAPTERS = {}\n")
         result = runner.invoke(app, ["pipeline", "test", "pipeline.yaml", "--mode", "fast"])
         assert result.exit_code == 2
+
+
+RULES_SPEC = (
+    SPEC
+    + """  policy:
+    - rule: no_card_numbers
+      method: regex
+      patterns: ['\\d{4}-\\d{4}']
+  semantic:
+    - rule: summary_reflects_input
+      method: embedding_similarity
+      threshold: 0.8
+      source_field: message
+      target_field: summary
+"""
+)
+
+
+class _FakeEncoder:
+    def encode(self, texts: str | list[str]) -> list[list[float]]:
+        vectors = {"charged twice": [1.0, 0.0], "duplicate charge": [0.9, 0.1]}
+        return [vectors.get(t, [0.0, 1.0]) for t in texts]
+
+
+class _MissingExtraEncoder:
+    def encode(self, texts: str | list[str]) -> list[list[float]]:
+        raise ImportError("sentence-transformers is required for semantic features.")
+
+
+def _use_encoder(monkeypatch, encoder: object) -> None:
+    from a2a_spec.cli import pipeline_cmd
+    from a2a_spec.semantic.engine import SemanticEngine
+
+    monkeypatch.setattr(pipeline_cmd, "SemanticEngine", lambda **_: SemanticEngine(model=encoder))
+
+
+def _run_live(tmp_path: Path, monkeypatch, triage_output: str, *extra: str):
+    monkeypatch.chdir(tmp_path)
+    _project(tmp_path, _adapters(triage_output), RULES_SPEC)
+    return runner.invoke(app, ["pipeline", "test", "pipeline.yaml", "--mode", "live", *extra])
+
+
+class TestPipelineRules:
+    def test_all_rules_pass(self, tmp_path: Path, monkeypatch) -> None:
+        _use_encoder(monkeypatch, _FakeEncoder())
+        output = "{'category': 'billing', 'summary': 'duplicate charge'}"
+        result = _run_live(tmp_path, monkeypatch, output)
+        assert result.exit_code == 0, result.output
+        assert "PASS triage-agent" in _flat(result.output)
+
+    def test_policy_violation_fails(self, tmp_path: Path, monkeypatch) -> None:
+        _use_encoder(monkeypatch, _FakeEncoder())
+        output = "{'category': 'billing', 'summary': 'duplicate charge on 1234-5678'}"
+        result = _run_live(tmp_path, monkeypatch, output)
+        assert result.exit_code == 1
+        assert "triage-to-resolution: policy no_card_numbers:" in _flat(result.output)
+
+    def test_semantic_drift_fails(self, tmp_path: Path, monkeypatch) -> None:
+        _use_encoder(monkeypatch, _FakeEncoder())
+        output = "{'category': 'billing', 'summary': 'package lost'}"
+        result = _run_live(tmp_path, monkeypatch, output)
+        assert result.exit_code == 1
+        assert "summary_reflects_input: similarity 0.00 < threshold 0.80" in _flat(result.output)
+
+    def test_missing_extra_errors(self, tmp_path: Path, monkeypatch) -> None:
+        _use_encoder(monkeypatch, _MissingExtraEncoder())
+        output = "{'category': 'billing', 'summary': 'duplicate charge'}"
+        result = _run_live(tmp_path, monkeypatch, output)
+        assert result.exit_code == 1
+        out = _flat(result.output)
+        assert "sentence-transformers is required" in out
+        assert "--no-semantic" in out
+
+    def test_no_semantic_skips_visibly(self, tmp_path: Path, monkeypatch) -> None:
+        _use_encoder(monkeypatch, _MissingExtraEncoder())
+        output = "{'category': 'billing', 'summary': 'package lost'}"
+        result = _run_live(tmp_path, monkeypatch, output, "--no-semantic")
+        assert result.exit_code == 0, result.output
+        assert "semantic SKIPPED" in result.output
