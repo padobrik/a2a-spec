@@ -1,0 +1,5 @@
+# agent-handshake configuration for the LLM support example.
+# Run every command from examples/llm_support.
+project_name: "llm-support"
+semantic:
+  model: all-MiniLM-L6-v2

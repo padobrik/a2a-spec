@@ -1,0 +1,2 @@
+agent-handshake[semantic]
+anthropic>=1.15

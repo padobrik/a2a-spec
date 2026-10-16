@@ -112,3 +112,12 @@ Assumptions made where the request or the code was ambiguous.
   project folder, pytest options, class names, PyPI package): the owner
   confirmed the project had no users at the time of the rename.
 - `a2a-spec` stays on PyPI at 0.6.0 as it is; no further releases.
+
+## LLM example
+
+- `examples/llm_support` calls a hosted model through its vendor's SDK and
+  names that vendor in its code and README. The owner approved this as an
+  exception for the example only; commit messages and PR descriptions stay
+  free of vendor and assistant names.
+- Snapshots are not committed until they are recorded with a real API key,
+  so the example never shows made-up model output as recorded output.
