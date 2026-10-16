@@ -72,3 +72,38 @@ class TestConfigLoader:
         config_file.write_text('storage:\n  path: "/custom/path"')
         config = load_config(config_file)
         assert config.storage.path == "/custom/path"
+
+
+class TestUnknownSettings:
+    def test_typo_suggests_the_closest_setting(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "handshake.yaml"
+        config_file.write_text("spec_dir: ./specs\n")
+        with pytest.raises(ConfigError) as info:
+            load_config(config_file)
+        message = str(info.value)
+        assert message.startswith(f"{config_file}: Unknown setting 'spec_dir'.")
+        assert "Did you mean 'specs_dir'?" in message
+        assert "Known settings: project_name, version, specs_dir" in message
+
+    def test_nested_typo(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "handshake.yaml"
+        config_file.write_text("storage:\n  pth: ./snaps\n")
+        with pytest.raises(ConfigError) as info:
+            load_config(config_file)
+        message = str(info.value)
+        assert "Unknown setting 'storage.pth'. Did you mean 'storage.path'?" in message
+        assert "Known settings in 'storage': backend, path." in message
+
+    def test_no_close_match_lists_the_settings(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "handshake.yaml"
+        config_file.write_text("zzz: 1\n")
+        with pytest.raises(ConfigError) as info:
+            load_config(config_file)
+        assert "Did you mean" not in str(info.value)
+        assert "Unknown setting 'zzz'. Known settings:" in str(info.value)
+
+    def test_models_reject_unknown_fields(self) -> None:
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            HandshakeConfig.model_validate({"spec_dir": "x"})
