@@ -64,6 +64,14 @@ handshake infer --producer ID --consumer ID --source FILE.py:FUNCTION [--name NA
 handshake infer --check
 ```
 
+`--source` can also name a TypeScript or JavaScript function
+(`agents/resolution.ts:resolutionAgent`) when the `typescript` extra is
+installed. Function declarations, methods, and functions bound to a name
+(`const resolutionAgent = async (ticket) => ...`) are found. Reading a missing
+key in JavaScript gives `undefined`, so a key counts as read with `[]` only
+when the code uses it without a fallback: `ticket.customer.tier` makes
+`customer` strict, `ticket.customer?.tier` does not.
+
 The generated spec records its consumer in `inferred_from`. `--check`
 compares every such spec with the consumer's current code and exits 1 when
 the code reads a field the spec does not cover, or reads with `data["key"]`

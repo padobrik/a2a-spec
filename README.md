@@ -393,7 +393,8 @@ This command writes `path/to/skills/agent-handshake/SKILL.md`. Export the skill 
 
 ## Limits
 
-- `handshake infer` reads Python consumers only. It finds `data["key"]`, `data.get("key")` and `"key" in data`, also in nested objects (`data["customer"]["tier"]`, `data.get("customer", {}).get("tier")`) and through a local name (`customer = data["customer"]`). It does not follow list items.
+- `handshake infer` reads Python consumers. It finds `data["key"]`, `data.get("key")` and `"key" in data`, also in nested objects (`data["customer"]["tier"]`, `data.get("customer", {}).get("tier")`) and through a local name (`customer = data["customer"]`). It does not follow list items.
+- `handshake infer` also reads TypeScript and JavaScript consumers (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`) after `pip install "agent-handshake[typescript]"`. It finds `data.key`, `data["key"]`, `data?.key`, `"key" in data` and destructuring (`const { key } = data`). The code is parsed, not run, so Node.js is not needed.
 - If the consumer gives its input to another function, `handshake infer` cannot follow it. The command then shows a `WARN` line. Add the missing fields to the spec by hand.
 - `handshake infer --check` checks only specs that contain `inferred_from`. Specs from agent-handshake 0.3 and earlier do not have it. Run `handshake infer` with `--force` again to add it.
 - `handshake diff` compares with the snapshots in git. Commit the snapshots before you use it.
