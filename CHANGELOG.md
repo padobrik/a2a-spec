@@ -12,8 +12,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   the spec, including modules in the project directory. Before, the CLI and
   the pytest plugin never loaded it, so every `custom` rule failed with
   "not registered".
+- `handshake infer` writes `inferred_from` with `/` on every OS. A spec
+  inferred on Windows had `\` in it, and `handshake infer --check` could not
+  find the consumer on Linux or macOS.
 
 ### Added
+- The GitHub Action has an output, `test-exit-code`: the exit code of
+  `handshake test`, empty when that step did not run.
 - `handshake infer` and `handshake infer --check` read TypeScript and
   JavaScript consumers (`.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`) with the
   new `typescript` extra. They find member and subscript reads, optional
