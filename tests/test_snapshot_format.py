@@ -68,6 +68,8 @@ BROKEN = [
     (json.dumps({k: v for k, v in GOOD.items() if k != "output"}), "has no 'output' field"),
     (json.dumps({**GOOD, "output": "text"}), "has a 'output' field that is not an object"),
     (json.dumps({**GOOD, "schema_version": "1"}), "has a schema_version that is not an integer"),
+    (json.dumps({**GOOD, "schema_version": None}), "has a schema_version that is not an integer"),
+    (json.dumps({**GOOD, "schema_version": 0}), "has schema_version 0; versions start at 1"),
     (json.dumps({**GOOD, "schema_version": 99}), "has schema_version 99"),
 ]
 
@@ -137,6 +139,13 @@ class TestNoNeedlessRewrite:
         store.save(_snapshot())  # a new timestamp and metadata, same content
         assert path.stat().st_mtime_ns == mtime
         assert path.read_bytes() == before
+
+    def test_change_of_json_type_rewrites(self, tmp_path: Path) -> None:
+        store = SnapshotStore(tmp_path)
+        path = store.save(_snapshot({"value": 1}))
+        store.save(_snapshot({"value": True}))
+        # Python treats 1 == True, so compare the JSON text.
+        assert json.dumps(json.loads(path.read_text())["output"]) == '{"value": true}'
 
     def test_changed_output_rewrites(self, tmp_path: Path) -> None:
         store = SnapshotStore(tmp_path)
