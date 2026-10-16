@@ -11,6 +11,9 @@ from agent_handshake.exceptions import ConfigError
 
 logger = logging.getLogger(__name__)
 
+# Files read by the TypeScript analyzer (agent_handshake.infer.ts_consumer).
+TS_LIKE_SUFFIXES = frozenset({".ts", ".mts", ".cts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"})
+
 
 @dataclass(frozen=True)
 class FieldRead:
@@ -71,6 +74,10 @@ def analyze_consumer(path: str | Path, function: str) -> ConsumerReads:
     path = Path(path)
     if not path.exists():
         raise ConfigError(f"Consumer source not found: {path}")
+    if path.suffix in TS_LIKE_SUFFIXES:
+        from agent_handshake.infer.ts_consumer import analyze_ts_consumer
+
+        return analyze_ts_consumer(path, function)
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     except SyntaxError as e:
