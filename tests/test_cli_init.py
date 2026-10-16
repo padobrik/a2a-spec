@@ -34,6 +34,13 @@ class TestCliInit:
         runner.invoke(app, ["init", str(tmp_path)])
         assert "existing: true" in config.read_text()
 
+    def test_init_keeps_yml_config(self, tmp_path: Path) -> None:
+        (tmp_path / "handshake.yml").write_text("project_name: kept\n")
+        result = runner.invoke(app, ["init", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "Exists" in result.output and "handshake.yml" in result.output
+        assert not (tmp_path / "handshake.yaml").exists()
+
     def test_init_default_project_name(self, tmp_path: Path) -> None:
         result = runner.invoke(app, ["init", str(tmp_path)])
         assert result.exit_code == 0
