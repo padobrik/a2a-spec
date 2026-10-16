@@ -24,10 +24,10 @@ def rate_for_consumers(results: list[DiffResult], specs: list[Spec]) -> list[Dif
     """
     if not specs:
         return results
-    named = {spec.name: {".".join(p) for p in field_paths(spec_schema(spec))} for spec in specs}
+    named = [(spec, {".".join(p) for p in field_paths(spec_schema(spec))}) for spec in specs]
     rated: list[DiffResult] = []
     for result in results:
-        readers = [s for s in specs if _names(named[s.name], result.field)]
+        readers = [spec for spec, paths in named if _names(paths, result.field)]
         change = result.structural.change_type if result.structural else ""
         if not readers:
             rated.append(
