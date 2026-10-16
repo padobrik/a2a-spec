@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "agent_id": "verifier",
+  "scenario": "fails",
+  "input": {
+    "prompt": "Report:\nInitial report\n\nSource summaries:\nSource summary 1:\nPrimary source summary"
+  },
+  "output": {
+    "verified": false,
+    "issues": "Resolve verification issue 1."
+  }
+}

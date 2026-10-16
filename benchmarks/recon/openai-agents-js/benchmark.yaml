@@ -1,0 +1,63 @@
+project: openai-agents-js (financial-research-agent)
+repository: https://github.com/openai/openai-agents-js
+commit: 9687b544c8c873080e6ff7e7d294c0b353cd9ab6
+# Links L2, L3 (search agent, free text) and L6 (report serialized whole with
+# JSON.stringify, manager.ts:162) have no field reads, so they have no case.
+cases:
+  - id: planner
+    links: [L1]
+    producer: planner
+    consumer: search
+    source: examples/financial-research-agent/manager.ts:performSearches
+    note: list items go to the helper method search(item), which reads query and reason
+    expected:
+      - path: searches
+        at: examples/financial-research-agent/manager.ts:95
+      - path: searches[].query
+        at: examples/financial-research-agent/manager.ts:116
+      - path: searches[].reason
+        at: examples/financial-research-agent/manager.ts:116
+  - id: writer-to-verifier
+    links: [L4]
+    producer: writer
+    consumer: verifier
+    source: examples/financial-research-agent/manager.ts:verifyReport
+    expected:
+      - path: markdown_report
+        at: examples/financial-research-agent/manager.ts:141
+  - id: verifier-to-reviser
+    links: [L5]
+    producer: verifier
+    consumer: writer
+    source: examples/financial-research-agent/manager.ts:reviseReport
+    note: verification is the third parameter; the first is the query string
+    expected:
+      - path: issues
+        at: examples/financial-research-agent/manager.ts:159
+  - id: verifier-to-manager-loop
+    links: [L5]
+    producer: verifier
+    consumer: manager
+    source: examples/financial-research-agent/manager.ts:run
+    note: reads a local variable set from verifyReport(); issues is also read at line 71 but is counted in verifier-to-reviser
+    expected:
+      - path: verified
+        at: examples/financial-research-agent/manager.ts:59
+  - id: fundamentals
+    links: [L7]
+    producer: fundamentals
+    consumer: writer
+    source: examples/financial-research-agent/manager.ts:summaryExtractor
+    note: read through the RunResult wrapper, runResult.finalOutput.summary
+    expected:
+      - path: summary
+        at: examples/financial-research-agent/manager.ts:26
+  - id: risk
+    links: [L8]
+    producer: risk
+    consumer: writer
+    source: examples/financial-research-agent/manager.ts:summaryExtractor
+    note: same extractor as fundamentals, used for the risk agent tool
+    expected:
+      - path: summary
+        at: examples/financial-research-agent/manager.ts:26
