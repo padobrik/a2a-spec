@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from agent_handshake.infer.consumer import analyze_consumer, parse_source_ref
+from agent_handshake.infer.paths import ITEMS, dotted
 from agent_handshake.spec.fields import field_paths, schema_dict, schema_list, spec_schema
 from agent_handshake.spec.schema import Spec
 
@@ -47,8 +48,11 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
     for read in reads.reads:
         schema: Any = root
         for depth, key in enumerate(read.path):
+            if key == ITEMS:
+                schema = schema_dict(schema, "items")
+                continue
             path_ = read.path[: depth + 1]
-            name = ".".join(path_)
+            name = dotted(path_)
             below = [r for r in reads.reads if r.path[: depth + 1] == path_]
             lines = ", ".join(str(n) for n in sorted({r.line for r in below}))
             required = schema_list(schema, "required")
@@ -74,7 +78,7 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
 
     read_paths = {r.path[:n] for r in reads.reads for n in range(1, len(r.path) + 1)}
     warnings = [
-        f"the spec covers '{'.'.join(p)}', which {function} no longer reads"
+        f"the spec covers '{dotted(p)}', which {function} no longer reads"
         for p in field_paths(root)
         if p not in read_paths
     ]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from agent_handshake.infer.paths import ITEMS
 from agent_handshake.spec.schema import Spec
 
 
@@ -13,13 +14,19 @@ def spec_schema(spec: Spec) -> dict[str, Any]:
 
 
 def field_paths(schema: Any, parent: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
-    """Every key path the schema names, parents before children."""
+    """Every key path the schema names, parents before children.
+
+    Keys of list items are under ``ITEMS``: ``("searches", "[]", "query")``.
+    """
     paths: list[tuple[str, ...]] = []
     properties = schema_dict(schema, "properties")
     for key in dict.fromkeys([*schema_list(schema, "required"), *properties]):
         path = (*parent, key)
         paths.append(path)
         paths += field_paths(properties.get(key), path)
+        items = schema_dict(properties.get(key), "items")
+        if items:
+            paths += field_paths(items, (*path, ITEMS))
     return paths
 
 
