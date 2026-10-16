@@ -1,0 +1,25 @@
+{
+  "fingerprint": "0c17356e6953",
+  "agent_id": "triage-agent",
+  "scenario": "double_charge",
+  "timestamp": "2026-10-16T07:56:25.353013+00:00",
+  "input": {
+    "message": "I was charged twice for order #4411. Please refund the second payment today."
+  },
+  "output": {
+    "category": "billing",
+    "priority": "high",
+    "summary": "The customer was charged twice for order #4411 and wants the second payment refunded today.",
+    "customer": {
+      "sentiment": "upset",
+      "wants_refund": true
+    }
+  },
+  "metadata": {
+    "agent_version": "claude-haiku-5-5",
+    "model": null,
+    "prompt_hash": null,
+    "latency_ms": 2282.6518330002727,
+    "token_usage": null
+  }
+}
