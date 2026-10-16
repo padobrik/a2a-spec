@@ -9,7 +9,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 - `handshake infer` and `handshake infer --check` read TypeScript and
-  JavaScript consumers (`.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`) with the
+  JavaScript consumers (`.ts`, `.mts`, `.cts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`) with the
   new `typescript` extra. They find member and subscript reads, optional
   chaining, `in` checks, destructuring and local aliases, also in nested
   objects. The code is parsed with tree-sitter; Node.js is not needed.
