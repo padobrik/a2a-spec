@@ -16,11 +16,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `--handshake-no-semantic`, ini option `handshake_config`, fixture
   `handshake_check`, and the GitHub Action `padobrik/agent-handshake`.
   `HandshakeError` and `HandshakeConfig` replace `A2ASpecError` and
-  `A2ASpecConfig`.
-- The old names still work: the `a2aspec` command, `a2a-spec.yaml`, the
-  `a2a_spec/` folder (when there is no `handshake/` folder), `--a2a`,
-  `--a2a-config`, `--a2a-no-semantic`, `a2a_config`, `a2a_check`,
-  `A2ASpecError` and `A2ASpecConfig`.
+  `A2ASpecConfig`. The old names are not kept: the project had no users yet.
 
 ### Added
 - `A2AAdapter` reads file parts. They go under `"files"` in the output: a URL

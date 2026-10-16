@@ -87,3 +87,10 @@ Assumptions made where the request or the code was ambiguous.
   content key raise instead of being dropped.
 - `agent_id` is required: it must match the producer/consumer ids in specs,
   which the agent's card name does not guarantee.
+
+## Rename to agent-handshake
+
+- No compatibility layer for the old a2a-spec names (command, config file,
+  project folder, pytest options, class names, PyPI package): the owner
+  confirmed the project had no users at the time of the rename.
+- `a2a-spec` stays on PyPI at 0.6.0 as it is; no further releases.
