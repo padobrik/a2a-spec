@@ -1,0 +1,1 @@
+{"fingerprint": "bbb222", "agent_id": "triage-agent", "scenario": "question", "input": {"message": "m"}, "output": {"category": "general", "urgency": "low"}}

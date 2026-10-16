@@ -1,0 +1,13 @@
+test_suite:
+  name: e2e
+
+scenarios:
+  - name: double_charge
+    input:
+      message: "I was charged twice. This is urgent."
+    expectations:
+      triage-agent:
+        category: billing
+  - name: question
+    input:
+      message: "How do I change my address?"

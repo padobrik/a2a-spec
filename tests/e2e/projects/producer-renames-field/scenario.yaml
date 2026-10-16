@@ -1,0 +1,17 @@
+description: A prompt change renamed priority to urgency; every report format fails and names the field.
+steps:
+  - run: handshake test --no-semantic
+    exit: 1
+    output: ["FAIL triage-to-resolution / question", "'priority' is a required property", "1 passed", "1 failed"]
+  - run: handshake test --no-semantic --format github
+    exit: 1
+    output: ["::error file=", "title=agent-handshake triage-to-resolution::question"]
+  - run: handshake test --no-semantic --format junit
+    exit: 1
+    output: ['tests="2" failures="1"']
+  - run: handshake test --no-semantic --format markdown
+    exit: 1
+    output: ["question"]
+  - run: pytest --handshake handshake/specs
+    exit: 1
+    output: ["1 failed, 1 passed", "'priority' is a required property"]

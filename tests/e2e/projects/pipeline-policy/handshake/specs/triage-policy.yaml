@@ -1,0 +1,12 @@
+spec:
+  name: triage-policy
+  version: "1.0"
+  producer: triage-agent
+  consumer: resolution-agent
+  structural:
+    type: object
+    required: [category]
+  policy:
+    - rule: no_card_numbers
+      method: regex
+      patterns: ['\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b']
