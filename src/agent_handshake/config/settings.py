@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StorageConfig(BaseModel):
     """Configuration for snapshot storage."""
+
+    model_config = ConfigDict(extra="forbid")
 
     backend: str = "local"
     path: str = "./handshake/snapshots"
@@ -15,11 +17,15 @@ class StorageConfig(BaseModel):
 class CIConfig(BaseModel):
     """Configuration for CI behavior."""
 
+    model_config = ConfigDict(extra="forbid")
+
     replay_mode: str = "exact"
 
 
 class HandshakeConfig(BaseModel):
     """Top-level project configuration."""
+
+    model_config = ConfigDict(extra="forbid")
 
     project_name: str = "my-project"
     version: str = "1.0"

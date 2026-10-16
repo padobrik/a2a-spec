@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import difflib
 from pathlib import Path
 
 import yaml
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from agent_handshake.config.settings import HandshakeConfig
 from agent_handshake.exceptions import ConfigError
@@ -49,9 +50,9 @@ def load_config(path: str | Path | None = None) -> HandshakeConfig:
     if not isinstance(raw, dict):
         raise ConfigError(f"Config must be a YAML mapping, got {type(raw).__name__}")
 
-    removed = _removed_setting(raw)
-    if removed is not None:
-        raise ConfigError(f"{config_path}: {removed}")
+    problem = _removed_setting(raw) or _unknown_setting(raw, HandshakeConfig)
+    if problem is not None:
+        raise ConfigError(f"{config_path}: {problem}")
 
     try:
         return HandshakeConfig.model_validate(raw)
@@ -82,4 +83,29 @@ def _removed_setting(raw: dict[str, object]) -> str | None:
                 f"Setting 'ci.{key}' was removed in {REMOVED_IN}; handshake diff fails on "
                 "high-severity drift. Delete it. See CHANGELOG.md."
             )
+    return None
+
+
+def _unknown_setting(
+    raw: dict[str, object], model: type[BaseModel], prefix: str = ""
+) -> str | None:
+    """A message for the first key the model does not know, with the closest known key."""
+    known = list(model.model_fields)
+    for key, value in raw.items():
+        if key not in known:
+            close = difflib.get_close_matches(str(key), known, n=1)
+            hint = f" Did you mean '{prefix}{close[0]}'?" if close else ""
+            where = f" in '{prefix[:-1]}'" if prefix else ""
+            return (
+                f"Unknown setting '{prefix}{key}'.{hint} Known settings{where}: {', '.join(known)}."
+            )
+        annotation = model.model_fields[key].annotation
+        if (
+            isinstance(value, dict)
+            and isinstance(annotation, type)
+            and issubclass(annotation, BaseModel)
+        ):
+            nested = _unknown_setting(value, annotation, f"{prefix}{key}.")
+            if nested is not None:
+                return nested
     return None

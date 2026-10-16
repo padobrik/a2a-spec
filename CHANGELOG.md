@@ -16,6 +16,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a newer version fails with a message to upgrade agent-handshake.
 
 ### Changed
+- `handshake.yaml` rejects unknown settings, also inside `storage` and `ci`,
+  and names the closest known one: `Unknown setting 'spec_dir'. Did you mean
+  'specs_dir'?`. Before, a typo was ignored and the default was used.
 - The pytest plugin turns on by itself when `handshake.yaml` is in the pytest
   rootdir and adds the specs directory to the run (unless test paths are named
   on the command line). Turn it off with `-p no:handshake` (the plugin is now
