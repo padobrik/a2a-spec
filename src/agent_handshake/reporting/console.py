@@ -13,6 +13,7 @@ console = Console()
 
 SEVERITY_STYLES: dict[DriftSeverity, str] = {
     DriftSeverity.NONE: "green",
+    DriftSeverity.INFO: "dim",
     DriftSeverity.LOW: "yellow",
     DriftSeverity.MEDIUM: "yellow bold",
     DriftSeverity.HIGH: "red",
@@ -22,6 +23,7 @@ SEVERITY_STYLES: dict[DriftSeverity, str] = {
 # Text labels for severity — terminal-safe, no emoji or special Unicode.
 SEVERITY_LABELS: dict[DriftSeverity, str] = {
     DriftSeverity.NONE: "PASS",
+    DriftSeverity.INFO: "INFO",
     DriftSeverity.LOW: "LOW ",
     DriftSeverity.MEDIUM: "WARN",
     DriftSeverity.HIGH: "FAIL",
