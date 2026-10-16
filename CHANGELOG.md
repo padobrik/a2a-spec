@@ -16,6 +16,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a newer version fails with a message to upgrade agent-handshake.
 
 ### Changed
+- The pytest plugin turns on by itself when `handshake.yaml` is in the pytest
+  rootdir and adds the specs directory to the run (unless test paths are named
+  on the command line). Turn it off with `-p no:handshake` (the plugin is now
+  registered as `handshake`) or `handshake_enabled = false`.
+- In the pytest plugin, a spec whose producer has no snapshots is a failed
+  test instead of a skipped one.
 - Exit codes are the same in every command: `0` everything passed, `1` a
   check found a problem (a broken contract, high-severity drift in `diff`,
   an out-of-date inferred spec, a failed agent call), `2` a configuration or

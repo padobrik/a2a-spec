@@ -236,15 +236,7 @@ Add `handshake infer --check` to CI. The pytest plugin also runs this check as t
 
 ## Run the tests with pytest
 
-agent-handshake has a pytest plugin. Add these lines to `pyproject.toml`:
-
-```toml
-[tool.pytest.ini_options]
-handshake_config = "handshake.yaml"
-testpaths = ["tests", "handshake/specs"]
-```
-
-pytest then runs one test for each snapshot:
+agent-handshake has a pytest plugin. It turns on by itself when `handshake.yaml` is in the pytest rootdir, and it adds the specs directory to the run. pytest then runs one test for each snapshot:
 
 ```
 $ pytest -v
@@ -252,7 +244,11 @@ handshake/specs/triage-agent-to-resolution-agent.yaml::double_charge PASSED   [ 
 handshake/specs/triage-agent-to-resolution-agent.yaml::question PASSED        [100%]
 ```
 
-The usual pytest options work, for example `-k`, `-x` and `--junitxml`. To run the tests one time without the configuration, use `pytest --handshake`.
+A spec whose producer has no snapshots is a failed test, not a skipped one. The usual pytest options work, for example `-k`, `-x` and `--junitxml`.
+
+- To turn the plugin off for one run, use `pytest -p no:handshake`. To keep it off, add `handshake_enabled = false` to the pytest configuration.
+- If `handshake.yaml` is somewhere else, use `pytest --handshake-config path/to/handshake.yaml`, or set `handshake_config` in the pytest configuration.
+- If you name test paths on the command line, the plugin does not add the specs directory.
 
 To test a live output in your own test, use the `handshake_check` fixture. This example is an `async` test, so it needs an async plugin such as `pytest-asyncio`.
 
