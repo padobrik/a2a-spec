@@ -7,10 +7,6 @@ class HandshakeError(Exception):
     """Base exception for all agent-handshake errors."""
 
 
-# Name before the rename to agent-handshake.
-A2ASpecError = HandshakeError
-
-
 class SpecValidationError(HandshakeError):
     """Raised when an agent output fails spec validation."""
 
