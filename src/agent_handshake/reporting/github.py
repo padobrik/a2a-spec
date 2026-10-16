@@ -51,7 +51,7 @@ def generate_annotations(
     Args:
         spec_name: The spec that was validated.
         validation: Structural validation result.
-        diff_results: Optional semantic diff results.
+        diff_results: Optional diff results.
 
     Returns:
         List of GitHub annotation strings.

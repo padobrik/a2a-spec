@@ -25,12 +25,6 @@ def diff_command(
         "-a",
         help="Diff only a specific agent.",
     ),
-    threshold: float = typer.Option(
-        0.85,
-        "--threshold",
-        "-t",
-        help="Semantic similarity threshold.",
-    ),
     base: str = typer.Option(
         "HEAD",
         "--base",
@@ -47,7 +41,7 @@ def diff_command(
     """Compare recorded snapshots against their committed baseline.
 
     'handshake record' overwrites snapshot files in place; this shows the
-    structural and semantic differences from the version at --base, plus
+    structural differences from the version at --base, plus
     scenarios added or deleted since then.
     """
     try:
@@ -58,23 +52,7 @@ def diff_command(
 
     store = SnapshotStore(config.storage.path)
 
-    semantic_model = None
-    if config.semantic.enabled:
-        # EmbeddingModel loads lazily, so probe the optional dependency here.
-        try:
-            import sentence_transformers  # noqa: F401
-
-            from agent_handshake.semantic.embeddings import EmbeddingModel
-
-            semantic_model = EmbeddingModel(config.semantic.model)
-        except ImportError:
-            console.print(
-                "[yellow]sentence-transformers not installed. "
-                "Using token overlap for comparison. "
-                "Install with: pip install agent-handshake\\[semantic][/yellow]\n"
-            )
-
-    engine = DiffEngine(semantic_model=semantic_model)
+    engine = DiffEngine()
 
     agents = [agent] if agent else store.list_agents()
 
@@ -88,7 +66,7 @@ def diff_command(
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(1) from None
 
-    console.print("\n[bold]\\[diff][/bold] Semantic Diff Report\n")
+    console.print("\n[bold]\\[diff][/bold] Diff Report\n")
 
     total_diffs = 0
     high_severity = 0
@@ -107,7 +85,7 @@ def diff_command(
             if old.output_data == new.output_data:
                 continue
 
-            results = engine.diff(old.output_data, new.output_data, threshold)
+            results = engine.diff(old.output_data, new.output_data)
             print_diff_results(agent_id, new.scenario, results)
 
             total_diffs += len(results)

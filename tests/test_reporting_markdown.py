@@ -28,9 +28,9 @@ class TestMarkdownReport:
 
     def test_with_diff_results(self) -> None:
         results = [{"spec_name": "s1", "scenario": "sc1", "passed": True}]
-        diffs = [{"field": "summary", "severity": "high", "explanation": "Semantic drift"}]
+        diffs = [{"field": "summary", "severity": "high", "explanation": "Field removed"}]
         report = generate_report("test-project", results, diff_results=diffs)
-        assert "Semantic Drift" in report
+        assert "## Drift" in report
         assert "summary" in report
 
     def test_empty_results(self) -> None:
