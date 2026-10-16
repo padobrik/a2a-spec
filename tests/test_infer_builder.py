@@ -99,3 +99,53 @@ class TestInferSpec:
         result = validate_output(renamed, spec)
         assert not result.passed
         assert any("'category' is a required property" in e for e in result.errors)
+
+
+NESTED = [
+    _snap("a", {"customer": {"tier": "pro", "vip": True}, "billing": {"plan": "x"}}),
+    _snap("b", {"customer": {"tier": "free"}}),
+]
+
+
+class TestInferNestedSpec:
+    def test_nested_object_schema(self) -> None:
+        reads = _reads(("customer.tier", 2, (True, False)), ("customer.vip", 3, (True, False)))
+        structural = infer_spec("triage", "res", reads, NESTED).data["structural"]
+        assert structural["required"] == ["customer"]
+        assert structural["properties"]["customer"] == {
+            "type": "object",
+            "required": ["tier"],
+            "properties": {"tier": {"type": "string"}, "vip": {"type": "boolean"}},
+        }
+
+    def test_required_only_where_parent_present(self) -> None:
+        reads = _reads(("billing.plan", 4, (False, False)))
+        spec = infer_spec("triage", "res", reads, NESTED)
+        structural = spec.data["structural"]
+        assert structural["required"] == []
+        assert structural["properties"]["billing"]["required"] == ["plan"]
+        assert spec.header[1:] == [
+            "  billing: optional, read at line 4",
+            "  billing.plan: required, read at line 4",
+        ]
+
+    def test_strict_nested_read_missing_warns(self) -> None:
+        spec = infer_spec("triage", "res", _reads(("customer.vip", 5, True)), NESTED)
+        assert spec.warnings == ["'customer.vip' is read with [] by res (line 5) but missing in: b"]
+
+    def test_never_sent_parent_warns_once(self) -> None:
+        spec = infer_spec("triage", "res", _reads(("account.owner.id", 6, False)), NESTED)
+        assert spec.warnings == [
+            "'account' is read by res (line 6) but triage never sent it in any snapshot"
+        ]
+        account = spec.data["structural"]["properties"]["account"]
+        assert account["properties"]["owner"]["properties"] == {"id": {}}
+
+    def test_nested_spec_catches_inner_rename(self) -> None:
+        reads = _reads(("customer.tier", 2, False))
+        text = infer_spec("triage", "res", reads, NESTED, name="t2r").to_yaml()
+        spec = Spec.model_validate(yaml.safe_load(text)["spec"])
+        for snap in NESTED:
+            assert validate_output(snap.output_data, spec).passed
+        result = validate_output({"customer": {"level": "pro"}}, spec)
+        assert any("'tier' is a required property" in e for e in result.errors)

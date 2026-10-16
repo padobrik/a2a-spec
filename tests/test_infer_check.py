@@ -66,3 +66,52 @@ class TestCheckInferredSpec:
     def test_missing_consumer(self, tmp_path: Path) -> None:
         with pytest.raises(ConfigError, match="not found"):
             check_inferred_spec(_spec(f"{tmp_path / 'gone.py'}:run", [], []))
+
+
+def _nested_spec(source: str, customer: dict[str, object], required: list[str]) -> Spec:
+    return Spec(
+        name="t2r",
+        version="1.0",
+        producer="triage",
+        consumer="res",
+        inferred_from=source,
+        structural=StructuralSpec(required=required, properties={"customer": customer}),
+    )
+
+
+class TestCheckNestedSpec:
+    TIER = {"type": "object", "required": ["tier"], "properties": {"tier": {}}}
+
+    def test_up_to_date(self, tmp_path: Path) -> None:
+        src = _consumer(tmp_path, "return data['customer']['tier']")
+        result = check_inferred_spec(_nested_spec(src, self.TIER, ["customer"]))
+        assert result.passed and result.warnings == []
+
+    def test_new_nested_field_fails(self, tmp_path: Path) -> None:
+        src = _consumer(tmp_path, "c = data['customer']\n    return c['tier'], c.get('region')")
+        result = check_inferred_spec(_nested_spec(src, self.TIER, ["customer"]))
+        assert result.failures == [
+            "run reads 'customer.region' (line 3), which the spec does not cover"
+        ]
+
+    def test_strict_nested_read_of_optional_field_fails(self, tmp_path: Path) -> None:
+        src = _consumer(tmp_path, "return data['customer']['vip']")
+        customer = {"type": "object", "properties": {"vip": {}}}
+        result = check_inferred_spec(_nested_spec(src, customer, ["customer"]))
+        assert result.failures == [
+            "run reads 'customer.vip' with [] (line 2), but the spec makes it optional"
+        ]
+
+    def test_flat_spec_misses_nested_read(self, tmp_path: Path) -> None:
+        src = _consumer(tmp_path, "return data['customer']['tier'], data['customer']['vip']")
+        result = check_inferred_spec(_nested_spec(src, {"type": "object"}, ["customer"]))
+        assert result.failures == [
+            "run reads 'customer.tier' (line 2), which the spec does not cover",
+            "run reads 'customer.vip' (line 2), which the spec does not cover",
+        ]
+
+    def test_nested_field_no_longer_read_warns(self, tmp_path: Path) -> None:
+        src = _consumer(tmp_path, "return data.get('customer')")
+        result = check_inferred_spec(_nested_spec(src, self.TIER, []))
+        assert result.passed
+        assert result.warnings == ["the spec covers 'customer.tier', which run no longer reads"]
