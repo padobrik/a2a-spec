@@ -5,8 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel
 
-from agent_handshake.config.loader import load_config
+from agent_handshake.config.loader import _unknown_setting, load_config
 from agent_handshake.config.settings import HandshakeConfig
 from agent_handshake.exceptions import ConfigError
 
@@ -72,3 +73,32 @@ class TestUnknownSettings:
 
         with pytest.raises(ValidationError):
             HandshakeConfig.model_validate({"specs_dir": "x"})
+
+
+class TestLookupAndValidation:
+    def test_finds_handshake_yaml_in_the_working_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "handshake.yml").write_text("project_name: found\n")
+        assert load_config().project_name == "found"
+
+    def test_wrong_type_is_a_config_error(self, tmp_path: Path) -> None:
+        config_file = tmp_path / "handshake.yaml"
+        config_file.write_text("project_name: [1, 2]\n")
+        with pytest.raises(ConfigError, match="Invalid configuration"):
+            load_config(config_file)
+
+    def test_nested_typo_names_the_section(self) -> None:
+        class Inner(BaseModel):
+            path: str = ""
+
+        class Outer(BaseModel):
+            storage: Inner = Inner()
+
+        message = _unknown_setting({"storage": {"pth": "x"}}, Outer)
+        assert message == (
+            "Unknown setting 'storage.pth'. Did you mean 'storage.path'? "
+            "Known settings in 'storage': path."
+        )
+        assert _unknown_setting({"storage": {"path": "x"}}, Outer) is None
