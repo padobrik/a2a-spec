@@ -9,31 +9,18 @@ import traceback
 import typer
 from rich.console import Console
 
-from agent_handshake.cli.diff_cmd import diff_command
 from agent_handshake.cli.exit_codes import EXIT_INPUT
-from agent_handshake.cli.infer_cmd import infer_command
-from agent_handshake.cli.init_cmd import init_command
-from agent_handshake.cli.record_cmd import record_command
-from agent_handshake.cli.skill_cmd import skill_command
-from agent_handshake.cli.test_cmd import test_command
 from agent_handshake.exceptions import HandshakeError
 
 console = Console()
 
 app = typer.Typer(
     name="handshake",
-    help="agent-handshake — The open specification for agent-to-agent interactions.",
+    help="agent-handshake checks that what your agent is told matches the tools it actually has.",
     no_args_is_help=True,
     add_completion=False,
     rich_markup_mode="rich",
 )
-
-app.command("init")(init_command)
-app.command("record")(record_command)
-app.command("test")(test_command)
-app.command("diff")(diff_command)
-app.command("infer")(infer_command)
-app.command("skill")(skill_command)
 
 
 def version_callback(value: bool) -> None:
@@ -63,7 +50,7 @@ def main_callback(
         is_eager=False,
     ),
 ) -> None:
-    """agent-handshake — The open specification for agent-to-agent interactions."""
+    """agent-handshake checks that what your agent is told matches the tools it actually has."""
     if debug:
         logging.basicConfig(
             level=logging.DEBUG,
