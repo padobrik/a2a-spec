@@ -1,0 +1,123 @@
+project: google-adk
+repository: https://github.com/google/adk-recipes
+commit: 05811bbacd9b0335c645e8d20e0d41cfdea08f7f
+cases:
+  - id: evaluator-to-escalation-checker
+    links: [L1]
+    producer: research_evaluator
+    consumer: escalation_checker
+    source: core/python/deep-search/app/agent.py:_run_async_impl
+    note: The Feedback output is stored as a dict under the state key research_evaluation (output_key, line 329). EscalationChecker._run_async_impl reads it from ctx.session.state (line 181) and checks .get("grade"). The truthiness test on the whole dict is not a field.
+    expected:
+      - path: grade
+        at: core/python/deep-search/app/agent.py:182
+
+  - id: evaluator-to-enhanced-search
+    links: [L2]
+    producer: research_evaluator
+    consumer: enhanced_search_executor
+    source: null
+    note: No project function receives it. The evaluator's JSON reaches the model through the conversation history; the instruction names the state key research_evaluation (line 343) and tells the model to run every query in follow_up_queries (line 344). It is not a {placeholder}, so nothing is substituted.
+    expected:
+      - path: follow_up_queries
+        at: core/python/deep-search/app/agent.py:344
+
+  - id: researcher-grounding-to-source-collector
+    links: [L3]
+    producer: section_researcher_grounding
+    consumer: source_collector
+    source: core/python/deep-search/app/agent.py:collect_research_sources_callback
+    note: after_agent_callback of section_researcher (line 302). The data is the grounding metadata on the model response events of the researcher, read by looping over callback_context._invocation_context.session.events (lines 74, 78). Paths are relative to one event. Attribute reads on google.genai GroundingMetadata objects.
+    expected:
+      - path: grounding_metadata
+        at: core/python/deep-search/app/agent.py:80
+      - path: grounding_metadata.grounding_chunks
+        at: core/python/deep-search/app/agent.py:81
+      - path: grounding_metadata.grounding_chunks[].web
+        at: core/python/deep-search/app/agent.py:86
+      - path: grounding_metadata.grounding_chunks[].web.uri
+        at: core/python/deep-search/app/agent.py:88
+      - path: grounding_metadata.grounding_chunks[].web.title
+        at: core/python/deep-search/app/agent.py:90
+      - path: grounding_metadata.grounding_chunks[].web.domain
+        at: core/python/deep-search/app/agent.py:91
+      - path: grounding_metadata.grounding_supports
+        at: core/python/deep-search/app/agent.py:106
+      - path: grounding_metadata.grounding_supports[].confidence_scores
+        at: core/python/deep-search/app/agent.py:108
+      - path: grounding_metadata.grounding_supports[].grounding_chunk_indices
+        at: core/python/deep-search/app/agent.py:109
+      - path: grounding_metadata.grounding_supports[].segment
+        at: core/python/deep-search/app/agent.py:119
+      - path: grounding_metadata.grounding_supports[].segment.text
+        at: core/python/deep-search/app/agent.py:119
+
+  - id: enhanced-search-grounding-to-source-collector
+    links: [L4]
+    producer: enhanced_search_grounding
+    consumer: source_collector
+    source: core/python/deep-search/app/agent.py:collect_research_sources_callback
+    note: Same callback as researcher-grounding-to-source-collector, attached as after_agent_callback of enhanced_search_executor (line 350).
+    expected:
+      - path: grounding_metadata
+        at: core/python/deep-search/app/agent.py:80
+      - path: grounding_metadata.grounding_chunks
+        at: core/python/deep-search/app/agent.py:81
+      - path: grounding_metadata.grounding_chunks[].web
+        at: core/python/deep-search/app/agent.py:86
+      - path: grounding_metadata.grounding_chunks[].web.uri
+        at: core/python/deep-search/app/agent.py:88
+      - path: grounding_metadata.grounding_chunks[].web.title
+        at: core/python/deep-search/app/agent.py:90
+      - path: grounding_metadata.grounding_chunks[].web.domain
+        at: core/python/deep-search/app/agent.py:91
+      - path: grounding_metadata.grounding_supports
+        at: core/python/deep-search/app/agent.py:106
+      - path: grounding_metadata.grounding_supports[].confidence_scores
+        at: core/python/deep-search/app/agent.py:108
+      - path: grounding_metadata.grounding_supports[].grounding_chunk_indices
+        at: core/python/deep-search/app/agent.py:109
+      - path: grounding_metadata.grounding_supports[].segment
+        at: core/python/deep-search/app/agent.py:119
+      - path: grounding_metadata.grounding_supports[].segment.text
+        at: core/python/deep-search/app/agent.py:119
+
+  - id: composer-to-citation-replacement
+    links: [L5]
+    producer: report_composer
+    consumer: citation_replacement
+    source: core/python/deep-search/app/agent.py:citation_replacement_callback
+    note: Free text. final_cited_report (output_key, line 380) is read from state with .get (line 146) and only rewritten whole with re.sub over its cite tags.
+    expected: []
+
+  - id: planner-to-composer
+    links: [L6]
+    producer: interactive_planner_agent
+    consumer: report_composer
+    source: null
+    note: Free text. research_plan (output_key, line 423) is rendered whole into the {research_plan} placeholder of the composer instruction.
+    expected: []
+
+  - id: section-planner-to-composer
+    links: [L7]
+    producer: section_planner
+    consumer: report_composer
+    source: null
+    note: Free text. report_sections (output_key, line 251) is rendered whole into the {report_sections} placeholder.
+    expected: []
+
+  - id: researcher-to-composer
+    links: [L8]
+    producer: section_researcher
+    consumer: report_composer
+    source: null
+    note: Free text. section_research_findings (output_key, lines 301 and 349) is rendered whole into the {section_research_findings} placeholder.
+    expected: []
+
+  - id: researcher-to-evaluator
+    links: [L9]
+    producer: section_researcher
+    consumer: research_evaluator
+    source: null
+    note: Free text. The evaluator instruction names the state key section_research_findings (line 310); the text reaches the model through the conversation history.
+    expected: []
