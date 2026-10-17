@@ -13,7 +13,7 @@ agent-handshake 1.0 changes direction: it will check that what an agent is
 told (instructions, tool descriptions) matches the tools it actually has. The
 contract flow is closed because static inference of what a consumer reads did
 not generalize: it found 84% of the fields on the projects it was built on and
-16% on five unseen ones. Its code stays available in tag v0.10.0.
+16% on five unseen ones. Its code and data stay in tag `contract-testing-final`.
 
 ### Removed
 - `handshake record`, `test`, `diff`, `infer`, `init` and `skill`, with specs,
