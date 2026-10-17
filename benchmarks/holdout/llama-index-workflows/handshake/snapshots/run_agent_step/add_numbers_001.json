@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "agent_id": "run_agent_step",
+  "scenario": "add_numbers",
+  "input": {
+    "input": [
+      {
+        "role": "system",
+        "additional_kwargs": {},
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "You are a retrieval assistant."
+          }
+        ],
+        "content": "You are a retrieval assistant."
+      },
+      {
+        "role": "user",
+        "additional_kwargs": {},
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "Can you add 5 and 3?"
+          }
+        ],
+        "content": "Can you add 5 and 3?"
+      }
+    ],
+    "current_agent_name": "retriever"
+  },
+  "output": {
+    "response": {
+      "role": "assistant",
+      "additional_kwargs": {
+        "tool_calls": [
+          {
+            "tool_id": "one",
+            "tool_name": "handoff",
+            "tool_kwargs": {
+              "to_agent": "calculator",
+              "reason": "This requires arithmetic operations."
+            }
+          }
+        ]
+      },
+      "blocks": [
+        {
+          "block_type": "text",
+          "text": "Let me help you with that calculation. I'll hand this off to the calculator."
+        }
+      ],
+      "content": "Let me help you with that calculation. I'll hand this off to the calculator."
+    },
+    "structured_response": null,
+    "current_agent_name": "retriever",
+    "tool_calls": [
+      {
+        "tool_id": "one",
+        "tool_name": "handoff",
+        "tool_kwargs": {
+          "to_agent": "calculator",
+          "reason": "This requires arithmetic operations."
+        }
+      }
+    ],
+    "retry_messages": []
+  }
+}
