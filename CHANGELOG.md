@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-17
+
 ### Added
 - `handshake infer` reads contracts from types. The parameter with the
   producer's output is chosen by its annotation (Pydantic, `TypedDict`,
@@ -23,6 +25,12 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   items by index), and values taken with `or`, `??` or a conditional. A field
   of list items is written `searches[].query`, and the spec gets an array
   schema with `items`. These reads gave a warning in 0.9.1.
+- `docs/spec-format.md` describes every key of a spec, including `read_at`,
+  `allow_missing`, `reads_unknown_keys` and array schemas with `items`.
+- Two examples: `examples/typed_consumer` (a Pydantic consumer) and
+  `examples/helpers_and_lists` (a helper function and a list of items).
+- `make benchmark` scores `infer` on frozen real projects
+  (`benchmarks/recon/`).
 
 ## [0.9.1] - 2026-10-17
 
@@ -347,6 +355,7 @@ it and says what to use instead.
 - CI matrix across Python 3.11, 3.12, 3.13.
 - Trusted Publishing workflow for PyPI releases.
 
+[0.10.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.10.0
 [0.9.1]: https://github.com/padobrik/agent-handshake/releases/tag/v0.9.1
 [0.9.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.9.0
 [0.8.0]: https://github.com/padobrik/agent-handshake/releases/tag/v0.8.0
