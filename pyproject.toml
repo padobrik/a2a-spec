@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-handshake"
-version = "0.10.0"
+version = "1.0.0.dev0"
 description = "Check that what your agent is told matches the tools it actually has."
 readme = "README.md"
 license = { text = "Apache-2.0" }

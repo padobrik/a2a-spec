@@ -13,3 +13,18 @@ Assumptions made where the request or the code was ambiguous.
   project folder, pytest options, class names, PyPI package): the owner
   confirmed the project had no users at the time of the rename.
 - `a2a-spec` stays on PyPI at 0.6.0 as it is; no further releases.
+
+## 1.0 pivot: removal of the contract flow
+
+- Kept as the skeleton: the `handshake` command with `--help`, `--version` and
+  `--debug`, the exit codes, config loading with the unknown-key message, and
+  the generic report helpers (JUnit XML, Markdown, GitHub annotation format).
+  The console and GitHub reporters that formatted spec and diff results went
+  with them.
+- `handshake.yaml` keeps only `project_name` and `version`; the new settings
+  come with the rules. No migration messages for old settings: there is no
+  compatibility with 0.x.
+- The README still describes 0.10 until its own pull request replaces it;
+  the benchmark data and the recon notes go with the history document.
+- The required check "GitHub Action on the example" is removed from branch
+  protection, since the job and the action no longer exist.

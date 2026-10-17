@@ -7,6 +7,25 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.0.0.dev0] - unreleased
+
+agent-handshake 1.0 changes direction: it will check that what an agent is
+told (instructions, tool descriptions) matches the tools it actually has. The
+contract flow is closed because static inference of what a consumer reads did
+not generalize: it found 84% of the fields on the projects it was built on and
+16% on five unseen ones. Its code stays available in tag v0.10.0.
+
+### Removed
+- `handshake record`, `test`, `diff`, `infer`, `init` and `skill`, with specs,
+  snapshots, policy rules, the Function, HTTP and A2A adapters, the pytest
+  plugin, the GitHub Action, the examples and their guides.
+- The `typescript` extra and the `jsonschema` and `httpx` dependencies.
+- The settings `specs_dir`, `scenarios_dir`, `adapters_dir`, `storage` and
+  `ci` in `handshake.yaml`, and the messages for settings removed in 0.9.
+
+### Changed
+- The version is `1.0.0.dev0`; nothing is released until the new checks work.
+
 ## [0.10.0] - 2026-10-17
 
 ### Added
