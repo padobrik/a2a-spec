@@ -1,0 +1,95 @@
+project: ai-scientist-v2
+repository: https://github.com/SakanaAI/AI-Scientist-v2
+commit: 96bd51617cfdbb494a9fc283af00fe090edfae48
+cases:
+  - id: ideation-to-launcher
+    links: [L1]
+    producer: ideation
+    consumer: launcher
+    source: null
+    note: The idea list is loaded from JSON in the module-level __main__ block of launch_scientist_bfts.py (no function receives it); one idea is picked by index and its Name builds the run folder.
+    expected:
+      - path: Name
+        at: launch_scientist_bfts.py:198
+
+  - id: ideation-to-markdown
+    links: [L2]
+    producer: ideation
+    consumer: launcher
+    source: ai_scientist/treesearch/bfts_utils.py:idea_to_markdown
+    note: The idea dict is the first parameter; it is only iterated with data.items() and every key and value is written to idea.md. No named field.
+    expected: []
+
+  - id: ideation-to-experiments
+    links: [L3]
+    producer: ideation
+    consumer: experiments
+    source: ai_scientist/treesearch/agent_manager.py:__init__
+    note: The idea reaches the experiment stage as the text of idea.json (load_task_desc in ai_scientist/treesearch/utils/config.py:193), is parsed with json.loads into self.task_desc at line 125, checked for five keys at 126-134, and read in the methods _get_task_desc_str and _curate_task_desc. Code is not written by the ideation model; the launcher adds it at launch_scientist_bfts.py:242 when --load_code or --add_dataset_ref is set, and the consumer guards it with "in".
+    expected:
+      - path: Title
+        at: ai_scientist/treesearch/agent_manager.py:187
+      - path: Abstract
+        at: ai_scientist/treesearch/agent_manager.py:190
+      - path: Short Hypothesis
+        at: ai_scientist/treesearch/agent_manager.py:193
+      - path: Code
+        at: ai_scientist/treesearch/agent_manager.py:196
+      - path: Experiments
+        at: ai_scientist/treesearch/agent_manager.py:220
+      - path: Risk Factors and Limitations
+        at: ai_scientist/treesearch/agent_manager.py:239
+
+  - id: experiments-to-writeup
+    links: [L4]
+    producer: experiments
+    consumer: writeup
+    source: ai_scientist/perform_icbinb_writeup.py:filter_experiment_summaries
+    note: The producer output is one stage summary file (logs/0-run/baseline_summary.json or research_summary.json). load_exp_summaries wraps each file under BASELINE_SUMMARY / RESEARCH_SUMMARY; paths here drop that wrapper. The function keeps "best node" and, inside it, only the keys in a literal set per step (citation_gathering, writeup, plot_aggregation; the function is called for all three); those values are copied at 730-731 and later dumped whole with json.dumps. The ablation_summary.json list (read only for plot_aggregation, ablation_name at 736) is a different file shape and is left out.
+    expected:
+      - path: best node
+        at: ai_scientist/perform_icbinb_writeup.py:726
+      - path: best node.overall_plan
+        at: ai_scientist/perform_icbinb_writeup.py:694
+      - path: best node.analysis
+        at: ai_scientist/perform_icbinb_writeup.py:695
+      - path: best node.metric
+        at: ai_scientist/perform_icbinb_writeup.py:696
+      - path: best node.vlm_feedback_summary
+        at: ai_scientist/perform_icbinb_writeup.py:697
+      - path: best node.code
+        at: ai_scientist/perform_icbinb_writeup.py:704
+      - path: best node.plot_analyses
+        at: ai_scientist/perform_icbinb_writeup.py:705
+      - path: best node.plot_plan
+        at: ai_scientist/perform_icbinb_writeup.py:712
+      - path: best node.plot_code
+        at: ai_scientist/perform_icbinb_writeup.py:713
+      - path: best node.exp_results_npy_files
+        at: ai_scientist/perform_icbinb_writeup.py:716
+
+  - id: figure-review-to-writeup
+    links: [L5]
+    producer: figure_review
+    consumer: writeup
+    source: ai_scientist/perform_icbinb_writeup.py:perform_writeup
+    note: The figure review is a local variable (review_data, returned by generate_vlm_img_review at line 963), parsed from model JSON by extract_json_between_markers.
+    expected:
+      - path: Img_description
+        at: ai_scientist/perform_icbinb_writeup.py:965
+
+  - id: capref-review-to-writeup
+    links: [L6]
+    producer: capref_review
+    consumer: writeup
+    source: ai_scientist/perform_icbinb_writeup.py:perform_writeup
+    note: The caption and reference review dict (review_img_cap_ref, returned by perform_imgs_cap_ref_review at line 1034) goes whole into the reflection f-string at line 1068. No named field.
+    expected: []
+
+  - id: writeup-to-review
+    links: [L7]
+    producer: writeup
+    consumer: review
+    source: ai_scientist/perform_llm_review.py:perform_review
+    note: Free text. The writeup stage produces a PDF; the launcher extracts its text with load_paper (launch_scientist_bfts.py:309) and perform_review puts the text parameter whole into the prompt at line 147.
+    expected: []
