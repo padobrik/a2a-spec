@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "agent_id": "seat_preference",
+  "scenario": "unclear",
+  "input": {
+    "prompt": "somewhere nice"
+  },
+  "output": {}
+}
