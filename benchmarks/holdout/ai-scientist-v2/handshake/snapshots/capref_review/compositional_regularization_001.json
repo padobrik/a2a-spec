@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "agent_id": "capref_review",
+  "scenario": "compositional_regularization",
+  "input": {
+    "pdf_path": "experiments/2025-01-01_00-00-00_compositional_regularization_nn_attempt_0/2025-01-01_00-00-00_compositional_regularization_nn_attempt_0_reflection1.pdf"
+  },
+  "output": {
+    "figure_1": {
+      "Img_description": "Training and validation loss curves on SCAN with and without the regularizer.",
+      "Img_review": "Readable, but the legend overlaps the curves.",
+      "Caption_review": "The caption names the dataset but does not state the takeaway.",
+      "Figrefs_review": "The main text refers to the figure once, without discussing the plateau."
+    }
+  }
+}
