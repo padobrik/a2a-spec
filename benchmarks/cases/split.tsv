@@ -1,0 +1,23 @@
+project	split
+browser-use	holdout
+opencode	holdout
+qwen-code	dev
+cline	dev
+AutoGPT	dev
+goose	dev
+deepagents	dev
+lobe-chat	holdout
+codex	holdout
+zed	dev
+avante.nvim	dev
+continue	dev
+smolagents	dev
+gemini-cli	dev
+Roo-Code	holdout
+LibreChat	dev
+Claude Code	holdout
+maki	dev
+HyperNeo	holdout
+hermes-agent	holdout
+labkit	holdout
+pete.lostsource.net	holdout
