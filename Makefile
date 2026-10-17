@@ -1,4 +1,4 @@
-.PHONY: install lint format test typecheck build clean benchmark
+.PHONY: install lint format test typecheck build clean
 
 install:
 	pip install -e ".[all]"
@@ -18,9 +18,6 @@ test-cov:
 
 typecheck:
 	mypy src/
-
-benchmark:
-	python scripts/benchmark.py
 
 build:
 	python -m build

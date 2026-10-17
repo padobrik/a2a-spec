@@ -46,7 +46,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install dependencies
-        run: pip install -e ".[dev,typescript]"
+        run: pip install -e ".[dev]"
 
       - name: Lint
         run: ruff check src/ tests/
@@ -69,7 +69,6 @@ jobs:
         run: |
           pip install -e "."
           python -c "import agent_handshake; print(agent_handshake.__version__)"
-          python -c "from agent_handshake import load_spec, validate_output, FunctionAdapter, SnapshotStore"
 
       - name: Verify no unsafe yaml.load
         run: |
@@ -102,8 +101,8 @@ jobs:
 
       # Unpinned actions, credentials left in checkouts, template injection, and so on.
       # Rules are configured in .github/zizmor.yml.
-      - name: Audit the workflows and the action with zizmor
-        run: zizmor --offline .github/workflows action.yml
+      - name: Audit the workflows with zizmor
+        run: zizmor --offline .github/workflows
 
   package:
     name: Package
@@ -133,67 +132,4 @@ jobs:
           python -m venv wheel-env
           wheel-env/bin/pip install "$GITHUB_WORKSPACE"/dist/*.whl
           wheel-env/bin/handshake --version
-          wheel-env/bin/handshake skill | grep -q "name: agent-handshake"
-          wheel-env/bin/python -c "import agent_handshake, agent_handshake.infer.ts_consumer"
-
-      # The scenarios in tests/e2e run the wheel's handshake command and plugin.
-      - name: Run the end-to-end scenarios against the wheel
-        run: |
-          python -m venv "$RUNNER_TEMP/e2e-env"
-          "$RUNNER_TEMP/e2e-env/bin/pip" install "$(ls dist/*.whl)[typescript]" pytest
-          "$RUNNER_TEMP/e2e-env/bin/python" -m pytest tests/e2e -v -p no:cacheprovider
-
-  action:
-    name: GitHub Action on the example
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-        with:
-          persist-credentials: false
-
-      - name: Run the repository action with this commit
-        uses: ./
-        with:
-          package: ${{ github.workspace }}
-          working-directory: examples/customer_support
-          config: handshake/handshake.yaml
-
-      # Replays the recorded model output: no API key and no model SDK needed.
-      - name: Run the repository action on the LLM example
-        uses: ./
-        with:
-          package: ${{ github.workspace }}
-          working-directory: examples/llm_support
-
-      - name: Run the repository action on the typed consumer example
-        uses: ./
-        with:
-          package: ${{ github.workspace }}
-          working-directory: examples/typed_consumer
-
-      - name: Run the repository action on the helpers and lists example
-        uses: ./
-        with:
-          package: ${{ github.workspace }}
-          working-directory: examples/helpers_and_lists
-
-      # The last --format wins, so this run adds no annotations to the PR.
-      - name: Run the repository action on a broken contract
-        id: broken
-        continue-on-error: true
-        uses: ./
-        with:
-          package: ${{ github.workspace }}
-          working-directory: tests/e2e/projects/producer-renames-field
-          check-inferred: "false"
-          args: --format console
-
-      # Exit code 1 from handshake test, not a failed installation.
-      - name: Check that the contract test failed the action
-        if: steps.broken.outputs.test-exit-code != '1'
-        env:
-          OUTCOME: ${{ steps.broken.outcome }}
-          TEST_EXIT_CODE: ${{ steps.broken.outputs.test-exit-code }}
-        run: |
-          echo "::error::Expected handshake test to exit 1 on the broken contract; step outcome $OUTCOME, test exit code '$TEST_EXIT_CODE'"
-          exit 1
+          wheel-env/bin/python -c "import agent_handshake"

@@ -11,7 +11,7 @@ pip install -e ".[dev]"
 To install the optional extra for TypeScript consumers:
 
 ```bash
-pip install -e ".[dev,typescript]"
+pip install -e ".[dev]"
 ```
 
 ## Running the checks
