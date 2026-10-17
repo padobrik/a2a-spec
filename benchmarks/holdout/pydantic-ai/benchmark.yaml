@@ -1,0 +1,41 @@
+project: pydantic-ai
+repository: https://github.com/pydantic/pydantic-ai
+commit: 11025a1f395d29dbe50af2b30f7429574b9a79c1
+cases:
+  - id: extraction-to-search
+    links: [L1]
+    producer: extraction
+    consumer: search
+    source: examples/pydantic_ai_examples/flight_booking.py:extract_flights
+    note: Agent delegation through a tool of the search agent. The extraction output is a local variable (result from extraction_agent.run at line 77); result.output is only measured with len() at line 78 and returned whole at line 79 as the tool return for the search model.
+    expected: []
+
+  - id: search-to-validator
+    links: [L2]
+    producer: search
+    consumer: search
+    source: examples/pydantic_ai_examples/flight_booking.py:validate_output
+    note: Output validator of the search agent; output is the second parameter. The isinstance check against NoFlightFound at line 87 picks the union member and is not a field. Mismatches go back to the search model through ModelRetry.
+    expected:
+      - path: origin
+        at: examples/pydantic_ai_examples/flight_booking.py:91
+      - path: destination
+        at: examples/pydantic_ai_examples/flight_booking.py:95
+      - path: date
+        at: examples/pydantic_ai_examples/flight_booking.py:99
+
+  - id: search-to-buy
+    links: [L3]
+    producer: search
+    consumer: buy
+    source: examples/pydantic_ai_examples/flight_booking.py:main
+    note: The search output is a local variable (result from search_agent.run at line 198). isinstance at line 205 is a type check, line 210 prints it whole, line 218 passes it to the helper buy_tickets, which prints its repr whole at line 245.
+    expected: []
+
+  - id: seat-to-buy
+    links: [L4]
+    producer: seat_preference
+    consumer: buy
+    source: examples/pydantic_ai_examples/flight_booking.py:find_seat
+    note: Programmatic hand-off. The seat output is a local variable (result from seat_preference_agent.run at line 231); isinstance at line 237 is a type check and it is returned whole at line 238. main passes it to buy_tickets at line 218, which prints its repr whole at line 245.
+    expected: []
