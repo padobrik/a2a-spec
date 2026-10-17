@@ -1,0 +1,143 @@
+project: llama-index-workflows
+repository: https://github.com/run-llama/llama_index
+commit: 619d74664e8404612038bc15a1a40c686037277c
+cases:
+  - id: init-to-setup
+    links: [L1]
+    producer: init_run
+    consumer: setup_agent
+    source: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:setup_agent
+    note: AgentInput event. The last message of input gets the state prompt; its text blocks are read and rewritten.
+    expected:
+      - path: current_agent_name
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:439
+      - path: input
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:441
+      - path: input[].blocks
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:455
+      - path: input[].blocks[].text
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:457
+
+  - id: setup-to-run
+    links: [L2]
+    producer: setup_agent
+    consumer: run_agent_step
+    source: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:run_agent_step
+    note: AgentSetup event. input goes to agent.take_step; the example uses both FunctionAgent (reads the last message's role) and ReActAgent (reads the first message's role and content). The rest goes whole to the model.
+    expected:
+      - path: current_agent_name
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:470
+      - path: input
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:476
+      - path: input[].role
+        at: llama-index-core/llama_index/core/agent/workflow/react_agent.py:130
+      - path: input[].content
+        at: llama-index-core/llama_index/core/agent/workflow/react_agent.py:131
+
+  - id: run-to-parse
+    links: [L3]
+    producer: run_agent_step
+    consumer: parse_agent_output
+    source: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:parse_agent_output
+    note: AgentOutput event from the model step. ev also goes to _generate_early_stopping_response and agent.finalize (ReActAgent.finalize reads response.blocks; FunctionAgent.finalize reads nothing). structured_response is written by this step before it is read, so it is not a field of the producer. raw is excluded from the event.
+    expected:
+      - path: retry_messages
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:551
+      - path: tool_calls
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:566
+      - path: current_agent_name
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:567
+      - path: tool_calls[].tool_name
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:635
+      - path: tool_calls[].tool_kwargs
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:636
+      - path: tool_calls[].tool_id
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:637
+      - path: response
+        at: llama-index-core/llama_index/core/agent/workflow/react_agent.py:313
+      - path: response.blocks
+        at: llama-index-core/llama_index/core/agent/workflow/react_agent.py:313
+      - path: response.blocks[].text
+        at: llama-index-core/llama_index/core/agent/workflow/react_agent.py:319
+
+  - id: parse-to-call-tool
+    links: [L4]
+    producer: parse_agent_output
+    consumer: call_tool
+    source: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:call_tool
+    note: ToolCall event, one per tool call (ctx.send_event). tool_kwargs is then spread whole into the tool call in _call_tool.
+    expected:
+      - path: tool_name
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:648
+      - path: tool_kwargs
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:649
+      - path: tool_id
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:650
+
+  - id: call-tool-to-aggregate
+    links: [L5]
+    producer: call_tool
+    consumer: aggregate_tool_results
+    source: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:aggregate_tool_results
+    note: ToolCallResult events gathered with ctx.collect_events. The list also goes to agent.handle_tool_call_results (FunctionAgent and ReActAgent) and into the state key current_tool_calls, read back at lines 734-739 in the same function.
+    expected:
+      - path: tool_output
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:717
+      - path: tool_output.is_error
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:717
+      - path: return_direct
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:717
+      - path: tool_output.content
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:732
+      - path: tool_id
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:736
+      - path: tool_name
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:737
+      - path: tool_kwargs
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:738
+      - path: tool_output.raw_output
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:742
+      - path: tool_output.blocks
+        at: llama-index-core/llama_index/core/agent/workflow/function_agent.py:160
+
+  - id: aggregate-to-setup
+    links: [L6]
+    producer: aggregate_tool_results
+    consumer: setup_agent
+    source: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:setup_agent
+    note: Same consumer as init-to-setup; AgentInput for the next turn, after a handoff for the new agent.
+    expected:
+      - path: current_agent_name
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:439
+      - path: input
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:441
+      - path: input[].blocks
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:455
+      - path: input[].blocks[].text
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:457
+
+  - id: retry-to-setup
+    links: [L7]
+    producer: parse_agent_output
+    consumer: setup_agent
+    source: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:setup_agent
+    note: Same consumer as init-to-setup; AgentInput built from retry_messages when the model reply could not be parsed.
+    expected:
+      - path: current_agent_name
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:439
+      - path: input
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:441
+      - path: input[].blocks
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:455
+      - path: input[].blocks[].text
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:457
+
+  - id: handoff-to-aggregate
+    links: [L8]
+    producer: handoff
+    consumer: aggregate_tool_results
+    source: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:aggregate_tool_results
+    note: Shared context state. The handoff tool writes next_agent with ctx.store.set (line 87); the aggregate step reads it with ctx.store.get and switches current_agent_name.
+    expected:
+      - path: next_agent
+        at: llama-index-core/llama_index/core/agent/workflow/multi_agent_workflow.py:711
