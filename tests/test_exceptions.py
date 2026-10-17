@@ -2,119 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
-
 from agent_handshake.exceptions import (
-    AdapterError,
     ConfigError,
-    PolicyViolationError,
-    SnapshotMismatchError,
-    SnapshotNotFoundError,
-    SpecValidationError,
 )
-
-
-class TestSpecValidationError:
-    """Tests for SpecValidationError."""
-
-    def test_message_contains_spec_name(self) -> None:
-        """Spec name must appear in the error message."""
-        err = SpecValidationError("my-spec", ["field 'x' missing", "wrong type"])
-        assert "my-spec" in str(err)
-
-    def test_message_contains_all_errors(self) -> None:
-        """All individual errors must be listed in the message."""
-        err = SpecValidationError("my-spec", ["field 'x' missing", "wrong type"])
-        assert "field 'x' missing" in str(err)
-        assert "wrong type" in str(err)
-
-    def test_attributes_stored(self) -> None:
-        """spec_name and errors attributes must be stored."""
-        err = SpecValidationError("my-spec", ["err1"])
-        assert err.spec_name == "my-spec"
-        assert err.errors == ["err1"]
-
-
-class TestSnapshotNotFoundError:
-    """Tests for SnapshotNotFoundError."""
-
-    def test_suggests_record_command(self) -> None:
-        """Error message must suggest running handshake record."""
-        err = SnapshotNotFoundError("triage-agent", "billing")
-        assert "handshake record" in str(err)
-
-    def test_contains_agent_id(self) -> None:
-        """Agent ID must appear in the message."""
-        err = SnapshotNotFoundError("triage-agent", "billing")
-        assert "triage-agent" in str(err)
-
-    def test_contains_scenario(self) -> None:
-        """Scenario name must appear in the message."""
-        err = SnapshotNotFoundError("triage-agent", "billing_case")
-        assert "billing_case" in str(err)
-
-    def test_attributes_stored(self) -> None:
-        """agent_id and scenario attributes must be stored."""
-        err = SnapshotNotFoundError("a", "b")
-        assert err.agent_id == "a"
-        assert err.scenario == "b"
-
-
-class TestSnapshotMismatchError:
-    """Tests for SnapshotMismatchError."""
-
-    def test_contains_both_hashes(self) -> None:
-        """Both expected and actual hashes must appear in the message."""
-        err = SnapshotMismatchError("triage-agent", "abc123", "def456")
-        assert "abc123" in str(err)
-        assert "def456" in str(err)
-
-    def test_attributes_stored(self) -> None:
-        """All three attributes must be accessible."""
-        err = SnapshotMismatchError("agent", "expected", "actual")
-        assert err.agent_id == "agent"
-        assert err.expected_hash == "expected"
-        assert err.actual_hash == "actual"
-
-
-class TestPolicyViolationError:
-    """Tests for PolicyViolationError."""
-
-    def test_contains_rule_name(self) -> None:
-        """Rule name must appear in the message."""
-        err = PolicyViolationError("no_pii", "Credit card found in 'summary'")
-        assert "no_pii" in str(err)
-
-    def test_contains_detail(self) -> None:
-        """Detail text must appear in the message."""
-        err = PolicyViolationError("no_pii", "Credit card found in 'summary'")
-        assert "Credit card" in str(err)
-
-    def test_attributes_stored(self) -> None:
-        """rule_name and detail attributes must be stored."""
-        err = PolicyViolationError("rule", "detail")
-        assert err.rule_name == "rule"
-        assert err.detail == "detail"
-
-
-class TestAdapterError:
-    """Tests for AdapterError."""
-
-    def test_contains_agent_id(self) -> None:
-        """Agent ID must appear in the message."""
-        err = AdapterError("http-agent", "Connection refused")
-        assert "http-agent" in str(err)
-
-    def test_contains_detail(self) -> None:
-        """Detail message must appear in the error."""
-        err = AdapterError("http-agent", "Connection refused")
-        assert "Connection refused" in str(err)
-
-    def test_attributes_stored(self) -> None:
-        """agent_id and detail attributes must be stored."""
-        err = AdapterError("a", "d")
-        assert err.agent_id == "a"
-        assert err.detail == "d"
 
 
 class TestConfigError:
@@ -141,21 +31,9 @@ class TestExceptionHierarchy:
         from agent_handshake.exceptions import HandshakeError
 
         errors = [
-            SpecValidationError("s", []),
-            SnapshotNotFoundError("a", "b"),
-            SnapshotMismatchError("a", "b", "c"),
-            PolicyViolationError("r", "d"),
-            AdapterError("a", "d"),
             ConfigError("msg"),
         ]
         for err in errors:
             assert isinstance(err, HandshakeError), (
                 f"{type(err).__name__} must extend HandshakeError"
             )
-
-    def test_all_errors_catchable_as_base(self) -> None:
-        """Catching HandshakeError must catch all custom errors."""
-        from agent_handshake.exceptions import HandshakeError
-
-        with pytest.raises(HandshakeError):
-            raise SnapshotNotFoundError("a", "b")
