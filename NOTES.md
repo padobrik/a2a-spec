@@ -26,8 +26,5 @@ Assumptions made where the request or the code was ambiguous.
   compatibility with 0.x.
 - The README still describes 0.10 until its own pull request replaces it;
   the benchmark data and the recon notes go with the history document.
-- The holdout benchmark was added after the v0.10.0 release, so the history
-  document links it by commit (29d169c, on main) instead of the tag. No new
-  tag was created.
 - The required check "GitHub Action on the example" is removed from branch
   protection, since the job and the action no longer exist.

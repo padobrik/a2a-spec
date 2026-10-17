@@ -2,12 +2,10 @@
 
 From February to October 2026 (0.1.0 to 0.10.0) agent-handshake tested the
 data that one agent hands to the next. The direction was closed on 2026-10-17.
-The code, the recon benchmark and its notes are in tag
-[v0.10.0](https://github.com/padobrik/agent-handshake/tree/v0.10.0). The
-holdout suite was added after that release, with no change to the analyzer; it
-is in commit
-[29d169c](https://github.com/padobrik/agent-handshake/tree/29d169c), the last
-one before the removal.
+Its code, benchmarks and notes are in tag
+[contract-testing-final](https://github.com/padobrik/agent-handshake/tree/contract-testing-final), the last commit
+before the removal. The code there is the same as in the last release, 0.10.0;
+the holdout suite was added after that release.
 
 ## What it did
 
@@ -80,13 +78,14 @@ not continued.
 
 ## Where to find it
 
-- Code and tests: `src/` and `tests/` in v0.10.0.
-- Recon notes, per project: `docs/recon/` in v0.10.0
-  ([summary](https://github.com/padobrik/agent-handshake/blob/v0.10.0/docs/recon/summary.md)).
-- Recon benchmark and the scorer: `benchmarks/recon/` and
-  `scripts/benchmark.py` in v0.10.0 (`make benchmark`).
-- Holdout benchmark and its analysis: `benchmarks/holdout/` and
-  [`docs/recon/holdout.md`](https://github.com/padobrik/agent-handshake/blob/29d169c/docs/recon/holdout.md)
-  in commit 29d169c.
+Everything below is in tag `contract-testing-final`.
+
+- Code and tests: [`src/`](https://github.com/padobrik/agent-handshake/tree/contract-testing-final/src) and
+  [`tests/`](https://github.com/padobrik/agent-handshake/tree/contract-testing-final/tests).
+- Recon notes, per project: [`docs/recon/`](https://github.com/padobrik/agent-handshake/tree/contract-testing-final/docs/recon)
+  ([summary](https://github.com/padobrik/agent-handshake/blob/contract-testing-final/docs/recon/summary.md),
+  [holdout](https://github.com/padobrik/agent-handshake/blob/contract-testing-final/docs/recon/holdout.md)).
+- Benchmarks and the scorer: [`benchmarks/`](https://github.com/padobrik/agent-handshake/tree/contract-testing-final/benchmarks)
+  (`recon/`, `holdout/`) and `scripts/benchmark.py` (`make benchmark`).
 - Design note on silent fallbacks (not implemented):
-  `docs/design/silent-fallbacks.md` in v0.10.0.
+  [`docs/design/silent-fallbacks.md`](https://github.com/padobrik/agent-handshake/blob/contract-testing-final/docs/design/silent-fallbacks.md).
