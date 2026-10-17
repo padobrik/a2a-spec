@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "agent_id": "call_tool",
+  "scenario": "add_numbers",
+  "input": {
+    "tool_name": "handoff",
+    "tool_kwargs": {
+      "to_agent": "calculator",
+      "reason": "This requires arithmetic operations."
+    },
+    "tool_id": "one"
+  },
+  "output": {
+    "tool_name": "handoff",
+    "tool_kwargs": {
+      "to_agent": "calculator",
+      "reason": "This requires arithmetic operations."
+    },
+    "tool_id": "one",
+    "tool_output": {
+      "blocks": [
+        {
+          "block_type": "text",
+          "text": "Agent calculator is now handling the request due to the following reason: This requires arithmetic operations..\nPlease continue with the current request."
+        }
+      ],
+      "tool_name": "handoff",
+      "raw_input": {
+        "args": [],
+        "kwargs": {
+          "to_agent": "calculator",
+          "reason": "This requires arithmetic operations."
+        }
+      },
+      "raw_output": "Agent calculator is now handling the request due to the following reason: This requires arithmetic operations..\nPlease continue with the current request.",
+      "is_error": false,
+      "content": "Agent calculator is now handling the request due to the following reason: This requires arithmetic operations..\nPlease continue with the current request."
+    },
+    "return_direct": true
+  }
+}

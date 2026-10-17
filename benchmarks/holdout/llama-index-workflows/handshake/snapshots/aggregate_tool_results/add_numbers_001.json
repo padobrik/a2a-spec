@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "agent_id": "aggregate_tool_results",
+  "scenario": "add_numbers",
+  "input": {
+    "tool_call_results": [
+      {
+        "tool_name": "handoff",
+        "tool_id": "one",
+        "return_direct": true
+      }
+    ]
+  },
+  "output": {
+    "input": [
+      {
+        "role": "user",
+        "additional_kwargs": {},
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "Can you add 5 and 3?"
+          }
+        ],
+        "content": "Can you add 5 and 3?"
+      },
+      {
+        "role": "assistant",
+        "additional_kwargs": {
+          "tool_calls": [
+            {
+              "tool_id": "one",
+              "tool_name": "handoff",
+              "tool_kwargs": {
+                "to_agent": "calculator",
+                "reason": "This requires arithmetic operations."
+              }
+            }
+          ]
+        },
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "Let me help you with that calculation. I'll hand this off to the calculator."
+          }
+        ],
+        "content": "Let me help you with that calculation. I'll hand this off to the calculator."
+      },
+      {
+        "role": "tool",
+        "additional_kwargs": {
+          "tool_call_id": "one"
+        },
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "Agent calculator is now handling the request due to the following reason: This requires arithmetic operations..\nPlease continue with the current request."
+          }
+        ],
+        "content": "Agent calculator is now handling the request due to the following reason: This requires arithmetic operations..\nPlease continue with the current request."
+      }
+    ],
+    "current_agent_name": "calculator"
+  }
+}
