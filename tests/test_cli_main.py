@@ -66,8 +66,9 @@ def test_main_shows_the_traceback_with_debug(
 
     monkeypatch.setattr(cli_main, "app", broken)
     monkeypatch.setattr(sys, "argv", ["handshake", "--debug"])
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as info:
         cli_main.main()
+    assert info.value.code == EXIT_INPUT
     captured = capsys.readouterr()
     assert "Error: bad config" in captured.out
     assert "Traceback" in captured.err
