@@ -165,6 +165,18 @@ jobs:
           package: ${{ github.workspace }}
           working-directory: examples/llm_support
 
+      - name: Run the repository action on the typed consumer example
+        uses: ./
+        with:
+          package: ${{ github.workspace }}
+          working-directory: examples/typed_consumer
+
+      - name: Run the repository action on the helpers and lists example
+        uses: ./
+        with:
+          package: ${{ github.workspace }}
+          working-directory: examples/helpers_and_lists
+
       # The last --format wins, so this run adds no annotations to the PR.
       - name: Run the repository action on a broken contract
         id: broken
