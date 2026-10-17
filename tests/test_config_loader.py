@@ -47,52 +47,17 @@ class TestConfigLoader:
         config = load_config(config_file)
         assert isinstance(config, HandshakeConfig)
 
-    def test_defaults_ci_config(self) -> None:
-        assert HandshakeConfig().ci.replay_mode == "exact"
-
-    def test_semantic_setting_removed(self, tmp_path: Path) -> None:
-        config_file = tmp_path / "handshake.yaml"
-        config_file.write_text("semantic:\n  enabled: false\n")
-        with pytest.raises(ConfigError) as info:
-            load_config(config_file)
-        assert str(info.value) == (
-            f"{config_file}: Setting 'semantic' was removed in 0.9 with semantic rules. "
-            "Delete it. See CHANGELOG.md."
-        )
-
-    @pytest.mark.parametrize("key", ["fail_on_semantic_drift", "drift_threshold"])
-    def test_ci_drift_setting_removed(self, tmp_path: Path, key: str) -> None:
-        config_file = tmp_path / "handshake.yaml"
-        config_file.write_text(f"ci:\n  {key}: true\n")
-        with pytest.raises(ConfigError, match=rf"Setting 'ci\.{key}' was removed in 0\.9"):
-            load_config(config_file)
-
-    def test_custom_storage_path(self, tmp_path: Path) -> None:
-        config_file = tmp_path / "handshake.yaml"
-        config_file.write_text('storage:\n  path: "/custom/path"')
-        config = load_config(config_file)
-        assert config.storage.path == "/custom/path"
-
 
 class TestUnknownSettings:
     def test_typo_suggests_the_closest_setting(self, tmp_path: Path) -> None:
         config_file = tmp_path / "handshake.yaml"
-        config_file.write_text("spec_dir: ./specs\n")
+        config_file.write_text("project: demo\n")
         with pytest.raises(ConfigError) as info:
             load_config(config_file)
         message = str(info.value)
-        assert message.startswith(f"{config_file}: Unknown setting 'spec_dir'.")
-        assert "Did you mean 'specs_dir'?" in message
-        assert "Known settings: project_name, version, specs_dir" in message
-
-    def test_nested_typo(self, tmp_path: Path) -> None:
-        config_file = tmp_path / "handshake.yaml"
-        config_file.write_text("storage:\n  pth: ./snaps\n")
-        with pytest.raises(ConfigError) as info:
-            load_config(config_file)
-        message = str(info.value)
-        assert "Unknown setting 'storage.pth'. Did you mean 'storage.path'?" in message
-        assert "Known settings in 'storage': backend, path." in message
+        assert message.startswith(f"{config_file}: Unknown setting 'project'.")
+        assert "Did you mean 'project_name'?" in message
+        assert "Known settings: project_name, version." in message
 
     def test_no_close_match_lists_the_settings(self, tmp_path: Path) -> None:
         config_file = tmp_path / "handshake.yaml"
@@ -106,4 +71,4 @@ class TestUnknownSettings:
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError):
-            HandshakeConfig.model_validate({"spec_dir": "x"})
+            HandshakeConfig.model_validate({"specs_dir": "x"})
