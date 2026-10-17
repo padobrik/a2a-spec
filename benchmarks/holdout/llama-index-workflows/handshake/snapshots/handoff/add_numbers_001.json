@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "agent_id": "handoff",
+  "scenario": "add_numbers",
+  "input": {
+    "to_agent": "calculator",
+    "reason": "This requires arithmetic operations."
+  },
+  "output": {
+    "next_agent": "calculator"
+  }
+}
