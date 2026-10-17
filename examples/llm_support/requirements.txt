@@ -1,2 +1,0 @@
-agent-handshake
-anthropic>=1.15
