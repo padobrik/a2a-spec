@@ -1,0 +1,113 @@
+project: mastra
+repository: https://github.com/mastra-ai/mastra
+commit: 0e1d0dc587dbecade6157f825918021daf6571a0
+cases:
+  - id: fetch-to-categorize
+    links: [L1]
+    producer: fetch_pr_context
+    consumer: categorize_files
+    source: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:categorizeFiles
+    note: The execute callback of the step categorizeFiles receives the previous step's output as inputData. Each file is pushed whole into reviewableFiles; owner, repo, pullNumber and pr are destructured and passed on whole.
+    expected:
+      - path: files
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:66
+      - path: files[].filename
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:67
+      - path: files[].additions
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:69
+      - path: files[].deletions
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:69
+      - path: owner
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:76
+      - path: repo
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:76
+      - path: pullNumber
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:76
+      - path: pr
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:76
+
+  - id: categorize-to-review
+    links: [L2]
+    producer: categorize_files
+    consumer: review_files
+    source: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:reviewFiles
+    note: The execute callback of the step reviewFiles destructures inputData at line 115. Each reviewable file is copied with a spread (lines 125 and 128) and the copies go through batchFiles to the helper buildFileSection, which reads status, additions, deletions and patch (lines 84-85). The pr fields are read in the nested prompt builder buildPrompt (lines 142-146).
+    expected:
+      - path: owner
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:115
+      - path: repo
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:115
+      - path: pullNumber
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:115
+      - path: pr
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:115
+      - path: reviewableFiles
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:115
+      - path: skippedFiles
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:115
+      - path: reviewableFiles[].filename
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:124
+      - path: pr.headSha
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:124
+      - path: reviewableFiles[].status
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:84
+      - path: reviewableFiles[].additions
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:84
+      - path: reviewableFiles[].deletions
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:84
+      - path: reviewableFiles[].patch
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:85
+      - path: pr.title
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:142
+      - path: pr.author
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:143
+      - path: pr.headBranch
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:144
+      - path: pr.baseBranch
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:144
+      - path: pr.body
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:145
+      - path: pr.additions
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:146
+      - path: pr.deletions
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:146
+      - path: pr.changedFiles
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:146
+
+  - id: review-to-aggregate
+    links: [L3]
+    producer: review_files
+    consumer: aggregate_findings
+    source: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:aggregateFindings
+    note: The execute callback of the step aggregateFindings destructures pr, fileReviews and skippedFiles (owner, repo and pullNumber are not read). fileReviews comes from the review agent's structured output and is formatted into the aggregation prompt; fileReviews and skippedFiles are also returned whole at line 244.
+    expected:
+      - path: pr
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:194
+      - path: fileReviews
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:194
+      - path: skippedFiles
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:194
+      - path: fileReviews[].issues
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:198
+      - path: fileReviews[].issues[].severity
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:202
+      - path: fileReviews[].issues[].category
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:202
+      - path: fileReviews[].issues[].line
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:202
+      - path: fileReviews[].issues[].message
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:202
+      - path: fileReviews[].filename
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:202
+      - path: pr.title
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:212
+      - path: pr.author
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:213
+      - path: pr.body
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:214
+      - path: pr.additions
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:215
+      - path: pr.deletions
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:215
+      - path: pr.changedFiles
+        at: templates/template-github-review-agent/src/mastra/workflows/pr-review-workflow.ts:215
