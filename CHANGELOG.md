@@ -30,6 +30,8 @@ not generalize: it found 84% of the fields on the projects it was built on and
 
 ### Changed
 - The version is `1.0.0.dev0`; nothing is released until the new checks work.
+- The README is a skeleton with the product line and the status, until the
+  checks exist.
 
 ## [0.10.0] - 2026-10-17
 
