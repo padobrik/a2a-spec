@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "fingerprint": "db1ddc256195",
+  "agent_id": "triage-agent",
+  "scenario": "double_charge",
+  "timestamp": "2026-10-17T06:33:09.096288+00:00",
+  "input": {
+    "message": "I was charged twice. This is urgent."
+  },
+  "output": {
+    "category": "billing",
+    "priority": "high",
+    "summary": "I was charged twice. This is urgent."
+  },
+  "metadata": {
+    "agent_version": "1.0",
+    "model": null,
+    "prompt_hash": null,
+    "latency_ms": 0.0014590041246265173,
+    "token_usage": null
+  }
+}
