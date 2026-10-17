@@ -20,8 +20,13 @@ not generalize: it found 84% of the fields on the projects it was built on and
   snapshots, policy rules, the Function, HTTP and A2A adapters, the pytest
   plugin, the GitHub Action, the examples and their guides.
 - The `typescript` extra and the `jsonschema` and `httpx` dependencies.
+- The benchmark data (`benchmarks/`), the recon notes and the design note.
 - The settings `specs_dir`, `scenarios_dir`, `adapters_dir`, `storage` and
   `ci` in `handshake.yaml`, and the messages for settings removed in 0.9.
+
+### Added
+- `docs/history/contract-testing.md`: what the contract flow did, how it was
+  measured and why it was closed, with links to its code and benchmark data.
 
 ### Changed
 - The version is `1.0.0.dev0`; nothing is released until the new checks work.
