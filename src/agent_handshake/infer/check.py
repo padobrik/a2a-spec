@@ -40,8 +40,9 @@ def check_inferred_spec(spec: Spec) -> FreshnessResult:
 
     path, function = parse_source_ref(spec.inferred_from)
     root = spec_schema(spec)
-    # The spec's own fields pick the same parameter that infer chose.
-    reads = analyze_consumer(path, function, {p[0] for p in field_paths(root)})
+    # The spec's own fields (or its text or list type) pick the parameter infer chose.
+    output = {"string": "text", "array": "list"}.get(spec.structural.type)
+    reads = analyze_consumer(path, function, {p[0] for p in field_paths(root)}, output)
 
     failures: list[str] = []
     reported: set[tuple[str, ...]] = set()

@@ -15,6 +15,7 @@ from agent_handshake.exceptions import HandshakeError
 from agent_handshake.infer.builder import infer_spec
 from agent_handshake.infer.check import check_inferred_spec
 from agent_handshake.infer.consumer import analyze_consumer, parse_source_ref
+from agent_handshake.infer.shapes import output_kind
 from agent_handshake.snapshot.store import SnapshotStore
 from agent_handshake.spec.loader import load_spec_files
 
@@ -78,7 +79,8 @@ def infer_command(
         snapshots = SnapshotStore(config.storage.path).load_all(producer)
         # The producer's keys pick the parameter whose type matches its output.
         keys = {k for s in snapshots if isinstance(s.output_data, dict) for k in s.output_data}
-        reads = analyze_consumer(path, function, keys)
+        output = output_kind([s.output_data for s in snapshots])
+        reads = analyze_consumer(path, function, keys, output)
     except (HandshakeError, ValueError) as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(EXIT_INPUT) from None

@@ -60,6 +60,7 @@ def choose_param(
     described: Sequence[tuple[T, Annotation]],
     keys: Collection[str] | None,
     reads_of: Callable[[T, Annotation], set[str]],
+    output: str | None = None,
 ) -> tuple[T, Annotation] | None:
     """The parameter that holds the producer's output, or None when none can.
 
@@ -73,7 +74,21 @@ def choose_param(
     data is not a parameter (it may come from shared state): None. A
     parameter without an annotation, or annotated as a dict, cannot be
     judged; it is then taken as before.
+
+    ``output`` is ``"text"`` or ``"list"`` when the producer's output is not
+    an object. Text has no fields, so a parameter the code reads fields from
+    does not hold it; a list's fields are read per item, so only a parameter
+    annotated as a list, or one read for no fields, can hold it.
     """
+    if output in ("text", "list"):
+        for param, annotation in described:
+            if annotation.mapping or (annotation.shape and not annotation.items):
+                continue  # a dict or a single object is neither text nor a list
+            if output == "list" and annotation.items:
+                return param, annotation
+            if not reads_of(param, annotation):
+                return param, annotation
+        return None
     candidates = [(p, a) for p, a in described if not a.primitive] or list(described)
     if not keys:
         typed = [(p, a) for p, a in candidates if a.shape is not None or a.wrapper]
@@ -99,15 +114,32 @@ def choose_param(
     return None
 
 
+def output_kind(outputs: Sequence[object]) -> str | None:
+    """``"text"`` or ``"list"`` when every recorded output is one, else None."""
+    if outputs and all(isinstance(o, str) for o in outputs):
+        return "text"
+    if outputs and all(isinstance(o, list) for o in outputs):
+        return "list"
+    return None
+
+
 def no_matching_param(
-    function: str, path: object, params: Sequence[str], keys: Collection[str] | None
+    function: str,
+    path: object,
+    params: Sequence[str],
+    keys: Collection[str] | None,
+    output: str | None = None,
 ) -> str:
     """The error when no parameter of ``function`` holds the producer's output."""
-    shown = ", ".join(sorted(keys or [])[:8])
+    if output in ("text", "list"):
+        what = "text" if output == "text" else "a list"
+        reason = f": its output is {what}, and every parameter is read as an object"
+    else:
+        shown = ", ".join(sorted(keys or [])[:8])
+        reason = f" (keys: {shown}): none has a type that declares these keys or reads them"
     return (
         f"No parameter of '{function}' in {path} ({', '.join(params)}) holds the "
-        f"producer's output (keys: {shown}): none has a type that declares these keys "
-        "or reads them. Check --producer, or the data may come from shared state."
+        f"producer's output{reason}. Check --producer, or the data may come from shared state."
     )
 
 

@@ -63,7 +63,10 @@ def parse_source_ref(ref: str) -> tuple[Path, str]:
 
 
 def analyze_consumer(
-    path: str | Path, function: str, keys: Collection[str] | None = None
+    path: str | Path,
+    function: str,
+    keys: Collection[str] | None = None,
+    output: str | None = None,
 ) -> ConsumerReads:
     """Find the input fields a consumer function reads.
 
@@ -72,6 +75,8 @@ def analyze_consumer(
     such parameters the one whose fields share the most names with ``keys``
     (the producer's output keys). Without one, the first parameter (after
     ``self``/``cls``) that is not a plain ``str``, ``int`` and the like.
+    ``output`` is ``"text"`` or ``"list"`` when the producer's output is not an
+    object (see ``choose_param``).
 
     Literal string keys are tracked through nested reads (``data["a"]["b"]``,
     ``data.get("a", {}).get("b")``) and through local names bound to a nested
@@ -89,7 +94,7 @@ def analyze_consumer(
     if path.suffix in TS_LIKE_SUFFIXES:
         from agent_handshake.infer.ts_consumer import analyze_ts_consumer
 
-        return analyze_ts_consumer(path, function, keys)
+        return analyze_ts_consumer(path, function, keys, output)
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     except SyntaxError as e:
@@ -117,16 +122,21 @@ def analyze_consumer(
     scope = _Scope(module, _helpers(tree, fn), local=_bound_names(fn))
 
     def visit(param: str, annotation: Annotation) -> _ReadVisitor:
-        visitor = _ReadVisitor(param, annotation, scope)
+        visitor = _ReadVisitor(param, annotation, scope, text=output == "text")
         for stmt in fn.body:
             visitor.visit(stmt)
         visitor.finish()
         return visitor
 
     described = [(a.arg, module.annotation(a.annotation)) for a in args]
-    chosen = choose_param(described, keys, lambda p, a: {r.path[0] for r in visit(p, a).reads})
+
+    def reads_of(param: str, annotation: Annotation) -> set[str]:
+        return {r.path[0] for r in visit(param, annotation).reads}
+
+    chosen = choose_param(described, keys, reads_of, output)
     if chosen is None:
-        raise ConfigError(no_matching_param(function, path, [p for p, _ in described], keys))
+        names = [p for p, _ in described]
+        raise ConfigError(no_matching_param(function, path, names, keys, output))
     param, annotation = chosen
     visitor = visit(param, annotation)
     logger.debug("Consumer %s:%s reads %d field(s)", path, function, len(visitor.reads))
@@ -209,6 +219,7 @@ class _ReadVisitor(ast.NodeVisitor):
         annotation: Annotation | None = None,
         scope: _Scope | None = None,
         root: Chain = ((), ()),
+        text: bool = False,
     ) -> None:
         self.param = param
         # In a helper function, the parameter holds the part of the input at ``root``.
@@ -218,6 +229,9 @@ class _ReadVisitor(ast.NodeVisitor):
         # An annotated parameter that is not a dict is an object: its
         # attributes are its fields. A list parameter holds one output per item.
         self.object_mode = annotation.present and not annotation.mapping
+        # A text parameter (a str, or the producer's output is text): `"x" in p`
+        # tests for a substring, it does not read a key.
+        self.text = text or annotation.primitive
         self.items = annotation.items
         self.wrapper = annotation.wrapper
         self.shape = annotation.shape
@@ -575,6 +589,8 @@ class _ReadVisitor(ast.NodeVisitor):
             and isinstance(node.left.value, str)
         ):
             base = self._base(node.comparators[0])
+            if base is not None and self.text and base == self.root:
+                return  # a substring test on text
             if base is not None:
                 self._record((base[0] + (node.left.value,), base[1] + (False,)), node.lineno)
                 return

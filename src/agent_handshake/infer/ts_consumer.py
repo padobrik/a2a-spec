@@ -34,7 +34,7 @@ _FUNCTIONS = frozenset({"arrow_function", "function_expression", "function"})
 
 
 def analyze_ts_consumer(
-    path: Path, function: str, keys: Collection[str] | None = None
+    path: Path, function: str, keys: Collection[str] | None = None, output: str | None = None
 ) -> ConsumerReads:
     """Find the input fields a TypeScript or JavaScript function reads.
 
@@ -92,10 +92,14 @@ def analyze_ts_consumer(
         return visitor
 
     described = [(p, module.annotation(t)) for p, t in params]
-    chosen = choose_param(described, keys, lambda p, a: {r.path[0] for r in visit(p, a).reads})
+
+    def reads_of(pattern: Node, annotation: Annotation) -> set[str]:
+        return {r.path[0] for r in visit(pattern, annotation).reads}
+
+    chosen = choose_param(described, keys, reads_of, output)
     if chosen is None:
         names = [node_text(p) for p, _ in described]
-        raise ConfigError(no_matching_param(function, path, names, keys))
+        raise ConfigError(no_matching_param(function, path, names, keys, output))
     pattern, annotation = chosen
     visitor = visit(pattern, annotation)
     return ConsumerReads(
