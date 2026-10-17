@@ -25,7 +25,9 @@ def test_index_has_39_cases_with_sources() -> None:
 
 def test_split_follows_the_documented_method() -> None:
     sizes = Counter(r["project"] for r in _rows("index.tsv"))
-    split = {r["project"]: r["split"] for r in _rows("split.tsv")}
+    split_rows = _rows("split.tsv")
+    split = {r["project"]: r["split"] for r in split_rows}
+    assert len(split_rows) == len(split), "a project appears twice in split.tsv"
     assert set(split) == set(sizes)
     holdout: set[str] = set()
     count = 0
