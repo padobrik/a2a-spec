@@ -1,6 +1,6 @@
 """Measure how many consumer field reads `handshake infer` finds on real projects.
 
-Each project in benchmarks/recon/<project>/benchmark.yaml names a repository,
+Each project in benchmarks/<suite>/<project>/benchmark.yaml names a repository,
 a commit and a list of cases. A case is one consumer function and the fields
 it really reads from the producer's output (the expected list, written by
 hand with a file:line for each field). The script fetches each repository at
@@ -8,7 +8,11 @@ its commit, runs the consumer analysis on every case and prints, per project
 and in total: fields found, expected fields, and false fields (fields the
 analysis reports that are not on the expected list).
 
-    python scripts/benchmark.py                      # all projects
+There are two suites. `recon` holds the projects the analyzer was developed
+against; `holdout` holds projects it was never tuned on. Each gets its own total.
+
+    python scripts/benchmark.py                      # every suite
+    python scripts/benchmark.py --suite holdout
     python scripts/benchmark.py --project crewai-flow-template -v
     python scripts/benchmark.py --repo-dir gpt-researcher=../gpt-researcher
 
@@ -35,7 +39,8 @@ from agent_handshake.exceptions import HandshakeError
 from agent_handshake.infer.consumer import analyze_consumer
 
 ROOT = Path(__file__).resolve().parent.parent
-BENCHMARKS = ROOT / "benchmarks" / "recon"
+SUITES = ("recon", "holdout")
+BENCHMARKS = ROOT / "benchmarks"
 CACHE = ROOT / ".cache" / "benchmarks"
 
 
@@ -227,6 +232,7 @@ def report(scores: list[ProjectScore], verbose: bool) -> str:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--suite", choices=SUITES, action="append", help="Only this suite.")
     parser.add_argument("--project", action="append", help="Only this project (repeatable).")
     parser.add_argument(
         "--repo-dir",
@@ -236,18 +242,28 @@ def main(argv: list[str]) -> int:
         help="Use a local checkout at the benchmark's commit instead of fetching.",
     )
     parser.add_argument("--cache", type=Path, default=CACHE)
-    parser.add_argument("--benchmarks", type=Path, default=BENCHMARKS, help=argparse.SUPPRESS)
+    # A single suite directory elsewhere, for preparing a new suite.
+    parser.add_argument("--benchmarks", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("-v", "--verbose", action="store_true", help="Show each case.")
     args = parser.parse_args(argv[1:])
 
-    slugs = args.project or sorted(p.parent.name for p in args.benchmarks.glob("*/benchmark.yaml"))
+    if args.benchmarks:
+        suites = [(args.benchmarks.name, args.benchmarks)]
+    else:
+        suites = [(name, BENCHMARKS / name) for name in args.suite or SUITES]
+    blocks = []
     try:
         repo_dirs = {k: Path(v) for k, v in (item.split("=", 1) for item in args.repo_dir)}
-        scores = run(slugs, repo_dirs, args.cache, args.benchmarks)
+        for name, folder in suites:
+            found = sorted(p.parent.name for p in folder.glob("*/benchmark.yaml"))
+            slugs = [s for s in found if not args.project or s in args.project]
+            if slugs:
+                scores = run(slugs, repo_dirs, args.cache / name, folder)
+                blocks.append(f"== {name}\n{report(scores, args.verbose)}")
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as e:
         print(f"benchmark: {e}", file=sys.stderr)
         return 2
-    print(report(scores, args.verbose))
+    print("\n\n".join(blocks))
     return 0
 
 

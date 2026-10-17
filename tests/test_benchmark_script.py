@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -90,3 +91,22 @@ class TestReport:
         assert "    missed summary" in lines
         assert "    false  extra" in lines
         assert lines[-1].split() == ["total", "1", "2", "2", "found", "50%"]
+
+
+def test_each_suite_gets_its_own_total(tmp_path: Path, monkeypatch, capsys) -> None:
+    (tmp_path / "repo").mkdir()
+    repo = _repo(tmp_path / "repo")
+    for suite, fields in (("recon", ["task"]), ("holdout", ["task", "summary"])):
+        folder = tmp_path / "benchmarks" / suite / "p"
+        folder.mkdir(parents=True)
+        cases = [
+            {"id": "run", "source": "agents/c.py:run", "expected": [{"path": f} for f in fields]}
+        ]
+        data = {"project": f"p-{suite}", "repository": "r", "commit": "c", "cases": cases}
+        (folder / "benchmark.yaml").write_text(json.dumps(data))
+    monkeypatch.setattr(benchmark, "BENCHMARKS", tmp_path / "benchmarks")
+    assert benchmark.main(["benchmark", "--repo-dir", f"p={repo}"]) == 0
+    blocks = capsys.readouterr().out.split("\n\n")
+    assert [b.splitlines()[0] for b in blocks] == ["== recon", "== holdout"]
+    assert blocks[0].splitlines()[-1].split()[:4] == ["total", "1", "1", "2"]
+    assert blocks[1].splitlines()[-1].split()[:4] == ["total", "1", "2", "2"]
