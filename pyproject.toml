@@ -58,9 +58,6 @@ all = [
 [project.scripts]
 handshake = "agent_handshake.cli.main:main"
 
-[project.entry-points.pytest11]
-handshake = "agent_handshake.pytest_plugin"
-
 [project.urls]
 Homepage = "https://github.com/padobrik/agent-handshake"
 Documentation = "https://github.com/padobrik/agent-handshake/tree/main/docs"
