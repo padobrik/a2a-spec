@@ -37,6 +37,7 @@ import yaml
 
 from agent_handshake.exceptions import HandshakeError
 from agent_handshake.infer.consumer import analyze_consumer
+from agent_handshake.infer.shapes import output_kind
 
 ROOT = Path(__file__).resolve().parent.parent
 SUITES = ("recon", "holdout")
@@ -103,13 +104,17 @@ def dotted(path: tuple[str, ...]) -> str:
 
 
 def field_paths(
-    path: str | Path, function: str, keys: frozenset[str] | None = None
+    path: str | Path,
+    function: str,
+    keys: frozenset[str] | None = None,
+    output: str | None = None,
 ) -> frozenset[str]:
     """Every field path the analysis finds, parents included, as in a spec.
 
-    ``keys`` are the producer's output keys, as ``handshake infer`` passes them.
+    ``keys`` and ``output`` describe the producer's output, as
+    ``handshake infer`` passes them.
     """
-    reads = analyze_consumer(path, function, keys).reads
+    reads = analyze_consumer(path, function, keys, output).reads
     return frozenset(
         dotted(r.path[:n])
         for r in reads
@@ -118,16 +123,12 @@ def field_paths(
     )
 
 
-def producer_keys(project: Path, producer: str | None) -> frozenset[str]:
-    """The output keys of the producer's snapshots in the benchmark project."""
+def producer_outputs(project: Path, producer: str | None) -> list[Any]:
+    """The outputs of the producer's snapshots in the benchmark project."""
     if not producer:
-        return frozenset()
-    keys: set[str] = set()
-    for path in sorted((project / "handshake" / "snapshots" / producer).glob("*.json")):
-        output = json.loads(path.read_text(encoding="utf-8")).get("output")
-        if isinstance(output, dict):
-            keys.update(output)
-    return frozenset(keys)
+        return []
+    files = sorted((project / "handshake" / "snapshots" / producer).glob("*.json"))
+    return [json.loads(path.read_text(encoding="utf-8")).get("output") for path in files]
 
 
 def score_case(case: dict[str, Any], repo: Path, project: Path | None = None) -> CaseScore:
@@ -146,9 +147,10 @@ def score_case(case: dict[str, Any], repo: Path, project: Path | None = None) ->
                 text = text.replace(old, new)
             target = Path(tmp) / target.name
             target.write_text(text, encoding="utf-8")
-        keys = producer_keys(project, case.get("producer")) if project else None
+        outputs = producer_outputs(project, case.get("producer")) if project else []
+        keys = frozenset(k for o in outputs if isinstance(o, dict) for k in o)
         try:
-            found = field_paths(target, function, keys)
+            found = field_paths(target, function, keys, output_kind(outputs))
         except HandshakeError as e:
             # Name the file as the benchmark does, not by a temporary or local path.
             error = str(e).replace(str(target), file).replace(str(repo) + "/", "")
