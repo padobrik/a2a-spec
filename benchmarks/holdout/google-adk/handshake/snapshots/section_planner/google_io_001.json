@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "agent_id": "section_planner",
+  "scenario": "google_io",
+  "input": {
+    "research_plan": "*   [RESEARCH] Analyze the key announcements and product updates made at Google I/O 2025.\n*   [RESEARCH] Identify the central themes and strategic directions emphasized by Google during the event, particularly concerning AI, Android, and other emerging technologies like Android XR.\n*   [RESEARCH] Investigate the reception and industry impact of the major product unveilings and feature enhancements.\n*   [RESEARCH] Examine any significant shifts or continuities in Google's developer strategy as presented at the conference.\n*   [RESEARCH] Assess the implications of the announced technologies and initiatives for developers, consumers, and the broader tech landscape.\n*   [DELIVERABLE][IMPLIED] Create a summary of the key announcements grouped by product area."
+  },
+  "output": "# Key Announcements and Product Updates\nAn overview of the main products and features announced at Google I/O 2025.\n\n# Strategic Themes: AI, Android and Android XR\nThe directions Google emphasized across its platforms.\n\n# Reception and Industry Impact\nHow press, analysts and competitors responded.\n\n# Developer Strategy\nShifts and continuities in tools and platforms for developers.\n\n# Implications\nWhat the announcements mean for developers, consumers and the wider tech landscape."
+}

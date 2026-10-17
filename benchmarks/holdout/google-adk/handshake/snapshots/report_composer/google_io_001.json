@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "agent_id": "report_composer",
+  "scenario": "google_io",
+  "input": {
+    "research_plan": "*   [RESEARCH] Analyze the key announcements and product updates made at Google I/O 2025.\n*   [RESEARCH] Identify the central themes and strategic directions emphasized by Google during the event, particularly concerning AI, Android, and other emerging technologies like Android XR.\n*   [RESEARCH] Investigate the reception and industry impact of the major product unveilings and feature enhancements.\n*   [RESEARCH] Examine any significant shifts or continuities in Google's developer strategy as presented at the conference.\n*   [RESEARCH] Assess the implications of the announced technologies and initiatives for developers, consumers, and the broader tech landscape.\n*   [DELIVERABLE][IMPLIED] Create a summary of the key announcements grouped by product area.",
+    "section_research_findings": "## [RESEARCH] Key announcements and product updates\nSummary of the keynote announcements.",
+    "sources": {
+      "src-1": {"short_id": "src-1", "title": "Google I/O 2025 keynote recap", "url": "https://blog.google/technology/developers/google-io-2025-collection/", "domain": "blog.google", "supported_claims": []}
+    },
+    "report_sections": "# Key Announcements and Product Updates\nAn overview of the main products and features announced at Google I/O 2025."
+  },
+  "output": "# Google I/O 2025: Key Announcements and Highlights\n\n## Key Announcements and Product Updates\nGoogle opened the event with a series of Gemini updates <cite source=\"src-1\" />. Android XR was presented as a new platform for headsets and glasses <cite source=\"src-1\" />.\n\n## Strategic Themes: AI, Android and Android XR\nPlaceholder paragraph for this section <cite source=\"src-1\" />."
+}
