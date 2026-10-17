@@ -1,1 +1,0 @@
-{"schema_version": 1, "fingerprint": "aaa111", "agent_id": "triage-agent", "scenario": "double_charge", "input": {"message": "m"}, "output": {"category": "billing", "priority": "high"}}

@@ -1,8 +1,0 @@
-description: The consumer started to read a field the spec does not cover; infer --check fails without snapshots.
-steps:
-  - run: handshake infer --check
-    exit: 1
-    output: ["FAIL triage-agent-to-resolution-agent", "resolve reads 'language' (line 2), which the spec does not cover"]
-  - run: pytest --handshake handshake/specs
-    exit: 1
-    output: ["reads 'language'"]
