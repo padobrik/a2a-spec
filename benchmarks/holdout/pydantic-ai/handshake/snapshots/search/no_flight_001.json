@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "agent_id": "search",
+  "scenario": "no_flight",
+  "input": {
+    "prompt": "Find me a flight from SFO to ANC on 2025-01-11"
+  },
+  "output": {}
+}

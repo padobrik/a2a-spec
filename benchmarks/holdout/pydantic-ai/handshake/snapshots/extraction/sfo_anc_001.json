@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "agent_id": "extraction",
+  "scenario": "sfo_anc",
+  "input": {
+    "prompt": "\n1. Flight SFO-AK123\n- Price: $350\n- Origin: San Francisco International Airport (SFO)\n- Destination: Ted Stevens Anchorage International Airport (ANC)\n- Date: January 10, 2025\n\n2. Flight SFO-AK456\n- Price: $370\n- Origin: San Francisco International Airport (SFO)\n- Destination: Fairbanks International Airport (FAI)\n- Date: January 10, 2025\n\n3. Flight SFO-AK789\n- Price: $400\n- Origin: San Francisco International Airport (SFO)\n- Destination: Juneau International Airport (JNU)\n- Date: January 20, 2025\n\n4. Flight NYC-LA101\n- Price: $250\n- Origin: San Francisco International Airport (SFO)\n- Destination: Ted Stevens Anchorage International Airport (ANC)\n- Date: January 10, 2025\n\n5. Flight CHI-MIA202\n- Price: $200\n- Origin: Chicago O'Hare International Airport (ORD)\n- Destination: Miami International Airport (MIA)\n- Date: January 12, 2025\n\n6. Flight BOS-SEA303\n- Price: $120\n- Origin: Boston Logan International Airport (BOS)\n- Destination: Ted Stevens Anchorage International Airport (ANC)\n- Date: January 12, 2025\n\n7. Flight DFW-DEN404\n- Price: $150\n- Origin: Dallas/Fort Worth International Airport (DFW)\n- Destination: Denver International Airport (DEN)\n- Date: January 10, 2025\n\n8. Flight ATL-HOU505\n- Price: $180\n- Origin: Hartsfield-Jackson Atlanta International Airport (ATL)\n- Destination: George Bush Intercontinental Airport (IAH)\n- Date: January 10, 2025\n"
+  },
+  "output": [
+    {"flight_number": "SFO-AK123", "price": 350, "origin": "SFO", "destination": "ANC", "date": "2025-01-10"},
+    {"flight_number": "SFO-AK456", "price": 370, "origin": "SFO", "destination": "FAI", "date": "2025-01-10"},
+    {"flight_number": "SFO-AK789", "price": 400, "origin": "SFO", "destination": "JNU", "date": "2025-01-20"},
+    {"flight_number": "NYC-LA101", "price": 250, "origin": "SFO", "destination": "ANC", "date": "2025-01-10"},
+    {"flight_number": "CHI-MIA202", "price": 200, "origin": "ORD", "destination": "MIA", "date": "2025-01-12"},
+    {"flight_number": "BOS-SEA303", "price": 120, "origin": "BOS", "destination": "ANC", "date": "2025-01-12"},
+    {"flight_number": "DFW-DEN404", "price": 150, "origin": "DFW", "destination": "DEN", "date": "2025-01-10"},
+    {"flight_number": "ATL-HOU505", "price": 180, "origin": "ATL", "destination": "IAH", "date": "2025-01-10"}
+  ]
+}
