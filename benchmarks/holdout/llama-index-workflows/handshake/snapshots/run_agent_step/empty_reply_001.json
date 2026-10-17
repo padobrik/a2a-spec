@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "agent_id": "run_agent_step",
+  "scenario": "empty_reply",
+  "input": {
+    "input": [
+      {
+        "role": "system",
+        "additional_kwargs": {},
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "You are a calculator assistant."
+          }
+        ],
+        "content": "You are a calculator assistant."
+      },
+      {
+        "role": "user",
+        "additional_kwargs": {},
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "Can you add 5 and 3?"
+          }
+        ],
+        "content": "Can you add 5 and 3?"
+      },
+      {
+        "role": "assistant",
+        "additional_kwargs": {
+          "tool_calls": [
+            {
+              "tool_id": "one",
+              "tool_name": "handoff",
+              "tool_kwargs": {
+                "to_agent": "calculator",
+                "reason": "This requires arithmetic operations."
+              }
+            }
+          ]
+        },
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "Let me help you with that calculation. I'll hand this off to the calculator."
+          }
+        ],
+        "content": "Let me help you with that calculation. I'll hand this off to the calculator."
+      },
+      {
+        "role": "tool",
+        "additional_kwargs": {
+          "tool_call_id": "one"
+        },
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "Agent calculator is now handling the request due to the following reason: This requires arithmetic operations..\nPlease continue with the current request."
+          }
+        ],
+        "content": "Agent calculator is now handling the request due to the following reason: This requires arithmetic operations..\nPlease continue with the current request."
+      }
+    ],
+    "current_agent_name": "calculator"
+  },
+  "output": {
+    "response": {
+      "role": "assistant",
+      "additional_kwargs": {},
+      "blocks": [],
+      "content": null
+    },
+    "structured_response": null,
+    "current_agent_name": "calculator",
+    "tool_calls": [],
+    "retry_messages": [
+      {
+        "role": "assistant",
+        "additional_kwargs": {},
+        "blocks": [],
+        "content": null
+      },
+      {
+        "role": "user",
+        "additional_kwargs": {},
+        "blocks": [
+          {
+            "block_type": "text",
+            "text": "FAILURE: Your previous response was empty.\nYou must output a thought and an action/answer.\n\nPlease follow this structure exactly:\nThought: <what you are thinking>\nAction: <tool_name>\nAction Input: <json_params>\n\nOR:\n\nThought: <what you are thinking>\nAnswer: <your final response to the user>"
+          }
+        ],
+        "content": "FAILURE: Your previous response was empty.\nYou must output a thought and an action/answer.\n\nPlease follow this structure exactly:\nThought: <what you are thinking>\nAction: <tool_name>\nAction Input: <json_params>\n\nOR:\n\nThought: <what you are thinking>\nAnswer: <your final response to the user>"
+      }
+    ]
+  }
+}
