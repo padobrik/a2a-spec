@@ -13,7 +13,6 @@ reviews:
   path_filters:
     - "src/**"
     - "tests/**"
-    - "action.yml"
     - ".github/workflows/**"
   auto_review:
     enabled: true

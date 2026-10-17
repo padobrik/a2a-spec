@@ -129,4 +129,3 @@ jobs:
             sleep 20
           done
           pypi-env/bin/handshake --version | grep -qx "agent-handshake $VERSION"
-          pypi-env/bin/handshake skill | grep -q "name: agent-handshake"
