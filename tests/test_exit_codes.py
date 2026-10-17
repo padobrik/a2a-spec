@@ -1,4 +1,4 @@
-"""Exit codes: 0 all good, 1 contract broken or serious drift, 2 configuration or input error."""
+"""Exit codes: 0 all good, 1 problems found, 2 configuration or input error."""
 
 from __future__ import annotations
 
