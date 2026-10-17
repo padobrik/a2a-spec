@@ -30,4 +30,6 @@ Analyzer of release 0.10.0, first run after the references were committed:
 | recon | 107 | 127 (84%) | 0 |
 | holdout | 20 | 126 (16%) | 7 |
 
-The reasons are in `docs/recon/holdout.md`.
+The reasons are in `docs/recon/holdout.md`. Release 0.10.1 removes the 7 false
+fields (a producer whose output is text or a list, and a substring test on
+text) without changing the found fields: holdout is 20 of 126, 0 false.

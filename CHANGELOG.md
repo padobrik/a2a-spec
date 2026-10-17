@@ -7,6 +7,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+- `handshake infer` no longer takes fields from the wrong parameter when the
+  producer's output is text or a list. Text has no fields, and a list is read
+  per item, so a parameter that the code reads as an object (a framework
+  context, for example) is refused with "No parameter ... holds the producer's
+  output". Before, its attributes became fields of the contract.
+- `"word" in text` on a text parameter (annotated `str`, or the producer's
+  output is text) is a substring test, not a key read.
+
+### Changed
+- The README says where `infer` works (the data is a named parameter) and where
+  it does not (shared state, events, files, step factories), with the benchmark
+  results.
+
 ## [0.10.0] - 2026-10-17
 
 ### Added

@@ -394,6 +394,36 @@ Every `handshake` command exits with one of three codes:
 
 When a run has both, the code is `2`: the run was not complete, so its passes cannot be trusted.
 
+## Where `handshake infer` works
+
+`handshake infer` reads the consumer's code. It works when the producer's
+output reaches a function you can name in `--source` as a parameter: a dict, a
+typed model (Pydantic, TypedDict, dataclass, Zod), or a list of them. It does not
+work when the data travels another way:
+
+- through shared state that is not a parameter, such as Google ADK session
+  state, CrewAI flow state (`self.state`) or LlamaIndex `ctx.store` (a LangGraph
+  node gets its state as a parameter, so it works);
+- through framework events or result objects collected inside the consumer;
+- through files on disk, or text that is put into a prompt;
+- through step factories whose function has no name of its own, such as
+  Mastra's `createStep({ execute })`.
+
+In those cases `infer` writes nothing wrong: it finds no field, warns, or
+refuses with "No parameter ... holds the producer's output". Write the spec by
+hand there.
+
+How well it does, measured on frozen real projects (`make benchmark`):
+
+| Projects | Fields found | False fields |
+|---|---|---|
+| [recon](benchmarks/recon/): five projects `infer` was developed on | 107 of 127 (84%) | 0 |
+| [holdout](benchmarks/holdout/): five projects it never saw | 20 of 126 (16%) | 0 |
+
+On holdout, most of the data travels through state, events, files or step
+factories; where it is a named parameter, `infer` finds 20 of 31 fields. See
+[docs/recon/holdout.md](docs/recon/holdout.md).
+
 ## Limits
 
 - `handshake infer` reads Python consumers. It finds `data["key"]`, `data.get("key")` and `"key" in data`, also in nested objects (`data["customer"]["tier"]`, `data.get("customer", {}).get("tier")`) and through a local name (`customer = data["customer"]`). It also follows list items (`for item in data["searches"]`, comprehensions, `data["searches"][0]`; the field is `searches[].query`), a value taken with `or` or a conditional (`headers = data.get("headers") or {}`), and helper functions in the same file that get the data (`self.review(state)`, up to three levels).
