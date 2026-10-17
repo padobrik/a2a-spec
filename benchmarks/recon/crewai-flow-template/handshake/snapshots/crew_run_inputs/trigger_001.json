@@ -1,1 +1,0 @@
-{"schema_version": 1, "agent_id": "crew_run_inputs", "scenario": "trigger", "input": {}, "output": {"crewai_trigger_payload": {"topic": "AI LLMs"}, "topic": "", "current_year": ""}}
