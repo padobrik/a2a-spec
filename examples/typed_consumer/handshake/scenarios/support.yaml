@@ -1,0 +1,7 @@
+scenarios:
+  - name: double_charge
+    input:
+      message: "I was charged twice. This is urgent."
+  - name: question
+    input:
+      message: "How do I change my address?"
