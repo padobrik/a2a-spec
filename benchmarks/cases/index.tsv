@@ -1,0 +1,40 @@
+id	project	ref	date	kind	detect	visibility	summary
+1	browser-use	daf7a3e	2026-07-22	tool_name	E	static	Prompts told the model to call replace_file_str; the registered tool is replace_file
+2	opencode	4ce830a (#34557)	2026-06-29	tool_name	E+N	static	v2 prompts used WebFetch, TodoWrite, Bash, Task; real tools are webfetch, todowrite, shell, subagent
+3	qwen-code	55fbf99 (#14306)	2026-10-16	unavailable	E	runtime	Hosted harness replaced the tools on the request but the prompt kept guidance for local tools
+4	qwen-code	0b404a3 (#7088)	2026-07-18	args	A	static	Prompt tool examples used path / old content; schemas use file_path, pattern, old_string, new_string
+5	qwen-code	81582ca (#12990)	2026-09-29	naming	N	runtime	Code Mode prompt named tools by registered name instead of the JavaScript name the model must call
+6	qwen-code	6b729f9 (#9718)	2026-08-23	unavailable	E	runtime	System reminder announced the skill tool to subagents that lacked it; model burned a turn on "Tool skill not found"
+7	qwen-code	41bcdae (#4166)	2026-05-15	orphan	O	runtime	Prompt's deferred-tool list froze before MCP discovery; headless runs silently lost all MCP tools
+8	cline	fc8e0fc	2024-07-10	semantic	S	static	System prompt and tool parameter descriptions gave conflicting rules about paths
+9	cline	9bdb8a9 (#10200)	2026-04-15	orphan	O	static	use_subagents registered for GLM/Hermes/XS variants but missing from their hardcoded prompt sections; models could not call it
+10	cline	835ed94 (#9958)	2026-03-26	unavailable	E	runtime	new_task described in the system prompt in yolo/headless mode where it is not available
+11	AutoGPT	b9ce39b (#14702)	2026-09-19	unavailable	E	runtime	Prompts, guides, tool descriptions and tool results told the model to call deferred tools directly; every such call was refused
+12	AutoGPT	f115607 (#12635)	2026-04-02	code_ref	C	runtime	SDK renamed Task to Agent; security hooks still matched "Task", so sub-agent controls were silently bypassed in production
+13	goose	9c0501b (#107)	2024-10-03	enum	V	static	Prompt examples used status "pending"; update_plan only allows "planned"
+14	deepagents	014a903 (#4075)	2026-06-18	naming	N(partial)	static	PTC tools rendered without tools. prefix; model confused global task with tools.task (subagent_type vs subagentType)
+15	deepagents	d3650c7 (#4920, #4921)	2026-07-21	unavailable	E	runtime	Large-result and execute guidance pointed to grep and other tools hidden by the tools= allowlist
+16	lobe-chat	8c3b83f (#14358)	2026-05-01	args	A	static	System role documented query / onlyIn / path; manifest exposes keywords / scope; wrong names silently dropped
+17	lobe-chat	1a48642 (#14823)	2026-05-15	orphan	O	runtime	System prompt @-mention list left out hidden built-in tools
+18	codex	41b4962 (#10666)	2026-02-04	code_ref	C(partial)	static	Hardcoded mode names in the Default prompt drifted from the code's mode metadata
+19	codex	6ae0781 (#42878)	2026-09-04	unavailable	E	runtime	Model instructions implied functions.request_user_input_async exists in every session
+20	zed	02a8ece (#28109)	2025-04-04	tool_name	N	static	Batch tool description named tools read-file, regex-search; real names use underscores
+21	zed	37540d1 (#40413)	2025-10-28	unavailable	E	runtime	All tools presented in the system prompt even in the Minimal profile; model tried tools it did not have
+22	avante.nvim	d7fa5fe (#2432)	2025-07-10	tool_name	E	static	Prompts referenced fetch_webpage and get_errors; real tools are fetch and get_diagnostics
+23	avante.nvim	issue #3235	2026	tool_name	E+A	static	Prompts mention thinking, run_command, functions.fetch, get_errors; real tools think, bash, fetch, get_diagnostics; required/optional args wrong
+24	continue	26bef77	2025-12-15	code_ref	C	static	BUILT_IN_TOOL_NAMES listed tools that do not exist and missed UploadArtifact
+25	continue	74dd75a	2025-07-23	args	A	static	Edit tool definition said diff while the implementation expected diffs
+26	smolagents	0196dc7 (#341)	2025-01-24	keys	V	static	Prompt examples used tool_name / tool_arguments keys; the parser expects name / arguments
+27	opencode	f593792 (#984)	2025-07-14	args	A+N	static	Edit tool descriptions referred to old_string, replace_all; schema uses oldString, replaceAll
+28	opencode	751899e (#5676)	2025-12-17	args	A	static	Bash tool description advertised a run_in_background parameter the schema does not have
+29	goose	ca058c4 (#7035)	2026-02-06	naming	N	runtime	Code execution instructions used snake_case function names; callable names are camelCase
+30	gemini-cli	19dc408 (#18498)	2026-02-06	code_ref	C	runtime	excludeTools with old names did not exclude renamed tools
+31	Roo-Code	cd60bb3 (#5232)	2025-06-30	semantic	S	static	apply_diff description said one file; the tool supports several
+32	qwen-code	d6914bd (#4170)	2026-05-17	semantic	S	runtime	Shell tool description claimed a persistent bash session regardless of the configured shell
+33	LibreChat	6f45a9e (#14553)	2026-08-01	dispatch	X	runtime	Declared MCP tool names used raw server name, executor map used normalized one; every call failed with Tool not found
+34	Claude Code	issue #81263	2026	tool_name	N	runtime	Prompt forbade calling "the AgentTool"; the tool is named Agent; also contradicted a sibling section
+35	maki	issue #438 / #392	2026-07	orphan	O	static	TOOLS_PROMPT missing 14+ registered tools; loop turns never learned they existed
+36	HyperNeo	issue #4837	2026-09	tool_name	E	static	Fictional tool names (save_artifact, approve_task, mark_complete) in about 13 prompt files after the registry was removed
+37	hermes-agent	issue #106506	2026	unavailable	E	runtime	Execution guidance named terminal, execute_code, read_file on sessions without them; phantom paid calls and a wrong date in records
+38	labkit	issue #567	2026	tool_name	N	runtime	Tool descriptions named sibling tools by MCP names (search) while the session exposes labkit_search
+39	pete.lostsource.net	blog	2026-05-17	tool_name	N	runtime	Instructions said mem_ssh; MCP registered mcp__mem__mem_ssh; model told the user SSH was unavailable
