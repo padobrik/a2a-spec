@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "agent_id": "review_files",
+  "scenario": "docs_only",
+  "input": {
+    "owner": "acme",
+    "repo": "widgets",
+    "pullNumber": 131,
+    "pr": {
+      "title": "Update README badges",
+      "body": null,
+      "state": "open",
+      "author": "octocat",
+      "baseBranch": "main",
+      "headBranch": "docs/badges",
+      "headSha": "9a1b3c5d7e9f0a2b4c6d8e0f1a3b5c7d9e1f3a5b",
+      "labels": [
+        "docs"
+      ],
+      "createdAt": "2026-03-02T09:14:00Z",
+      "updatedAt": "2026-03-02T11:40:00Z",
+      "additions": 4,
+      "deletions": 2,
+      "changedFiles": 1
+    },
+    "reviewableFiles": [
+      {
+        "filename": "README.md",
+        "status": "modified",
+        "additions": 4,
+        "deletions": 2,
+        "changes": 6,
+        "patch": "@@ -1,4 +1,6 @@\n+[![CI](https://example.com/ci.svg)](https://example.com/ci)"
+      }
+    ],
+    "skippedFiles": []
+  },
+  "output": {
+    "owner": "acme",
+    "repo": "widgets",
+    "pullNumber": 131,
+    "pr": {
+      "title": "Update README badges",
+      "body": null,
+      "state": "open",
+      "author": "octocat",
+      "baseBranch": "main",
+      "headBranch": "docs/badges",
+      "headSha": "9a1b3c5d7e9f0a2b4c6d8e0f1a3b5c7d9e1f3a5b",
+      "labels": [
+        "docs"
+      ],
+      "createdAt": "2026-03-02T09:14:00Z",
+      "updatedAt": "2026-03-02T11:40:00Z",
+      "additions": 4,
+      "deletions": 2,
+      "changedFiles": 1
+    },
+    "fileReviews": [
+      {
+        "filename": "README.md",
+        "issues": []
+      }
+    ],
+    "skippedFiles": []
+  }
+}
