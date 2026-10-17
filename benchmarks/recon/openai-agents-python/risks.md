@@ -1,6 +1,0 @@
-# Silent-breakage risks
-
-- disputed — examples/web_search_utils.py:14-18 — `get_field` returns None for a missing key, so if `action.sources` disappears from the SDK web search items (it is only included because of examples/financial_research_agent/agents/search_agent.py:25), `_search` returns None at examples/financial_research_agent/manager.py:176-177 and the search silently counts as failed (framework internals, latent).
-- disputed — examples/web_search_utils.py:50 — a citation without a string `title` silently takes the URL as its title (framework internals).
-- disputed — examples/financial_research_agent/manager.py:185-186 — `except Exception: return None` swallows any broken search contract, for example a renamed `FinancialSearchSummary.summary` at :181, and the writer still runs with `"evidence": []` at :284 when every search fails (latent, needs a future change to break; the same pattern is in examples/research_bot/manager.py:102-103).
-- disputed — examples/financial_research_agent/manager.py:65 — if `AnalysisSummary.summary` is renamed, the error in `_summary_extractor` becomes the tool text "An error occurred while running the tool. Please try again." through the default `failure_error_function` of `as_tool` (src/agents/agent.py:622,1112; src/agents/tool.py:1997-2002), and the writer still writes the report (latent, framework internals).

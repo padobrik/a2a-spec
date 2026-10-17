@@ -1,3 +1,0 @@
-# Silent-breakage risks: agent-framework
-
-- disputed — python/samples/03-workflows/control-flow/switch_case_edge_group.py:155 — handle_uncertain reads the Email that store_email put in shared workflow state through `ctx.get_state` (returns None when the key is missing, python/packages/core/agent_framework/_workflows/_workflow_context.py:437-439) and `getattr(email, 'email_content', '')`, so a renamed `Email.email_content` or an unmatched email_id would print an empty "Email content:" on the review path while the NotSpam path (line 129) fails loudly; it is latent, because store_email (lines 102-104) always sets the state today.
