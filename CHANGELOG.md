@@ -27,6 +27,8 @@ not generalize: it found 84% of the fields on the projects it was built on and
 ### Added
 - `docs/history/contract-testing.md`: what the contract flow did, how it was
   measured and why it was closed, with links to its code and benchmark data.
+- `docs/history/notes-0.x.md`: the assumptions recorded for 0.x, moved out of
+  NOTES.md, which now holds only those of the new product.
 
 ### Changed
 - The version is `1.0.0.dev0`; nothing is released until the new checks work.
