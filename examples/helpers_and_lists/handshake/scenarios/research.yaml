@@ -1,7 +1,0 @@
-scenarios:
-  - name: solar
-    input:
-      question: "solar panels for a small office?"
-  - name: hiring
-    input:
-      question: "hiring a first engineer?"
